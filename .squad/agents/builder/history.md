@@ -135,3 +135,14 @@ Dependency graph provided in plan. Can parallelize: P1.1–3, P1.5–6, P1.10–
 - **Winner:** `determine_winner()` returns first carrier with highest score (lower index wins ties per D004).
 - **Placeholder note:** Route value estimation is rough — P1.8 (financial calculator) will add `last_turn_revenue` to routes for real data.
 - **No validation scenarios** — harness doesn't exist yet (deferred to P1.12).
+
+### P1.8: Financial Calculator (2025-07-25)
+- **File:** `src/game/simulation/financial_calculator.gd`
+- **Pattern:** Static utility class (`class_name FinancialCalculator`, extends RefCounted). All methods static, no state.
+- **SLOT_UPKEEP_COST:** 10.0 per slot per turn — meaningful over 30 turns but not crippling.
+- **Revenue:** `passengers_served × passenger_price + cargo_served × cargo_price`. Demand split result is keyed by carrier_id.
+- **Operating cost:** Per ship on route: `lane.distance / ship_type.efficiency`. Summed across all ships on the route.
+- **process_financials grouping:** Groups all active routes across all carriers by `(lane_id, direction)` key. Calls `DemandCalculator.calculate_demand_split` once per group (not per route) — critical for correct competitive demand. Direction determined by comparing `route.origin_id` to `lane.origin_id`.
+- **Bankruptcy:** Carrier flagged bankrupt when `cash <= 0.0` after net applied.
+- **deliver_pending_ships:** Moves ships from `pending_orders` to `ships` when `available_turn <= current_turn`. Rebuilds `pending_orders` array to avoid mutation-during-iteration. Called at start of turn, before financials.
+- **No validation scenarios** — harness doesn't exist yet (deferred to P1.12).
