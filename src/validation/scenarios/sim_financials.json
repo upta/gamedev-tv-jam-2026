@@ -20,7 +20,7 @@
   },
   "steps": [
     { "op": "load_harness" },
-    { "op": "wait_frames", "count": 1 },
+    { "op": "wait_frames", "frames": 1 },
     { "op": "checkpoint", "name": "after_turn" },
     {
       "op": "assert_value",

@@ -20,13 +20,13 @@
   },
   "steps": [
     { "op": "load_harness" },
-    { "op": "wait_frames", "count": 1 },
+    { "op": "wait_frames", "frames": 1 },
     { "op": "checkpoint", "name": "after" },
     {
       "op": "assert_value",
       "checkpoint": "after",
-      "path": "harness_state.last_result.rankings",
-      "comparator": "length_eq",
+      "path": "harness_state.last_result.rankings.3.rank",
+      "comparator": "eq",
       "expected": 4
     },
     {

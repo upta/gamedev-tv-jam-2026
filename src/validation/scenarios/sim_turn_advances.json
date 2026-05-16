@@ -21,7 +21,7 @@
   "steps": [
     { "op": "load_harness" },
     { "op": "checkpoint", "name": "before" },
-    { "op": "wait_frames", "count": 1 },
+    { "op": "wait_frames", "frames": 1 },
     { "op": "checkpoint", "name": "after" },
     {
       "op": "assert_value",
