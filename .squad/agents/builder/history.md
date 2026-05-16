@@ -102,6 +102,18 @@ Dependency graph provided in plan. Can parallelize: P1.1–3, P1.5–6, P1.10–
 - **Directory:** Created `src/game/simulation/` (first file in this directory).
 - **No validation scenarios** — harness doesn't exist yet (deferred to P1.12).
 
+### P1.7: Demand Calculator (2026-05-18)
+- **Files:** `src/game/state/demand_data.gd`, `src/game/simulation/demand_calculator.gd`
+- **Pattern:** DemandData is a Resource with inner class DemandEntry; DemandCalculator is a static utility (RefCounted, all static methods) — mirrors RouteValidator pattern.
+- **Directional demand (D005):** Each lane generates TWO DemandEntry objects (forward + reverse). Passenger demand weighted toward destination planet slots; cargo demand weighted toward origin planet slots. This creates natural asymmetry.
+- **Demand formulas:** `passenger = dest_slots * 8 + origin_slots * 2` (clamped 20–100), `cargo = origin_slots * 6 + dest_slots * 2` (clamped 10–80). Earth→Mars forward: 84 pax / 76 cargo; Mars→Earth reverse: 100 pax / 68 cargo.
+- **Price factor:** `clamp(1.0 - (price - suggested) / suggested, 0.2, 1.5)` — underpricing boosts demand up to 1.5×, overpricing floors at 0.2×.
+- **Suggested price:** `(distance / 0.6) * 1.5` for passenger, ×0.8 for cargo. Anchored to average ship efficiency.
+- **Demand split:** Proportional by `capacity × price_factor`. Each carrier's share capped by their actual capacity. Multiple routes from same carrier on same lane aggregate.
+- **Direction matching:** `lane_origin_id` parameter added to `calculate_demand_split` — forward routes have `route.origin_id == lane.origin_id`, reverse routes have the opposite.
+- **Index pattern:** `_entry_index` with `"lane_id::direction"` composite key, matching galaxy_data.gd's `_lane_index` convention.
+- **No validation scenarios** — harness doesn't exist yet (deferred to P1.12).
+
 ### P1.11: Event System Stub (2026-05-17)
 - **File:** `src/game/events/event_system.gd`
 - **Pattern:** Static utility class (`class_name EventSystem`, extends RefCounted) with `GameEvent` inner class. All methods static — matches RouteValidator and AuctionResolver patterns.
