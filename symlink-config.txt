@@ -1,0 +1,15 @@
+# Submodule symlink configuration
+# Format: target_path=source_path
+# Paths are relative to project root
+# Run setup.ps1 (Windows) or setup.sh (Linux/macOS) to create these
+
+# Validation addon
+src/addons/agentic_godot_validation=submodules/agentic_godot_validation/addons/agentic_godot_validation
+
+# Validation runner tools
+tools=submodules/agentic_godot_validation/tools
+
+# Copilot skills (from validation kit)
+.github/skills/author-validation-scenario=submodules/agentic_godot_validation/.github/skills/author-validation-scenario
+.github/skills/debug-validation-failure=submodules/agentic_godot_validation/.github/skills/debug-validation-failure
+.github/skills/install-agentic-godot-validation=submodules/agentic_godot_validation/.github/skills/install-agentic-godot-validation
