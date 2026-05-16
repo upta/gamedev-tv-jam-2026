@@ -51,6 +51,33 @@
 
 ---
 
+### D006: Inner Classes for Galaxy Data Structures
+**Decision:** Use inner classes (`Planet`, `Lane`) inside `GalaxyData` rather than separate Resource subclasses in their own files.
+
+**Rationale:** Planet and Lane are pure data containers with no behavior. They are never used independently. Single-file approach keeps topology definition self-contained.
+
+**Impact:** GalaxyData is the single source of truth for galaxy topology.
+
+---
+
+### D007: Ship Instance ID Format
+**Decision:** Ship instance IDs use format `{type_id}-{counter}` (e.g., `sd-100-0001`). Counter is zero-padded 4-digit integer scoped to ShipCatalog instance.
+
+**Rationale:** Human-readable, simple, deterministic. No external UUID dependency. Unique within game session.
+
+**Impact:** ShipInstance IDs are easily debuggable; counter must be persisted if catalogs are serialized.
+
+---
+
+### D008: ShipRef as Lightweight Ship Mirror
+**Decision:** CarrierData defines its own `ShipRef` inner class mirroring `ShipInstance` fields (id, type_id, name, available_turn). Avoids compile-time dependency while P1.1–P1.3 are built in parallel.
+
+**Rationale:** Enables parallel development of galaxy_data.gd, ship_catalog.gd, and carrier_data.gd. P1.4 (GameState) will unify types.
+
+**Impact:** Temporary duplication until P1.4 unification. Carrier ships and pending_orders use ShipRef temporarily.
+
+---
+
 ## Work Order & Phases
 
 **Phase 1:** Headless simulation core (12 work items, P1.1–P1.12)  
