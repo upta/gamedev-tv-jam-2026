@@ -159,3 +159,13 @@ Dependency graph provided in plan. Can parallelize: P1.1–3, P1.5–6, P1.10–
 - **GameState changes:** `demand_table` typed as `DemandData` (was untyped null). `initialize()` now calls `DemandData.create_default_demand(galaxy)`. Added `advance_turn(intents)` convenience method that calls `resolve_turn`, increments `current_turn`, and emits `turn_resolved`/`game_over` signals.
 - **Slot sales:** Processed as step 5 (between Ships and Financials). Uses `AuctionResolver.process_slot_sale()` which validates ownership and route dependencies.
 - **No validation scenarios** — harness doesn't exist yet (deferred to P1.12).
+
+### P1.12: Validation Harness (2025-07-25)
+- **Files:** `src/validation/scripts/harness_controllers/simulation_harness_controller.gd`, `src/validation/harnesses/simulation_harness.tscn`, `src/validation/scenarios/sim_*.json` (4 scenarios)
+- **Pattern:** Harness extends Node (headless), creates fresh `GameState.new()` per test (not the autoload). One turn resolves per `_physics_process` frame — scenarios use `wait_frames` to advance.
+- **Lane ID correction:** Task spec said `"earth_mars"` but actual galaxy_data.gd uses `"sol_earth_mars"`. Used correct ID.
+- **Scripted intents:** Turn 1 creates a route on sol_earth_mars for the player using their starting SD-100 ship. Ensures financials/route assertions have data to validate.
+- **State exposure:** `get_observed_state()` returns `harness_state` (turn, carriers keyed by id with cash/ships/routes/slots/score, galaxy topology, last_result), `metrics` (player_cash, totals), plus empty `nodes`/`signals`.
+- **Scenarios:** `sim_initial_state` (7 assertions on default state), `sim_turn_advances` (turn counter + cash delta via assert_pipeline), `sim_financials` (route count, cash change, no game over), `sim_score_ranking` (rankings length, rank ordering, positive score).
+- **Turn cap:** `_physics_process` stops resolving after turn 30 to prevent infinite loops in test.
+- **Removed `.gitkeep`** from harnesses/, scenarios/, harness_controllers/ directories.
