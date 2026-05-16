@@ -38,34 +38,14 @@ class Route:
 		active = p_active
 
 
-## Lightweight ship reference — mirrors ship_catalog.gd's ShipInstance fields.
-## P1.4 (GameState) will unify types; until then this avoids a hard dependency.
-class ShipRef:
-	var id: String
-	var type_id: String
-	var name: String
-	var available_turn: int  # 0 = already delivered
-
-	func _init(
-		p_id: String = "",
-		p_type_id: String = "",
-		p_name: String = "",
-		p_available_turn: int = 0
-	) -> void:
-		id = p_id
-		type_id = p_type_id
-		name = p_name
-		available_turn = p_available_turn
-
-
 @export var id: String
 @export var carrier_name: String  # "name" shadows Object.name
 @export var cash: float
 
 var slots: Dictionary = {}        # { planet_id: String -> count: int }
-var ships: Array = []             # Array of ShipRef
+var ships: Array = []             # Array of ShipCatalog.ShipInstance
 var routes: Array = []            # Array of Route
-var pending_orders: Array = []    # ShipRefs with available_turn > current turn
+var pending_orders: Array = []    # ShipInstances with available_turn > current turn
 
 
 func get_slot_count(planet_id: String) -> int:
@@ -98,7 +78,7 @@ func get_available_ships() -> Array:
 				assigned_ids[ship_id] = true
 
 	var available: Array = []
-	for ship: ShipRef in ships:
+	for ship: ShipCatalog.ShipInstance in ships:
 		if not assigned_ids.has(ship.id):
 			available.append(ship)
 	return available
@@ -112,18 +92,18 @@ func total_ship_count() -> int:
 # Factory
 # ---------------------------------------------------------------------------
 
-static func create_default_carriers() -> Array:
+static func create_default_carriers(catalog: ShipCatalog) -> Array:
 	var carriers: Array = []
 
 	var defs: Array = [
 		{ "id": "player", "name": "Player Corp",
-		  "planets": ["earth", "mars"], "ship_name": "PC-001" },
+		  "planets": ["earth", "mars"] },
 		{ "id": "npc_1", "name": "Nova Transit",
-		  "planets": ["proxima_b", "haven"], "ship_name": "NT-001" },
+		  "planets": ["proxima_b", "haven"] },
 		{ "id": "npc_2", "name": "Stellar Lines",
-		  "planets": ["titan", "europa"], "ship_name": "SL-001" },
+		  "planets": ["titan", "europa"] },
 		{ "id": "npc_3", "name": "Frontier Express",
-		  "planets": ["wolf_station", "forge"], "ship_name": "FE-001" },
+		  "planets": ["wolf_station", "forge"] },
 	]
 
 	for def_data: Dictionary in defs:
@@ -132,17 +112,11 @@ static func create_default_carriers() -> Array:
 		carrier.carrier_name = def_data["name"]
 		carrier.cash = 3000.0
 
-		# 2 slots on different planets
 		for planet_id: String in def_data["planets"]:
 			carrier.slots[planet_id] = 1
 
-		# 1 starting ship (already delivered)
-		var ship := ShipRef.new(
-			def_data["id"] + "_ship_1",
-			"basic",
-			def_data["ship_name"],
-			0
-		)
+		# Starting ship: SD-100 (smallest, available turn 0), balanced 20/20 split
+		var ship := catalog.create_ship_instance("sd-100", 20, 20, def_data["id"], -2)
 		carrier.ships.append(ship)
 
 		carriers.append(carrier)

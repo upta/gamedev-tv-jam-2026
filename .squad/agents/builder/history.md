@@ -74,3 +74,12 @@ Dependency graph provided in plan. Can parallelize: P1.1–3, P1.5–6, P1.10–
 - **Capacity split validation:** `create_ship_instance()` enforces passenger + cargo == max_capacity, push_error on mismatch
 - **Ship lineup:** 7 types across 2 manufacturers (Sol Dynamics: balanced; Frontier Works: specialized extremes)
 - **Efficiency convention:** Higher = better. Operating cost = distance / efficiency
+
+### P1.4: GameState Autoload (2026-05-17)
+- **File:** `src/game/state/game_state.gd`
+- **Type:** Node autoload (not Resource) — registered in project.godot as `GameState`
+- **Signals:** `turn_resolved(turn_number)`, `game_over(carrier_id, reason)` — stubs for P1.9
+- **Carrier index:** `_build_carrier_index()` creates O(1) lookup Dictionary keyed by carrier id
+- **Placeholders:** `demand_table` is null (P1.7), `events` is empty Array (P1.10-P1.11)
+- **Type unification:** Removed `ShipRef` from `carrier_data.gd`. Ships now stored as `ShipCatalog.ShipInstance`. Factory `create_default_carriers()` accepts a `ShipCatalog` and creates proper SD-100 instances (20/20 passenger/cargo split, available_turn 0). Decision documented in `.squad/decisions/inbox/builder-gamestate.md`.
+- **No validation scenarios** — harness doesn't exist yet (deferred to P1.12).
