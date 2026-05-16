@@ -11,7 +11,7 @@ var galaxy: GalaxyData
 var catalog: ShipCatalog
 var carriers: Array = []  # Array of CarrierData
 var current_turn: int = 0
-var demand_table = null  # Placeholder for DemandData (P1.7)
+var demand_table: DemandData = null
 var events: Array = []
 
 var _carrier_index: Dictionary = {}  # id -> CarrierData
@@ -22,7 +22,7 @@ func initialize(p_galaxy: GalaxyData, p_catalog: ShipCatalog, p_carriers: Array)
 	catalog = p_catalog
 	carriers = p_carriers
 	current_turn = 1
-	demand_table = null
+	demand_table = DemandData.create_default_demand(p_galaxy)
 	events = []
 	_build_carrier_index()
 
@@ -43,3 +43,14 @@ func _build_carrier_index() -> void:
 	_carrier_index.clear()
 	for carrier: CarrierData in carriers:
 		_carrier_index[carrier.id] = carrier
+
+
+func advance_turn(intents: Array) -> TurnPipeline.TurnResult:
+	var result := TurnPipeline.resolve_turn(self, intents)
+	current_turn += 1
+	turn_resolved.emit(result.turn_number)
+	if result.game_over:
+		var reason := "bankruptcy" if result.bankruptcies.size() > 0 else "final_turn"
+		var winner_id: String = result.winner.get("carrier_id", "")
+		game_over.emit(winner_id, reason)
+	return result
