@@ -146,3 +146,16 @@ Dependency graph provided in plan. Can parallelize: P1.1–3, P1.5–6, P1.10–
 - **Bankruptcy:** Carrier flagged bankrupt when `cash <= 0.0` after net applied.
 - **deliver_pending_ships:** Moves ships from `pending_orders` to `ships` when `available_turn <= current_turn`. Rebuilds `pending_orders` array to avoid mutation-during-iteration. Called at start of turn, before financials.
 - **No validation scenarios** — harness doesn't exist yet (deferred to P1.12).
+
+### P1.9: Turn Pipeline (2025-07-25)
+- **File:** `src/game/simulation/turn_pipeline.gd`
+- **Pattern:** Static utility class (`class_name TurnPipeline`, extends RefCounted). All methods static — matches project conventions. Inner classes `CarrierIntent` and `TurnResult`.
+- **8-step pipeline:** Deliver → Auctions → Routes → Ships → Slot Sales → Financials → Events → Report. Fixed order per D004.
+- **Determinism (D004):** All intent processing iterates `game_state.carriers` array (not the intents array) to guarantee carrier index order for tie-breaking. `carrier_order` array built from carrier IDs in array position order.
+- **API alignment:** Task spec had slightly different method names than actual code. Used actual signatures: `AuctionResolver.resolve_auctions()` (not `resolve_auction`), bids use `"quantity"` key (not `"count"`), `AuctionResolver.process_slot_sale()` (not `resolve_slot_sale`).
+- **Route IDs:** `"{carrier_id}-route-{N}"` where N starts at `carrier.routes.size()` and increments per creation within the turn. Avoids ID collisions with existing routes.
+- **Resilience:** Validation failures (route creation/modification, ship orders) produce `push_warning` and skip — never crash the pipeline. Ship orders check affordability before deducting cash; `create_ship_instance` returning null is handled.
+- **Game-over detection:** Triggered when `current_turn >= 30` or any carrier goes bankrupt. Winner determined by `ScoreCalculator.determine_winner()`.
+- **GameState changes:** `demand_table` typed as `DemandData` (was untyped null). `initialize()` now calls `DemandData.create_default_demand(galaxy)`. Added `advance_turn(intents)` convenience method that calls `resolve_turn`, increments `current_turn`, and emits `turn_resolved`/`game_over` signals.
+- **Slot sales:** Processed as step 5 (between Ships and Financials). Uses `AuctionResolver.process_slot_sale()` which validates ownership and route dependencies.
+- **No validation scenarios** — harness doesn't exist yet (deferred to P1.12).
