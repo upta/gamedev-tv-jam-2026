@@ -101,3 +101,15 @@ Dependency graph provided in plan. Can parallelize: P1.1–3, P1.5–6, P1.10–
 - **Helper:** `get_available_slots()` computes planet.total_slots minus sum of all carriers' slot counts.
 - **Directory:** Created `src/game/simulation/` (first file in this directory).
 - **No validation scenarios** — harness doesn't exist yet (deferred to P1.12).
+
+### P1.10: Score Calculator (2026-05-18)
+- **File:** `src/game/simulation/score_calculator.gd`
+- **Pattern:** Static utility class (`class_name ScoreCalculator`, extends RefCounted). All methods static, no state.
+- **Score formula:** `total = cash + ship_assets + slot_value + route_value`
+- **Ship assets:** Sum of purchase cost (from catalog) for both `carrier.ships` and `carrier.pending_orders`. No depreciation in prototype.
+- **Slot value:** Total slots across all planets × `BASE_SLOT_VALUE` (200.0).
+- **Route value:** Active routes only. Estimated monthly revenue × `ROUTE_MULTIPLIER` (5.0). Revenue = `frequency × (passenger_cap × passenger_price + cargo_cap × cargo_price) × ESTIMATED_FILL_RATE (0.5)`. Ship capacities looked up from carrier.ships via internal ship index.
+- **Rankings:** `get_rankings()` returns sorted array with rank numbers. Tie-break by array insertion order (D004 — Godot's `sort_custom` is stable).
+- **Winner:** `determine_winner()` returns first carrier with highest score (lower index wins ties per D004).
+- **Placeholder note:** Route value estimation is rough — P1.8 (financial calculator) will add `last_turn_revenue` to routes for real data.
+- **No validation scenarios** — harness doesn't exist yet (deferred to P1.12).
