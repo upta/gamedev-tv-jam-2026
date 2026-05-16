@@ -34,6 +34,17 @@ Dependency graph provided in plan. Can parallelize: P1.1–3, P1.5–6, P1.10–
 
 ## Learnings
 
+### P1.3: Carrier Data (2026-05-17)
+- **File:** `src/game/state/carrier_data.gd`
+- **Pattern:** Resource class with inner classes `Route` and `ShipRef`. ShipRef is a lightweight mirror of ship_catalog.gd's ShipInstance — avoids hard dependency until P1.4 unifies types.
+- **Naming:** Used `carrier_name` instead of `name` to avoid shadowing `Object.name`.
+- **Slots:** Dictionary keyed by planet_id → int count. Missing key = 0.
+- **Factory:** `create_default_carriers()` is a static method producing 4 carriers with 3000 cash, 2 slots each on different planets, and 1 basic ship. Planet IDs use lowercase descriptive strings (earth, mars, proxima_b, etc.) to match galaxy_data.gd conventions.
+- **Ship assignment:** `get_available_ships()` collects all ship_ids from active routes into a set, then returns ships not in that set.
+- **No validation scenarios** — harness doesn't exist yet (deferred to P1.12).
+
+## Learnings
+
 ### P1.1: Galaxy Data (2026-05-17)
 **File:** `src/game/state/galaxy_data.gd`
 
