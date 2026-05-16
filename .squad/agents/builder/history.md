@@ -84,6 +84,15 @@ Dependency graph provided in plan. Can parallelize: P1.1–3, P1.5–6, P1.10–
 - **Type unification:** Removed `ShipRef` from `carrier_data.gd`. Ships now stored as `ShipCatalog.ShipInstance`. Factory `create_default_carriers()` accepts a `ShipCatalog` and creates proper SD-100 instances (20/20 passenger/cargo split, available_turn 0). Decision documented in `.squad/decisions/inbox/builder-gamestate.md`.
 - **No validation scenarios** — harness doesn't exist yet (deferred to P1.12).
 
+### P1.5: Route Logic (2026-05-17)
+- **File:** `src/game/simulation/route_validator.gd`
+- **Pattern:** Static utility class (`RouteValidator`), all methods static, no state. Extends RefCounted.
+- **Frequency simplified:** Each ship = 1 round-trip per turn regardless of distance. `max_frequency = ship_count`. Avoids speed-based frequency complexity — the interesting decision is how many ships to assign.
+- **Validation order:** Slots at both endpoints → lane exists → per-ship checks (exists, range, availability, delivery turn) → clamp frequency.
+- **Modification vs creation:** `validate_route_modification` excludes the route being modified when checking ship availability, so ships on the current route are considered "available" for reassignment.
+- **`get_route_capacity` signature:** Added `carrier` parameter beyond the spec since ship lookup requires the carrier's fleet array. Capacity = sum of ship capacities × frequency.
+- **No validation scenarios** — harness doesn't exist yet (deferred to P1.12).
+
 ### P1.6: Slot Auction Resolver (2026-05-17)
 - **File:** `src/game/simulation/auction_resolver.gd`
 - **Pattern:** Static utility class (`class_name AuctionResolver`, extends RefCounted). All methods static — returns results, never mutates state (D001).
