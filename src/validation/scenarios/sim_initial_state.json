@@ -1,0 +1,75 @@
+{
+  "scenario_id": "sim_initial_state",
+  "version": 3,
+  "description": "Verify game initializes with correct default state",
+  "harness_scene": "res://validation/harnesses/simulation_harness.tscn",
+  "done_contract": {},
+  "artifact_contract": {
+    "required_files": ["summary.json", "event_log.json", "scene_tree.json", "console.log"],
+    "missing_file_is_failure": true
+  },
+  "exit_codes": {
+    "pass": 0,
+    "assertion_failure": 1,
+    "runtime_error": 2,
+    "timeout": 3,
+    "artifact_generation_error": 4
+  },
+  "cli_contract": {
+    "command_template": "godot --path <project> -- --test-mode --scenario <path> --artifacts <dir>"
+  },
+  "steps": [
+    { "op": "load_harness" },
+    { "op": "checkpoint", "name": "initial" },
+    {
+      "op": "assert_value",
+      "checkpoint": "initial",
+      "path": "harness_state.current_turn",
+      "comparator": "eq",
+      "expected": 1
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "initial",
+      "path": "harness_state.carrier_count",
+      "comparator": "eq",
+      "expected": 4
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "initial",
+      "path": "harness_state.galaxy.planet_count",
+      "comparator": "eq",
+      "expected": 12
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "initial",
+      "path": "harness_state.galaxy.lane_count",
+      "comparator": "eq",
+      "expected": 15
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "initial",
+      "path": "harness_state.demand_table_initialized",
+      "comparator": "eq",
+      "expected": true
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "initial",
+      "path": "metrics.player_cash",
+      "comparator": "eq",
+      "expected": 3000.0
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "initial",
+      "path": "metrics.total_ships_in_play",
+      "comparator": "eq",
+      "expected": 4
+    },
+    { "op": "quit" }
+  ]
+}
