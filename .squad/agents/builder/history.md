@@ -83,3 +83,12 @@ Dependency graph provided in plan. Can parallelize: P1.1–3, P1.5–6, P1.10–
 - **Placeholders:** `demand_table` is null (P1.7), `events` is empty Array (P1.10-P1.11)
 - **Type unification:** Removed `ShipRef` from `carrier_data.gd`. Ships now stored as `ShipCatalog.ShipInstance`. Factory `create_default_carriers()` accepts a `ShipCatalog` and creates proper SD-100 instances (20/20 passenger/cargo split, available_turn 0). Decision documented in `.squad/decisions/inbox/builder-gamestate.md`.
 - **No validation scenarios** — harness doesn't exist yet (deferred to P1.12).
+
+### P1.6: Slot Auction Resolver (2026-05-17)
+- **File:** `src/game/simulation/auction_resolver.gd`
+- **Pattern:** Static utility class (`class_name AuctionResolver`, extends RefCounted). All methods static — returns results, never mutates state (D001).
+- **Auction resolution:** Groups bids by planet, sorts descending by price_per_slot, tie-breaks by carrier_order index (D004). Awards min(requested, remaining) slots per bid. Full bid rejected if carrier can't afford total cost (no partial funding).
+- **Slot sales:** Instant, zero refund (sunk cost). Validates carrier owns enough slots and that selling won't orphan active routes at that planet. Each active route with origin or dest at the planet counts as 1 slot used.
+- **Helper:** `get_available_slots()` computes planet.total_slots minus sum of all carriers' slot counts.
+- **Directory:** Created `src/game/simulation/` (first file in this directory).
+- **No validation scenarios** — harness doesn't exist yet (deferred to P1.12).
