@@ -40,28 +40,24 @@ static func generate_events(_turn: int, _galaxy: GalaxyData) -> Array:
 
 
 ## Resets all DemandEntry modifiers to 1.0, then applies active event modifiers.
-## Expects demand_data to have an `entries` Array of objects with:
-##   - lane_id: String
-##   - passenger_modifier: float
-##   - cargo_modifier: float
-static func apply_events(active_events: Array, demand_data) -> void:
+static func apply_events(active_events: Array, demand_data: DemandData) -> void:
 	if demand_data == null:
 		return
 
-	for entry in demand_data.entries:
-		entry.passenger_modifier = 1.0
-		entry.cargo_modifier = 1.0
+	for entry: DemandData.DemandEntry in demand_data.entries:
+		entry.modifier_passenger = 1.0
+		entry.modifier_cargo = 1.0
 
 	for event: GameEvent in active_events:
-		for entry in demand_data.entries:
+		for entry: DemandData.DemandEntry in demand_data.entries:
 			var lane_matches: bool = event.target_lane_id == "" or entry.lane_id == event.target_lane_id
 			if not lane_matches:
 				continue
 
 			if event.demand_type == "passenger" or event.demand_type == "both":
-				entry.passenger_modifier *= event.modifier
+				entry.modifier_passenger *= event.modifier
 			if event.demand_type == "cargo" or event.demand_type == "both":
-				entry.cargo_modifier *= event.modifier
+				entry.modifier_cargo *= event.modifier
 
 
 ## Decrements remaining_turns on each event and removes expired ones.
