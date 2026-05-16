@@ -102,6 +102,16 @@ Dependency graph provided in plan. Can parallelize: P1.1–3, P1.5–6, P1.10–
 - **Directory:** Created `src/game/simulation/` (first file in this directory).
 - **No validation scenarios** — harness doesn't exist yet (deferred to P1.12).
 
+### P1.11: Event System Stub (2026-05-17)
+- **File:** `src/game/events/event_system.gd`
+- **Pattern:** Static utility class (`class_name EventSystem`, extends RefCounted) with `GameEvent` inner class. All methods static — matches RouteValidator and AuctionResolver patterns.
+- **Directory:** Created `src/game/events/`.
+- **Stub status:** `generate_events()` returns empty array — Phase 2 adds random generation. `apply_events()`, `tick_events()`, and `get_active_event_descriptions()` are fully implemented.
+- **apply_events():** Resets all DemandEntry `passenger_modifier` and `cargo_modifier` to 1.0, then multiplies by each active event's modifier. Handles `target_lane_id == ""` as global (affects all lanes). Works correctly with empty events array (just resets modifiers).
+- **DemandData dependency:** DemandData (P1.7) doesn't exist yet. `apply_events()` expects `demand_data.entries` array with objects having `lane_id`, `passenger_modifier`, and `cargo_modifier` fields. Will need alignment when P1.7 lands.
+- **Descriptions:** Format: "Mining boom on Titan — cargo demand +50% (2 turns remaining)". Uses `roundi()` for clean percentage display.
+- **No validation scenarios** — harness doesn't exist yet (deferred to P1.12).
+
 ### P1.10: Score Calculator (2026-05-18)
 - **File:** `src/game/simulation/score_calculator.gd`
 - **Pattern:** Static utility class (`class_name ScoreCalculator`, extends RefCounted). All methods static, no state.
