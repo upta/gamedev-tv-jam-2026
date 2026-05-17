@@ -1,0 +1,56 @@
+{
+  "scenario_id": "star_map_slot_indicators",
+  "version": 3,
+  "description": "Verify StarMap shows slot indicators for planets where carriers own slots",
+  "harness_scene": "res://validation/harnesses/star_map_harness.tscn",
+  "done_contract": {},
+  "artifact_contract": {
+    "required_files": ["summary.json", "event_log.json", "scene_tree.json", "console.log"],
+    "missing_file_is_failure": true
+  },
+  "exit_codes": {
+    "pass": 0,
+    "assertion_failure": 1,
+    "runtime_error": 2,
+    "timeout": 3,
+    "artifact_generation_error": 4
+  },
+  "cli_contract": {
+    "command_template": "godot --path <project> -- --test-mode --scenario <path> --artifacts <dir>"
+  },
+  "steps": [
+    { "op": "load_harness" },
+    { "op": "checkpoint", "name": "initial" },
+    {
+      "op": "assert_value",
+      "checkpoint": "initial",
+      "path": "harness_state.planets_with_slots",
+      "comparator": "gte",
+      "expected": 4,
+      "description": "At least 4 planets should have slot indicators (default carriers own 2 planets each = 8 planet-slots across 4 carriers)"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "initial",
+      "path": "harness_state.carrier_slot_counts.player",
+      "comparator": "gte",
+      "expected": 1,
+      "description": "Player carrier should own at least 1 slot"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "initial",
+      "path": "harness_state.metrics.planet_nodes",
+      "comparator": "eq",
+      "expected": 12
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "initial",
+      "path": "harness_state.metrics.lane_lines",
+      "comparator": "eq",
+      "expected": 15
+    },
+    { "op": "quit" }
+  ]
+}
