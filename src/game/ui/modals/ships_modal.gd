@@ -1,20 +1,15 @@
 class_name ShipsModal
 extends ModalDialog
 
-## Modal for ordering ships and viewing fleet status.
+## Modal for viewing fleet status and pending ship orders.
+## Ship ordering is handled by OrderShipModal, opened via the "Order Ship" button.
+
+signal order_ship_requested
 
 var _player_controller: PlayerController
 var _game_state: GameState
 
 var _content_vbox: VBoxContainer
-var _pax_spin: SpinBox
-var _cargo_spin: SpinBox
-var _type_option: OptionButton
-var _stats_label: Label
-var _order_button: Button
-
-var _available_types: Array = []
-var _updating_spinboxes: bool = false
 
 
 func _ready() -> void:
@@ -46,7 +41,7 @@ func refresh() -> void:
 
 	_build_fleet_section(carrier)
 	_build_pending_orders_section()
-	_build_order_section(carrier)
+	_build_order_button()
 
 
 # ---------------------------------------------------------------------------
@@ -123,133 +118,22 @@ func _build_pending_orders_section() -> void:
 
 
 # ---------------------------------------------------------------------------
-# Section 3: Order New Ship
+# Section 3: Order Ship Button
 # ---------------------------------------------------------------------------
 
-func _build_order_section(carrier: CarrierData) -> void:
-	var header := Label.new()
-	header.text = "Order New Ship"
-	_content_vbox.add_child(header)
-
-	# Ship type dropdown
-	_type_option = OptionButton.new()
-	_available_types = _game_state.catalog.get_available_types(_game_state.current_turn)
-	for idx in range(_available_types.size()):
-		var st: ShipCatalog.ShipType = _available_types[idx]
-		_type_option.add_item(st.name, idx)
-	_type_option.item_selected.connect(_on_type_selected)
-	_content_vbox.add_child(_type_option)
-
-	# Stats display
-	_stats_label = Label.new()
-	_stats_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_content_vbox.add_child(_stats_label)
-
-	# Capacity spinboxes
-	var max_cap := 0
-	if _available_types.size() > 0:
-		max_cap = _available_types[0].max_capacity
-
-	var pax_row := _create_label_spinbox("Passengers:", 0, max_cap, 1, max_cap / 2)
-	_pax_spin = pax_row.get_child(1) as SpinBox
-	_content_vbox.add_child(pax_row)
-
-	var cargo_row := _create_label_spinbox("Cargo:", 0, max_cap, 1, max_cap - max_cap / 2)
-	_cargo_spin = cargo_row.get_child(1) as SpinBox
-	_content_vbox.add_child(cargo_row)
-
-	_pax_spin.value_changed.connect(_on_pax_changed)
-	_cargo_spin.value_changed.connect(_on_cargo_changed)
-
-	# Order button
-	_order_button = Button.new()
-	_order_button.text = "Order Ship"
-	_order_button.pressed.connect(_on_order_pressed)
-	_content_vbox.add_child(_order_button)
-
-	_update_stats_and_button(carrier)
-
-
-func _create_label_spinbox(label_text: String, min_val: float, max_val: float, step: float, default_val: float) -> HBoxContainer:
-	var row := HBoxContainer.new()
-	var label := Label.new()
-	label.text = label_text
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(label)
-	var spin := SpinBox.new()
-	spin.min_value = min_val
-	spin.max_value = max_val
-	spin.step = step
-	spin.value = default_val
-	spin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(spin)
-	return row
-
-
-func _get_selected_type() -> ShipCatalog.ShipType:
-	if _available_types.is_empty() or _type_option == null:
-		return null
-	var idx := _type_option.selected
-	if idx < 0 or idx >= _available_types.size():
-		return null
-	return _available_types[idx]
-
-
-func _update_stats_and_button(carrier: CarrierData) -> void:
-	var st := _get_selected_type()
-	if st == null:
-		_stats_label.text = "No ships available."
-		_order_button.disabled = true
-		return
-	_stats_label.text = "Cost: §%d | Cap: %d | Range: %.1f ly | Build: %d turns" % [st.cost, st.max_capacity, st.range, st.build_turns]
-	_order_button.disabled = carrier.cash < st.cost
+func _build_order_button() -> void:
+	var btn_row := HBoxContainer.new()
+	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	var order_btn := Button.new()
+	order_btn.text = "Order Ship"
+	order_btn.pressed.connect(func() -> void: order_ship_requested.emit())
+	btn_row.add_child(order_btn)
+	_content_vbox.add_child(btn_row)
 
 
 # ---------------------------------------------------------------------------
 # Callbacks
 # ---------------------------------------------------------------------------
-
-func _on_type_selected(_index: int) -> void:
-	var st := _get_selected_type()
-	if st == null:
-		return
-	_updating_spinboxes = true
-	_pax_spin.max_value = st.max_capacity
-	_cargo_spin.max_value = st.max_capacity
-	_pax_spin.value = st.max_capacity / 2
-	_cargo_spin.value = st.max_capacity - st.max_capacity / 2
-	_updating_spinboxes = false
-	_update_stats_and_button(_game_state.get_player_carrier())
-
-
-func _on_pax_changed(value: float) -> void:
-	if _updating_spinboxes:
-		return
-	var st := _get_selected_type()
-	if st == null:
-		return
-	_updating_spinboxes = true
-	_cargo_spin.value = st.max_capacity - int(value)
-	_updating_spinboxes = false
-
-
-func _on_cargo_changed(value: float) -> void:
-	if _updating_spinboxes:
-		return
-	var st := _get_selected_type()
-	if st == null:
-		return
-	_updating_spinboxes = true
-	_pax_spin.value = st.max_capacity - int(value)
-	_updating_spinboxes = false
-
-
-func _on_order_pressed() -> void:
-	var st := _get_selected_type()
-	if st == null:
-		return
-	_player_controller.add_ship_order(st.id, int(_pax_spin.value), int(_cargo_spin.value))
-	refresh()
 
 
 func _on_cancel_order(index: int) -> void:

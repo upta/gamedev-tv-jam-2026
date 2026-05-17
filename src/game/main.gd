@@ -18,6 +18,7 @@ var _active_modal: String = ""
 @onready var _slots_modal: SlotsModal = %SlotsModal
 @onready var _routes_modal: RoutesModal = %RoutesModal
 @onready var _create_route_modal: CreateRouteModal = %CreateRouteModal
+@onready var _order_ship_modal: OrderShipModal = %OrderShipModal
 
 
 func _ready() -> void:
@@ -48,6 +49,7 @@ func _bind_all() -> void:
 	_slots_modal.bind(_player_controller, _session.game_state)
 	_routes_modal.bind(_player_controller, _session.game_state)
 	_create_route_modal.bind(_player_controller, _session.game_state)
+	_order_ship_modal.bind(_player_controller, _session.game_state)
 
 
 func _connect_signals() -> void:
@@ -62,6 +64,9 @@ func _connect_signals() -> void:
 	_create_route_modal.closed.connect(_on_create_route_modal_closed)
 	_create_route_modal.route_created.connect(_on_route_created)
 	_create_route_modal.route_modified.connect(_on_route_modified)
+	_ships_modal.order_ship_requested.connect(_on_order_ship_requested)
+	_order_ship_modal.closed.connect(_on_order_ship_modal_closed)
+	_order_ship_modal.ship_ordered.connect(_on_ship_ordered)
 
 
 func _on_next_turn() -> void:
@@ -112,6 +117,12 @@ func _on_toolbar_pressed(modal_name: String) -> void:
 		_create_route_modal.closed.disconnect(_on_create_route_modal_closed)
 		_create_route_modal.close()
 		_create_route_modal.closed.connect(_on_create_route_modal_closed)
+
+	# Close order ship modal if open
+	if _order_ship_modal.visible:
+		_order_ship_modal.closed.disconnect(_on_order_ship_modal_closed)
+		_order_ship_modal.close()
+		_order_ship_modal.closed.connect(_on_order_ship_modal_closed)
 
 	if _active_modal == modal_name:
 		_modals[modal_name].close()
@@ -173,4 +184,20 @@ func _on_route_created() -> void:
 
 func _on_route_modified() -> void:
 	# Route was modified — routes modal will refresh via intent_changed signal
+	pass
+
+
+func _on_order_ship_requested() -> void:
+	_ships_modal.close()
+	_order_ship_modal.open()
+
+
+func _on_order_ship_modal_closed() -> void:
+	_ships_modal.open()
+	_active_modal = "ships"
+	_top_bar.set_active_toolbar("ships")
+
+
+func _on_ship_ordered() -> void:
+	# Ship was ordered — ships modal will refresh via intent_changed signal
 	pass

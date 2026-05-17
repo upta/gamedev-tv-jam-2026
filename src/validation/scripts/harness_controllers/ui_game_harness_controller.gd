@@ -91,6 +91,7 @@ func _build_harness_state() -> Dictionary:
 		"pending_actions": _get_pending_action_count(),
 		"active_modal": _get_active_modal(),
 		"create_route_modal_open": _is_create_route_modal_open(),
+		"order_ship_modal_open": _is_order_ship_modal_open(),
 	}
 
 
@@ -185,6 +186,15 @@ func _is_create_route_modal_open() -> bool:
 	if game_scene == null:
 		return false
 	var modal = game_scene.get("_create_route_modal")
+	if modal == null:
+		return false
+	return modal.visible
+
+
+func _is_order_ship_modal_open() -> bool:
+	if game_scene == null:
+		return false
+	var modal = game_scene.get("_order_ship_modal")
 	if modal == null:
 		return false
 	return modal.visible
