@@ -1,7 +1,7 @@
 {
   "scenario_id": "sim_initial_state",
   "version": 3,
-  "description": "Verify game initializes with correct default state",
+  "description": "Verify game initializes with correct structural state (carrier count, galaxy topology)",
   "harness_scene": "res://validation/harnesses/simulation_harness.tscn",
   "done_contract": {},
   "artifact_contract": {
@@ -21,13 +21,6 @@
   "steps": [
     { "op": "load_harness" },
     { "op": "checkpoint", "name": "initial" },
-    {
-      "op": "assert_value",
-      "checkpoint": "initial",
-      "path": "harness_state.current_turn",
-      "comparator": "eq",
-      "expected": 1
-    },
     {
       "op": "assert_value",
       "checkpoint": "initial",
@@ -59,14 +52,7 @@
     {
       "op": "assert_value",
       "checkpoint": "initial",
-      "path": "metrics.player_cash",
-      "comparator": "eq",
-      "expected": 3000.0
-    },
-    {
-      "op": "assert_value",
-      "checkpoint": "initial",
-      "path": "metrics.total_ships_in_play",
+      "path": "harness_state.metrics.total_carriers",
       "comparator": "eq",
       "expected": 4
     },

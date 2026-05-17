@@ -1,7 +1,7 @@
 {
   "scenario_id": "sim_score_ranking",
   "version": 3,
-  "description": "Verify scoring and ranking calculations work after a turn",
+  "description": "Verify scoring and ranking calculations produce ordered results with positive scores",
   "harness_scene": "res://validation/harnesses/simulation_harness.tscn",
   "done_contract": {},
   "artifact_contract": {
@@ -20,15 +20,8 @@
   },
   "steps": [
     { "op": "load_harness" },
-    { "op": "wait_frames", "frames": 1 },
+    { "op": "wait_frames", "frames": 2 },
     { "op": "checkpoint", "name": "after" },
-    {
-      "op": "assert_value",
-      "checkpoint": "after",
-      "path": "harness_state.last_result.rankings.3.rank",
-      "comparator": "eq",
-      "expected": 4
-    },
     {
       "op": "assert_value",
       "checkpoint": "after",

@@ -1,0 +1,231 @@
+class_name NpcController
+extends CarrierController
+
+## Heuristic AI that generates meaningful intents for NPC carriers.
+## Jam scope: good enough to be interesting, not optimal.
+## One class with tunable weights — no strategy pattern.
+
+# Personality weights (tune these to differentiate NPCs)
+var slot_aggression: float = 0.5    # 0.0 = conservative, 1.0 = aggressive slot buying
+var route_preference: float = 0.5   # 0.0 = few expensive routes, 1.0 = many cheap routes
+var ship_eagerness: float = 0.5     # 0.0 = waits, 1.0 = buys ships immediately
+
+
+func generate_intent(game_state: GameState, carrier_id: String) -> TurnPipeline.CarrierIntent:
+	var intent := TurnPipeline.CarrierIntent.new()
+	intent.carrier_id = carrier_id
+
+	var carrier := game_state.get_carrier(carrier_id)
+	if carrier == null:
+		return intent
+
+	# Decision priority: Slots → Routes → Ships → Slot Sales
+	_consider_slot_bids(intent, carrier, game_state)
+	_consider_route_creation(intent, carrier, game_state)
+	_consider_ship_orders(intent, carrier, game_state)
+	_consider_slot_sales(intent, carrier, game_state)
+
+	return intent
+
+
+# ---------------------------------------------------------------------------
+# 1. Slot Bids
+# ---------------------------------------------------------------------------
+
+func _consider_slot_bids(
+	intent: TurnPipeline.CarrierIntent,
+	carrier: CarrierData,
+	game_state: GameState,
+) -> void:
+	if game_state.rng.randf() >= slot_aggression:
+		return
+
+	var planets_with_slots := carrier.slots.keys().filter(
+		func(pid: String) -> bool: return carrier.get_slot_count(pid) > 0
+	)
+	if planets_with_slots.size() >= 4 or carrier.cash <= 800:
+		return
+
+	# Find reachable planets where we don't already have slots
+	var candidates: Array = []
+	for planet_id: String in planets_with_slots:
+		for lane: GalaxyData.Lane in game_state.galaxy.get_lanes_from(planet_id):
+			var neighbor_id := _other_end(lane, planet_id)
+			if carrier.has_slots_at(neighbor_id):
+				continue
+			var planet := game_state.galaxy.get_planet(neighbor_id)
+			if planet == null:
+				continue
+			# Avoid duplicates
+			var already := false
+			for c: Dictionary in candidates:
+				if c["planet_id"] == neighbor_id:
+					already = true
+					break
+			if not already:
+				candidates.append({
+					"planet_id": neighbor_id,
+					"total_slots": planet.total_slots,
+				})
+
+	# Prioritize bigger markets
+	candidates.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return a["total_slots"] > b["total_slots"]
+	)
+
+	var bid_count := mini(candidates.size(), 2)
+	for i in range(bid_count):
+		var price := 150.0 + game_state.rng.randf_range(-50.0, 50.0)
+		intent.slot_bids.append({
+			"planet_id": candidates[i]["planet_id"],
+			"quantity": 1,
+			"price_per_slot": price,
+		})
+
+
+# ---------------------------------------------------------------------------
+# 2. Route Creation
+# ---------------------------------------------------------------------------
+
+func _consider_route_creation(
+	intent: TurnPipeline.CarrierIntent,
+	carrier: CarrierData,
+	game_state: GameState,
+) -> void:
+	var available_ships: Array = carrier.get_available_ships()
+	if available_ships.is_empty():
+		return
+
+	# Find lanes where carrier has slots at both ends and no active route
+	for lane: GalaxyData.Lane in game_state.galaxy.lanes:
+		if not _can_use_lane(carrier, lane):
+			continue
+		if _has_route_on_lane(carrier, lane.id):
+			continue
+
+		# Find a ship with enough range
+		var chosen_ship: ShipCatalog.ShipInstance = null
+		for ship: ShipCatalog.ShipInstance in available_ships:
+			var ship_type := game_state.catalog.get_type(ship.type_id)
+			if ship_type != null and ship_type.range >= lane.distance:
+				chosen_ship = ship
+				break
+
+		if chosen_ship == null:
+			continue
+
+		# Price based on demand
+		var demand_entry := game_state.demand_table.get_entry(lane.id, "forward")
+		var passenger_price := 5.0
+		var cargo_price := 4.0
+		if demand_entry != null:
+			passenger_price = demand_entry.base_demand_passenger * 0.08
+			cargo_price = demand_entry.base_demand_cargo * 0.06
+		# ±20% variance
+		passenger_price *= 1.0 + game_state.rng.randf_range(-0.2, 0.2)
+		cargo_price *= 1.0 + game_state.rng.randf_range(-0.2, 0.2)
+
+		intent.route_creates.append({
+			"lane_id": lane.id,
+			"origin_id": lane.origin_id,
+			"dest_id": lane.dest_id,
+			"ship_ids": [chosen_ship.id],
+			"passenger_price": passenger_price,
+			"cargo_price": cargo_price,
+			"frequency": 1,
+		})
+		# At most 1 route per turn
+		return
+
+
+# ---------------------------------------------------------------------------
+# 3. Ship Orders
+# ---------------------------------------------------------------------------
+
+func _consider_ship_orders(
+	intent: TurnPipeline.CarrierIntent,
+	carrier: CarrierData,
+	game_state: GameState,
+) -> void:
+	if game_state.rng.randf() >= ship_eagerness:
+		return
+
+	if not carrier.get_available_ships().is_empty():
+		return
+
+	var available_types := game_state.catalog.get_available_types(game_state.current_turn)
+	if available_types.is_empty():
+		return
+
+	# Find cheapest type
+	var cheapest: ShipCatalog.ShipType = null
+	for st: ShipCatalog.ShipType in available_types:
+		if cheapest == null or st.cost < cheapest.cost:
+			cheapest = st
+
+	if cheapest == null or carrier.cash < cheapest.cost:
+		return
+
+	# 50/50 passenger/cargo split
+	var half := cheapest.max_capacity / 2
+	var remainder := cheapest.max_capacity - half * 2
+	intent.ship_orders.append({
+		"type_id": cheapest.id,
+		"passenger_capacity": half + remainder,
+		"cargo_capacity": half,
+	})
+
+
+# ---------------------------------------------------------------------------
+# 4. Slot Sales
+# ---------------------------------------------------------------------------
+
+func _consider_slot_sales(
+	intent: TurnPipeline.CarrierIntent,
+	carrier: CarrierData,
+	game_state: GameState,
+) -> void:
+	var planets_with_slots: Array = carrier.slots.keys().filter(
+		func(pid: String) -> bool: return carrier.get_slot_count(pid) > 0
+	)
+
+	# Don't sell down to nothing
+	if planets_with_slots.size() <= 2:
+		return
+
+	var active_routes := carrier.get_active_routes()
+
+	for planet_id: String in planets_with_slots:
+		var has_route := false
+		for route: CarrierData.Route in active_routes:
+			if route.origin_id == planet_id or route.dest_id == planet_id:
+				has_route = true
+				break
+		if not has_route:
+			intent.slot_sales.append({
+				"planet_id": planet_id,
+				"count": 1,
+			})
+			# Sell at most 1 per turn to be conservative
+			return
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+func _can_use_lane(carrier: CarrierData, lane: GalaxyData.Lane) -> bool:
+	return carrier.has_slots_at(lane.origin_id) and carrier.has_slots_at(lane.dest_id)
+
+
+func _has_route_on_lane(carrier: CarrierData, lane_id: String) -> bool:
+	for route: CarrierData.Route in carrier.get_active_routes():
+		if route.lane_id == lane_id:
+			return true
+	return false
+
+
+func _other_end(lane: GalaxyData.Lane, planet_id: String) -> String:
+	if lane.origin_id == planet_id:
+		return lane.dest_id
+	return lane.origin_id

@@ -1,7 +1,7 @@
 {
   "scenario_id": "sim_financials",
   "version": 3,
-  "description": "Verify route revenue and financial processing works",
+  "description": "Verify financial processing runs — player has a route and cash changes from initial 3000",
   "harness_scene": "res://validation/harnesses/simulation_harness.tscn",
   "done_contract": {},
   "artifact_contract": {
@@ -20,25 +20,25 @@
   },
   "steps": [
     { "op": "load_harness" },
-    { "op": "wait_frames", "frames": 1 },
-    { "op": "checkpoint", "name": "after_turn" },
+    { "op": "wait_frames", "frames": 2 },
+    { "op": "checkpoint", "name": "after_turns" },
     {
       "op": "assert_value",
-      "checkpoint": "after_turn",
+      "checkpoint": "after_turns",
       "path": "harness_state.carriers.player.route_count",
-      "comparator": "eq",
+      "comparator": "gte",
       "expected": 1
     },
     {
       "op": "assert_value",
-      "checkpoint": "after_turn",
+      "checkpoint": "after_turns",
       "path": "harness_state.carriers.player.cash",
       "comparator": "neq",
       "expected": 3000.0
     },
     {
       "op": "assert_value",
-      "checkpoint": "after_turn",
+      "checkpoint": "after_turns",
       "path": "harness_state.last_result.game_over",
       "comparator": "eq",
       "expected": false

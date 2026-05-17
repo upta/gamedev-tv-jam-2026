@@ -25,21 +25,21 @@
     {
       "op": "assert_value",
       "checkpoint": "mid_game",
-      "path": "harness_state.harness_state.carriers.npc_1.route_count",
+      "path": "harness_state.carriers.npc_1.route_count",
       "comparator": "gte",
       "expected": 1
     },
     {
       "op": "assert_value",
       "checkpoint": "mid_game",
-      "path": "harness_state.harness_state.carriers.npc_2.route_count",
+      "path": "harness_state.carriers.npc_2.route_count",
       "comparator": "gte",
       "expected": 1
     },
     {
       "op": "assert_value",
       "checkpoint": "mid_game",
-      "path": "harness_state.harness_state.carriers.npc_3.route_count",
+      "path": "harness_state.carriers.npc_3.route_count",
       "comparator": "gte",
       "expected": 1
     },

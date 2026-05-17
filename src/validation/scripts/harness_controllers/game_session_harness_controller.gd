@@ -46,12 +46,11 @@ func _count_route_creates(result: TurnPipeline.TurnResult) -> int:
 
 
 func get_observed_state() -> Dictionary:
-	return {
-		"harness_state": _build_harness_state(),
-		"metrics": _build_metrics(),
-		"nodes": {},
-		"signals": {},
-	}
+	var state := _build_harness_state()
+	state["metrics"] = _build_metrics()
+	state["nodes"] = {}
+	state["signals"] = {}
+	return state
 
 
 func _build_harness_state() -> Dictionary:

@@ -25,16 +25,16 @@
     {
       "op": "assert_value",
       "checkpoint": "final",
-      "path": "harness_state.harness_state.session_status",
+      "path": "harness_state.session_status",
       "comparator": "eq",
       "expected": "completed"
     },
     {
       "op": "assert_pipeline",
       "sources": {
-        "score_1": { "kind": "checkpoint", "checkpoint": "final", "path": "harness_state.harness_state.carriers.npc_1.score" },
-        "score_2": { "kind": "checkpoint", "checkpoint": "final", "path": "harness_state.harness_state.carriers.npc_2.score" },
-        "score_3": { "kind": "checkpoint", "checkpoint": "final", "path": "harness_state.harness_state.carriers.npc_3.score" }
+        "score_1": { "kind": "checkpoint", "checkpoint": "final", "path": "harness_state.carriers.npc_1.score" },
+                "score_2": { "kind": "checkpoint", "checkpoint": "final", "path": "harness_state.carriers.npc_2.score" },
+                "score_3": { "kind": "checkpoint", "checkpoint": "final", "path": "harness_state.carriers.npc_3.score" }
       },
       "pipeline": [
         { "op": "subtract", "inputs": ["score_1", "score_2"], "as": "diff_1_2" }

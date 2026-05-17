@@ -13,17 +13,23 @@ var carriers: Array = []  # Array of CarrierData
 var current_turn: int = 0
 var demand_table: DemandData = null
 var events: Array = []
+var rng: RandomNumberGenerator
 
 var _carrier_index: Dictionary = {}  # id -> CarrierData
 
 
-func initialize(p_galaxy: GalaxyData, p_catalog: ShipCatalog, p_carriers: Array) -> void:
+func initialize(p_galaxy: GalaxyData, p_catalog: ShipCatalog, p_carriers: Array, seed: int = 0) -> void:
 	galaxy = p_galaxy
 	catalog = p_catalog
 	carriers = p_carriers
 	current_turn = 1
 	demand_table = DemandData.create_default_demand(p_galaxy)
 	events = []
+	rng = RandomNumberGenerator.new()
+	if seed != 0:
+		rng.seed = seed
+	else:
+		rng.seed = randi()
 	_build_carrier_index()
 
 

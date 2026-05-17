@@ -25,21 +25,21 @@
     {
       "op": "assert_value",
       "checkpoint": "final",
-      "path": "harness_state.harness_state.session_status",
+      "path": "harness_state.session_status",
       "comparator": "eq",
       "expected": "completed"
     },
     {
       "op": "assert_value",
       "checkpoint": "final",
-      "path": "harness_state.harness_state.events_generated",
+      "path": "harness_state.events_generated",
       "comparator": "gte",
       "expected": 1
     },
     {
       "op": "assert_value",
       "checkpoint": "final",
-      "path": "harness_state.harness_state.first_event_turn",
+      "path": "harness_state.first_event_turn",
       "comparator": "gte",
       "expected": 3
     },

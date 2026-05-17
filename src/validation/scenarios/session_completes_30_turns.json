@@ -25,28 +25,28 @@
     {
       "op": "assert_value",
       "checkpoint": "final",
-      "path": "harness_state.harness_state.session_status",
+      "path": "harness_state.session_status",
       "comparator": "eq",
       "expected": "completed"
     },
     {
       "op": "assert_value",
       "checkpoint": "final",
-      "path": "harness_state.harness_state.turns_completed",
+      "path": "harness_state.turns_completed",
       "comparator": "eq",
       "expected": 30
     },
     {
       "op": "assert_value",
       "checkpoint": "final",
-      "path": "harness_state.harness_state.winner.carrier_id",
+      "path": "harness_state.winner.carrier_id",
       "comparator": "neq",
       "expected": ""
     },
     {
       "op": "assert_value",
       "checkpoint": "final",
-      "path": "harness_state.harness_state.winner.score",
+      "path": "harness_state.winner.score",
       "comparator": "gt",
       "expected": 0
     },

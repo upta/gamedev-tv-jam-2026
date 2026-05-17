@@ -25,3 +25,29 @@
 10. **Reports are data, not prose:** Per-route revenue breakdown (numbers). Financial summary with categories. Event notes. No causal narrative sentences — detailed labeled deltas are sufficient.
 
 11. **Validation observability designed upfront:** harness_state exposes carriers, galaxy, demand, and signals as structured observable state. Scenarios can assert on any aspect of simulation state.
+
+### Phase 2 Architecture (2025-07-15, proposed)
+
+12. **Controller abstraction:** `CarrierController` base class (RefCounted) with `generate_intent(game_state, carrier_id) -> CarrierIntent`. IdleController (empty intents) and NpcController (heuristic AI) extend it. Player controller will extend it in Phase 3.
+
+13. **NPC AI is one class, not composed strategies.** Game jam scope. Personality differences are weight tuning (`slot_aggression`, `price_offset`), not pluggable strategy objects. Refactor if needed post-jam.
+
+14. **GameSession is RefCounted, not Node.** Owns GameState + controller map. `run_all_turns()` for headless, `run_next_turn()` for Phase 3 UI pacing. Validation harness wraps it in a Node for frame-stepping.
+
+15. **GameState owns the RNG.** `RandomNumberGenerator` with configurable seed. Extends D004 determinism guarantee to randomized systems (events, NPC variance). Same seed → same game.
+
+16. **GameSetup factory wires configuration.** `create_default_session()` and `create_all_npc_session()` produce ready-to-run GameSession instances. Keeps session runner separate from configuration.
+
+17. **Two validation harnesses:** Existing `simulation_harness` stays for unit-level turn testing. New `game_session_harness` tests integrated 30-turn game loop with controllers and events.
+
+**Key file paths (Phase 2):**
+- `src/game/controllers/carrier_controller.gd` — base class
+- `src/game/controllers/idle_controller.gd` — empty intents
+- `src/game/controllers/npc_controller.gd` — heuristic AI
+- `src/game/session/game_session.gd` — 30-turn orchestrator
+- `src/game/session/game_setup.gd` — configuration factory
+- `src/game/events/event_system.gd` — existing file, stub replaced
+- `src/validation/harnesses/game_session_harness.tscn` — new harness
+- `src/validation/scripts/harness_controllers/game_session_harness_controller.gd` — new controller
+
+**Work items:** P2.1–P2.11 (see `.squad/decisions/inbox/lead-phase2-plan.md`)

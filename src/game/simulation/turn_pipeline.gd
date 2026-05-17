@@ -64,13 +64,13 @@ static func resolve_turn(game_state: GameState, intents: Array) -> TurnResult:
 
 	# 7. EVENTS — generate, apply, tick
 	var new_events: Array = EventSystem.generate_events(
-		game_state.current_turn, game_state.galaxy
+		game_state.current_turn, game_state.galaxy, game_state.rng, game_state.events
 	)
 	result.events = new_events
 	for event: EventSystem.GameEvent in new_events:
 		game_state.events.append(event)
 
-	EventSystem.apply_events(game_state.events, game_state.demand_table)
+	EventSystem.apply_events(game_state.events, game_state.demand_table, game_state.galaxy)
 	game_state.events = EventSystem.tick_events(game_state.events)
 
 	result.event_descriptions = EventSystem.get_active_event_descriptions(game_state.events)
