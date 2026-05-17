@@ -53,6 +53,18 @@ func modify_route(
 	cargo_price: float,
 	frequency: int = 1,
 ) -> void:
+	# Replace any existing modification for the same route
+	for i: int in range(pending_intent.route_modifications.size()):
+		if pending_intent.route_modifications[i]["route_id"] == route_id:
+			pending_intent.route_modifications[i] = {
+				"route_id": route_id,
+				"ship_ids": ship_ids,
+				"passenger_price": passenger_price,
+				"cargo_price": cargo_price,
+				"frequency": frequency,
+			}
+			intent_changed.emit(pending_intent)
+			return
 	pending_intent.route_modifications.append({
 		"route_id": route_id,
 		"ship_ids": ship_ids,
