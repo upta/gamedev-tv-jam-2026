@@ -1,0 +1,40 @@
+{
+  "scenario_id": "toast_clear_all",
+  "version": 3,
+  "description": "Verify clear_all removes all active toasts and empties the queue",
+  "harness_scene": "res://validation/harnesses/toast_cleared_harness.tscn",
+  "done_contract": {},
+  "artifact_contract": {
+    "required_files": ["summary.json", "event_log.json", "scene_tree.json", "console.log"],
+    "missing_file_is_failure": true
+  },
+  "exit_codes": {
+    "pass": 0,
+    "assertion_failure": 1,
+    "runtime_error": 2,
+    "timeout": 3,
+    "artifact_generation_error": 4
+  },
+  "cli_contract": {
+    "command_template": "godot --path <project> -- --test-mode --scenario <path> --artifacts <dir>"
+  },
+  "steps": [
+    { "op": "load_harness" },
+    { "op": "checkpoint", "name": "after_clear" },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_clear",
+      "path": "harness_state.active_count",
+      "comparator": "eq",
+      "expected": 0
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_clear",
+      "path": "harness_state.queue_size",
+      "comparator": "eq",
+      "expected": 0
+    },
+    { "op": "quit" }
+  ]
+}

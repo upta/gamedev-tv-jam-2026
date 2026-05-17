@@ -1,0 +1,68 @@
+{
+  "scenario_id": "toast_initial_state",
+  "version": 3,
+  "description": "Verify ToastManager initializes with zero active toasts and correct constants",
+  "harness_scene": "res://validation/harnesses/toast_harness.tscn",
+  "done_contract": {},
+  "artifact_contract": {
+    "required_files": ["summary.json", "event_log.json", "scene_tree.json", "console.log"],
+    "missing_file_is_failure": true
+  },
+  "exit_codes": {
+    "pass": 0,
+    "assertion_failure": 1,
+    "runtime_error": 2,
+    "timeout": 3,
+    "artifact_generation_error": 4
+  },
+  "cli_contract": {
+    "command_template": "godot --path <project> -- --test-mode --scenario <path> --artifacts <dir>"
+  },
+  "steps": [
+    { "op": "load_harness" },
+    { "op": "checkpoint", "name": "initial" },
+    {
+      "op": "assert_value",
+      "checkpoint": "initial",
+      "path": "harness_state.active_count",
+      "comparator": "eq",
+      "expected": 0
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "initial",
+      "path": "harness_state.queue_size",
+      "comparator": "eq",
+      "expected": 0
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "initial",
+      "path": "harness_state.visible_toast_count",
+      "comparator": "eq",
+      "expected": 0
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "initial",
+      "path": "harness_state.max_visible",
+      "comparator": "eq",
+      "expected": 4
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "initial",
+      "path": "harness_state.display_duration",
+      "comparator": "eq",
+      "expected": 3.0
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "initial",
+      "path": "harness_state.fade_duration",
+      "comparator": "eq",
+      "expected": 0.3
+    },
+    { "op": "quit" }
+  ]
+}
