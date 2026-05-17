@@ -1,0 +1,7 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://game/ui/modal_dialog.tscn" id="1"]
+[ext_resource type="Script" path="res://game/ui/modals/routes_modal.gd" id="2"]
+
+[node name="RoutesModal" instance=ExtResource("1")]
+script = ExtResource("2")
