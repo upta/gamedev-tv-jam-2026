@@ -222,6 +222,14 @@ Dependency graph provided in plan. Can parallelize: P1.1–3, P1.5–6, P1.10–
 - **Game balance shifted**: New distances cause earlier bankruptcies in some seeds. Integration tests relaxed to accept any turn count > 0 and ≤ 30.
 - **Blast radius**: 21 files changed. UI layer (star_map, routes_modal) and debug_state_saver still reference `galaxy.lanes` — expected to break at runtime until waves 2-4.
 
+### Selection Popup Positioning Fix (2026-05-17)
+- **Bug**: Planet/ship selection popup in CreateRouteModal rendered as a collapsed bar in top-left corner. Root cause: `set_anchors_preset(PRESET_CENTER)` with `grow_*` doesn't work inside complex layout hierarchies (ModalDialog → Panel → VBox → Content → Scroll).
+- **Fix**: Add popup + semi-transparent overlay directly to `get_tree().root`, bypassing all parent layout constraints. Popup is explicitly sized (400×300) and positioned at viewport center.
+- **Cleanup**: Overlay and popup freed on close, exit_tree, and overlay click. `_selection_overlay: ColorRect` added as new member variable.
+- **Programmatic API**: Added `open_planet_selector()`, `is_selection_popup_visible()`, `get_selection_popup_item_count()` for validation harness access.
+- **Validation**: Created dedicated `ui_create_route_harness_controller.gd` + `ui_create_route_harness.tscn` to test popup without conflicting with turn-running logic in ui_game_harness_controller. New scenario `ui_create_route_popup_visible.json` asserts popup visibility and item count > 0.
+- **Pattern**: When UI controls need to escape parent layout constraints in Godot, add to `get_tree().root` — never rely on anchor presets inside nested layouts.
+
 ### Dashboard Refresh Fix + Debug State Save (2026-05-17)
 - **Missing `open()` override**: DashboardModal was the only modal missing `open() -> super.open(); refresh()`. All other modals (Ships, Slots, Routes) had it. Caused stale data display after turns.
 - **DebugStateSaver pattern**: Static utility class (`DebugStateSaver`) with `save()` and private `_serialize_*` methods. Serializes full GameState to `user://debug_state.json`. Includes carriers, galaxy, player intent, events.
