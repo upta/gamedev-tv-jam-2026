@@ -83,7 +83,7 @@ func _build_pending_section() -> void:
 		has_actions = true
 		var bid: Dictionary = intent.slot_bids[i]
 		var planet: GalaxyData.Planet = _game_state.galaxy.get_planet(bid["planet_id"])
-		var planet_name := planet.name if planet else bid["planet_id"]
+		var planet_name: String = planet.name if planet else str(bid["planet_id"])
 		var row := HBoxContainer.new()
 		var lbl := Label.new()
 		lbl.text = "Bid: %s × %d @ $%.0f/slot" % [planet_name, bid["quantity"], bid["price_per_slot"]]
@@ -100,7 +100,7 @@ func _build_pending_section() -> void:
 		has_actions = true
 		var sale: Dictionary = intent.slot_sales[i]
 		var planet: GalaxyData.Planet = _game_state.galaxy.get_planet(sale["planet_id"])
-		var planet_name := planet.name if planet else sale["planet_id"]
+		var planet_name: String = planet.name if planet else str(sale["planet_id"])
 		var row := HBoxContainer.new()
 		var lbl := Label.new()
 		lbl.text = "Sell: %s × %d" % [planet_name, sale["count"]]
