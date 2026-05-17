@@ -12,6 +12,11 @@ This is a Godot game prototype using the [agentic-godot-validation](https://gith
 - `submodules/agentic_godot_validation/` — git submodule source
 - `tools/` — symlinked validation runner scripts
 
+## Protected Files
+
+- **`DESIGN.md`** — The game design document. **Never delete, overwrite, or move this file.** It is the single source of truth for what the game is. Edits are allowed only when the user explicitly requests design changes. If `DESIGN.md` is missing, stop and alert the user immediately — do not proceed with implementation work without it.
+- **`CONTEXT.md`** — Domain language glossary. Same protections apply.
+
 ## Key Conventions
 
 - The app root routes between the game and the validation test bootstrap via `--test-mode` CLI flag
