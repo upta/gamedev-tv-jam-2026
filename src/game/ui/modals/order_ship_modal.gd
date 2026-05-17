@@ -14,6 +14,7 @@ var _content: VBoxContainer
 var _type_option: OptionButton
 var _pax_spin: SpinBox
 var _cargo_spin: SpinBox
+var _qty_spin: SpinBox
 var _stats_label: Label
 var _order_button: Button
 var _cancel_button: Button
@@ -87,6 +88,14 @@ func _rebuild_form() -> void:
 
 	_content.add_child(HSeparator.new())
 
+	# Quantity
+	var qty_row := _create_label_spinbox("Quantity:", 1, 10, 1, 1)
+	_qty_spin = qty_row.get_child(1) as SpinBox
+	_qty_spin.value_changed.connect(_on_qty_changed)
+	_content.add_child(qty_row)
+
+	_content.add_child(HSeparator.new())
+
 	# Button row
 	var btn_row := HBoxContainer.new()
 	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -137,8 +146,10 @@ func _update_stats_and_button(carrier: CarrierData) -> void:
 		_stats_label.text = "No ships available."
 		_order_button.disabled = true
 		return
-	_stats_label.text = "Cost: §%d | Cap: %d | Range: %.1f ly | Build: %d turns" % [st.cost, st.max_capacity, st.range, st.build_turns]
-	_order_button.disabled = carrier.cash < st.cost
+	var qty := int(_qty_spin.value) if _qty_spin else 1
+	var total_cost := st.cost * qty
+	_stats_label.text = "Cost: §%d × %d = §%d | Cap: %d | Range: %.1f ly | Build: %d turns" % [st.cost, qty, total_cost, st.max_capacity, st.range, st.build_turns]
+	_order_button.disabled = carrier.cash < total_cost
 
 
 # ---------------------------------------------------------------------------
@@ -152,6 +163,7 @@ func get_form_state() -> Dictionary:
 		"type_name": st.name if st else "",
 		"passenger_capacity": int(_pax_spin.value) if _pax_spin else 0,
 		"cargo_capacity": int(_cargo_spin.value) if _cargo_spin else 0,
+		"quantity": int(_qty_spin.value) if _qty_spin else 1,
 		"can_order": not _order_button.disabled if _order_button else false,
 	}
 
@@ -210,10 +222,17 @@ func _on_cargo_changed(value: float) -> void:
 	_updating_spinboxes = false
 
 
+func _on_qty_changed(_value: float) -> void:
+	if _game_state:
+		_update_stats_and_button(_game_state.get_player_carrier())
+
+
 func _on_order_pressed() -> void:
 	var st := _get_selected_type()
 	if st == null:
 		return
-	_player_controller.add_ship_order(st.id, int(_pax_spin.value), int(_cargo_spin.value))
+	var qty := int(_qty_spin.value) if _qty_spin else 1
+	for i in range(qty):
+		_player_controller.add_ship_order(st.id, int(_pax_spin.value), int(_cargo_spin.value))
 	ship_ordered.emit()
 	close()
