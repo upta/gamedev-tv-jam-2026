@@ -288,3 +288,16 @@ Dependency graph provided in plan. Can parallelize: P1.1–3, P1.5–6, P1.10–
 - **Bug:** `_serialize_events` typed loop variable as `Dictionary` but `game_state.events` contains `EventSystem.GameEvent` objects. Fixed type annotation to match actual data.
 - **Feature:** Added `_serialize_console_log()` — reads last 200 lines from `user://logs/godot.log`, filters for ERROR/WARNING/SCRIPT ERROR, caps at 100 entries. Output goes into `console_errors` key in debug state JSON.
 - **All scenarios pass, GUT tests pass, Godot launches clean.**
+
+### Economy Balance Overhaul (2026-07-25)
+- **5 fixes implemented** from Lead's economy balance proposal (approved by Brady):
+  1. **Operating cost × frequency** — `financial_calculator.gd` line 73. Each trip costs fuel. Freq 4 now costs 4× freq 1.
+  2. **Speed-based max frequency** — `route_validator.gd` `calculate_max_frequency()`. New signature adds carrier, catalog, lane_distance with backward-compat fallback. `speed = efficiency × 5.0`, `trips = max(1, int(speed / distance))`.
+  3. **Price factor floor 0.0** — `demand_calculator.gd`. At 2× suggested price, demand = 0. Kills "max price" exploit.
+  4. **Dynamic frequency SpinBox** — `create_route_modal.gd`. SpinBox max updates when ships are selected. Shows "/ N" max label. Disabled when no ships.
+  5. **NPC frequency** — `npc_controller.gd`. NPCs use `max(1, int(max_freq × route_preference))` instead of hardcoded 1.
+- **Tests updated**: 3 test files (financial_calculator, demand_calculator, route_validator). Old assertions corrected for new formulas. New tests: cost scales linearly, price factor hits 0.0, max freq varies by ship type.
+- **DESIGN.md updated**: Price factor floor and frequency formula.
+- **3 validation scenarios added**: `economy_cost_scales_with_frequency`, `economy_demand_zero_at_extreme_price`, `economy_frequency_speed_limited`.
+- **Ship capacity splits matter in tests**: `_add_ship()` with non-default types must provide correct pax+cargo matching `max_capacity` or `create_ship_instance` errors.
+- **All 242+ unit tests pass, all 31 scenarios pass.**
