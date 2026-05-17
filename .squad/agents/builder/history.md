@@ -283,3 +283,8 @@ Dependency graph provided in plan. Can parallelize: P1.1–3, P1.5–6, P1.10–
 - **Harness controller:** Added create-route-modal test steps at odd frame numbers (205, 213, 225, 235, 245) to avoid conflict with auto-turn logic that fires at multiples of 20 from 180.
 - **Validation:** 2 new scenarios — `ui_routes_modal_shows_create_button`, `ui_create_route_flow`. All 26 scenarios pass.
 - **GDScript typing:** Inside match blocks, must use explicit type annotations (`var x: Type`) instead of type inference (`var x :=`).
+### Debug State Saver Fix + Console Logging (2026-07-25)
+- **File:** `src/game/utils/debug_state_saver.gd`
+- **Bug:** `_serialize_events` typed loop variable as `Dictionary` but `game_state.events` contains `EventSystem.GameEvent` objects. Fixed type annotation to match actual data.
+- **Feature:** Added `_serialize_console_log()` — reads last 200 lines from `user://logs/godot.log`, filters for ERROR/WARNING/SCRIPT ERROR, caps at 100 entries. Output goes into `console_errors` key in debug state JSON.
+- **All scenarios pass, GUT tests pass, Godot launches clean.**
