@@ -256,3 +256,12 @@ Dependency graph provided in plan. Can parallelize: P1.1–3, P1.5–6, P1.10–
 - **Key insight:** Static buffer multiplier alone wasn't enough — NPCs overextend in early turns when they have few obligations. A minimum cash floor (§1200) prevents early overexpansion regardless of current costs.
 - **Also fixed:** Stale `uid://` references in 3 modal `.tscn` files (dashboard_modal, turn_log_modal, slots_modal). Removed invalid UIDs, keeping text path resolution.
 - **Result:** All 24 scenarios pass. All 239 GUT tests pass. Game reaches turn 30 with all carriers solvent.
+
+### Star Map Auto-Fit + Routes Modal Sub-Dialog Redesign (2026-05-18)
+- **Star map auto-fit**: Replaced fixed `MAP_SCALE=80.0` and `MAP_OFFSET=Vector2(120,200)` with dynamic bounding-box calculation. Computes min/max of all planet positions in light-year space, scales to fit within viewport with 60px padding, centers content. Falls back to 1200×700 if Control size is zero at build time.
+- **Routes modal redesign**: Replaced OptionButton dropdowns with multi-step form matching wireframes. Origin/Dest/Ship rows each have a display label and [Select] button that opens a reusable sub-dialog popup.
+- **Planet sub-dialog**: Groups planets into "Has Slots" (selectable, sorted alphabetically) and "No Slots" (grayed out, non-selectable). Closes on selection.
+- **Ship sub-dialog**: Groups idle ships into "In Range" (selectable, shows capacity and ✓ if already selected) and "Out of Range" (grayed out). Excludes ships committed to pending creates. Stays open for multi-select (toggle behavior).
+- **Generic `_show_selection_popup()`**: Reusable popup builder accepting title, two grouped item arrays, callback, and optional close-on-select flag. Used by both planet and ship selectors.
+- **Form additions**: Flights per Month SpinBox (1-4), Cancel/Create button row, form reset on create or cancel.
+- **Validation**: All 24 scenarios pass unchanged, including `ui_player_creates_route` (which tests via harness controller, not UI interaction).
