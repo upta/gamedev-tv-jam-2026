@@ -33,12 +33,13 @@ layout_mode = 2
 [node name="HSplitContainer" type="HSplitContainer" parent="VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
-split_offset = 700
+split_offset = 0
 
 [node name="StarMapPanel" type="Control" parent="VBoxContainer/HSplitContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_stretch_ratio = 1.5
+mouse_filter = 2
 
 [node name="StarMap" parent="VBoxContainer/HSplitContainer/StarMapPanel" instance=ExtResource("3")]
 unique_name_in_owner = true
@@ -46,6 +47,7 @@ unique_name_in_owner = true
 [node name="SidePanel" type="VBoxContainer" parent="VBoxContainer/HSplitContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
+custom_minimum_size = Vector2(320, 0)
 
 [node name="DashboardPanel" parent="VBoxContainer/HSplitContainer/SidePanel" instance=ExtResource("4")]
 unique_name_in_owner = true
