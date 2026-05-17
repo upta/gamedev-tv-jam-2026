@@ -212,6 +212,11 @@ func _open_planet_selector(target: String) -> void:
 	var items_no_slots: Array[Dictionary] = []
 
 	for planet: GalaxyData.Planet in _game_state.galaxy.planets:
+		# Exclude the already-selected counterpart
+		if target == "origin" and planet.id == _dest_id:
+			continue
+		if target == "dest" and planet.id == _origin_id:
+			continue
 		var slot_count: int = carrier.get_slot_count(planet.id)
 		if slot_count > 0:
 			items_with_slots.append({
