@@ -213,3 +213,9 @@ Dependency graph provided in plan. Can parallelize: P1.1–3, P1.5–6, P1.10–
 - **DebugStateSaver pattern**: Static utility class (`DebugStateSaver`) with `save()` and private `_serialize_*` methods. Serializes full GameState to `user://debug_state.json`. Includes carriers, galaxy, player intent, events.
 - **F12 + 💾 button**: Wired via `_unhandled_input()` in main.gd for F12, plus a TopBar `debug_save_pressed` signal for the button. Both call the same `_save_debug_state()` method.
 - **Project name for user:// path**: `project.godot` has `config/name="My Prototype"`, so OS path is `%APPDATA%/Godot/app_userdata/My Prototype/debug_state.json`.
+
+### Economy Balance Fix (2026-05-17)
+- **Monopoly exploit**: When only one carrier serves a lane, price_factor cancels out in proportional split (weight/total_weight = 1.0 always). Fix: add absolute demand cap `demand_at_price = int(effective_demand * price_factor)` so high prices reduce willingness to fly regardless of competition.
+- **Price factor floor**: Lowered from 0.2 to 0.05 — at 2x+ suggested price, only 5% of demand remains. Old floor of 20% was still very profitable at extreme prices.
+- **UI suggested prices**: Routes modal now shows suggested prices, defaults SpinBox to rounded suggested, caps max at 10x suggested. Prevents degenerate strategies while allowing experimentation.
+- **Toast offset**: `offset_top = 60` clears the ~40-50px toolbar. Simple .tscn property change.
