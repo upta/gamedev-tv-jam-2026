@@ -23,7 +23,7 @@ func show_results(rankings: Array, turns_played: int, player_carrier_id: String)
 
 	if rankings.size() > 0:
 		var winner: Dictionary = rankings[0]
-		var player_won := winner["carrier_id"] == player_carrier_id
+		var player_won: bool = (winner["carrier_id"] == player_carrier_id)
 		_winner_label.add_theme_color_override("font_color", GOLD_COLOR)
 		if player_won:
 			_winner_label.text = "%s wins with score %d!" % [winner["carrier_name"], int(winner["score"])]

@@ -5,13 +5,13 @@ var _player_controller: PlayerController
 var _session: GameSession
 var _carrier_id: String = "player"
 
-@onready var _top_bar: TopBar = %TopBar
-@onready var _star_map: StarMap = %StarMap
-@onready var _dashboard_panel: DashboardPanel = %DashboardPanel
-@onready var _action_panel: ActionPanel = %ActionPanel
-@onready var _turn_log_panel: TurnLogPanel = %TurnLogPanel
-@onready var _toast_manager: ToastManager = %ToastManager
-@onready var _game_over_screen: GameOverScreen = %GameOverScreen
+@onready var _top_bar = %TopBar
+@onready var _star_map = %StarMap
+@onready var _dashboard_panel = %DashboardPanel
+@onready var _action_panel = %ActionPanel
+@onready var _turn_log_panel = %TurnLogPanel
+@onready var _toast_manager = %ToastManager
+@onready var _game_over_screen = %GameOverScreen
 
 
 func _ready() -> void:

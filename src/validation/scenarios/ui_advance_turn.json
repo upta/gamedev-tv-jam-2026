@@ -1,0 +1,48 @@
+{
+  "scenario_id": "ui_advance_turn",
+  "version": 3,
+  "description": "Verify turn advances work: after 2 next-turn calls the current turn is 3 and game is still running",
+  "harness_scene": "res://validation/harnesses/ui_game_harness.tscn",
+  "done_contract": {},
+  "artifact_contract": {
+    "required_files": ["summary.json", "event_log.json", "scene_tree.json", "console.log"],
+    "missing_file_is_failure": true
+  },
+  "exit_codes": {
+    "pass": 0,
+    "assertion_failure": 1,
+    "runtime_error": 2,
+    "timeout": 3,
+    "artifact_generation_error": 4
+  },
+  "cli_contract": {
+    "command_template": "godot --path <project> -- --test-mode --scenario <path> --artifacts <dir>"
+  },
+  "steps": [
+    { "op": "load_harness" },
+    { "op": "wait_frames", "frames": 65 },
+    { "op": "checkpoint", "name": "after_turns" },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_turns",
+      "path": "harness_state.current_turn",
+      "comparator": "eq",
+      "expected": 3
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_turns",
+      "path": "harness_state.session_status",
+      "comparator": "eq",
+      "expected": "running"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_turns",
+      "path": "harness_state.game_over_visible",
+      "comparator": "eq",
+      "expected": false
+    },
+    { "op": "quit" }
+  ]
+}
