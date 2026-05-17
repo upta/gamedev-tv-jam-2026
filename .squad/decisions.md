@@ -171,6 +171,22 @@ Price factor floor lowered from 0.2 to 0.05. At 2x+ suggested price, only 5% of 
 
 ---
 
+## D016: Route Performance Metrics via GameState.last_turn_financials
+
+**Decision:** Store last turn's financial result on `GameState.last_turn_financials` (set in `advance_turn()`). Routes modal reads this dictionary to display per-route metrics.
+
+**Enrichment:** Financial calculator's route summaries now include `passengers_served`, `cargo_served`, `passenger_capacity`, and `cargo_capacity`.
+
+**Rationale:** Minimal change — one new property on GameState, populated in existing `advance_turn()` flow. No new signals needed; UI reads on refresh. Per-route demand served uses carrier-level demand split.
+
+**Impact:**
+- Routes modal displays two lines per route: config + performance metrics
+- Profit colored green/red for visual feedback
+- Validation harness exposes `route_performance` array
+- New scenario `sim_route_performance_metrics` validates end-to-end
+
+---
+
 ## User Directives
 
 ### 2026-05-17T03-30-23Z: Testing Responsibility
