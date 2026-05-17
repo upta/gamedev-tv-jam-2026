@@ -42,11 +42,15 @@ static func get_rankings(carriers: Array, catalog: ShipCatalog) -> Array:
 	var entries: Array = []
 
 	for carrier: CarrierData in carriers:
-		var score := calculate_score(carrier, catalog)["total"] as float
+		var breakdown := calculate_score(carrier, catalog)
 		entries.append({
 			"carrier_id": carrier.id,
 			"carrier_name": carrier.carrier_name,
-			"score": score,
+			"score": breakdown["total"],
+			"cash_score": breakdown["cash"],
+			"ship_score": breakdown["ship_assets"],
+			"slot_score": breakdown["slot_value"],
+			"route_score": breakdown["route_value"],
 			"rank": 0,
 		})
 
