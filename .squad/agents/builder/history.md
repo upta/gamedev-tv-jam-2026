@@ -249,3 +249,10 @@ Dependency graph provided in plan. Can parallelize: P1.1–3, P1.5–6, P1.10–
 - **Validation**: Updated 3 scenarios (`sim_initial_state`, `star_map_initial_state`, `star_map_slot_indicators`) and `star_map_harness_controller.gd` to remove lane count assertions.
 - **Pre-existing failures**: `session_completes_30_turns` and `ui_full_game_completes` fail due to game ending before turn 30 — unrelated to this change.
 - **Tools**: Updated `run_scenario.ps1` and `run_all_scenarios.ps1` default Screen from -1 to 1 (local gitignored copies).
+
+### NPC Cash Reserve Fix (2026-05-17)
+- **Root cause:** Phase 5 lane removal changed inter-planet distances. NPC_2 (slot_aggression=0.8) went bankrupt at turn 11, killing the game early.
+- **Fix:** Added `_estimate_cash_reserve()` to `npc_controller.gd`. Reserve = max(8 turns of operating costs, §1200 floor). Guards slot bids, ship orders, and route creation against reserve.
+- **Key insight:** Static buffer multiplier alone wasn't enough — NPCs overextend in early turns when they have few obligations. A minimum cash floor (§1200) prevents early overexpansion regardless of current costs.
+- **Also fixed:** Stale `uid://` references in 3 modal `.tscn` files (dashboard_modal, turn_log_modal, slots_modal). Removed invalid UIDs, keeping text path resolution.
+- **Result:** All 24 scenarios pass. All 239 GUT tests pass. Game reaches turn 30 with all carriers solvent.
