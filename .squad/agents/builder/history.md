@@ -240,3 +240,12 @@ Dependency graph provided in plan. Can parallelize: P1.1–3, P1.5–6, P1.10–
 - **Signature change**: calculate_score, determine_winner, get_rankings all got optional galaxy: GalaxyData = null parameter. All 12 call sites updated to pass galaxy.
 - **Game over UI**: Renamed column headers from "Ships/Slots/Routes" to "Ship Value/Slot Value/Route Value" for clarity.
 - **Tests added**: 	est_route_value_uses_price_factor (overpriced < fair) and 	est_route_value_no_galaxy_fallback (null galaxy uses 0.5).
+
+### Dynamic Lanes UI Migration (2026-05-17)
+- **Context**: Phase 5 route architecture removed `galaxy.lanes` array. GalaxyData now computes lanes dynamically via `get_lane(origin_id, dest_id)` using Euclidean distance between planet positions.
+- **routes_modal.gd**: Replaced single lane OptionButton with two planet pickers (origin + dest). Uses `galaxy.get_lane()` for distance/pricing. Fixed `add_route_create()` call — removed `lane_id` param to match new 5-arg signature.
+- **star_map.gd**: Removed all lane line infrastructure (`_lane_lines`, `_LaneLine`, `_on_lane_clicked`, `_unhandled_input` lane detection, `_point_to_segment_distance`). Replaced hardcoded `PLANET_POSITIONS` dict with dynamic positions derived from `planet.position * MAP_SCALE + MAP_OFFSET`. Route overlays use `GalaxyData.derive_lane_id()` for offset grouping.
+- **debug_state_saver.gd**: Removed lanes iteration from `_serialize_galaxy()`. Added planet position to serialized output.
+- **Validation**: Updated 3 scenarios (`sim_initial_state`, `star_map_initial_state`, `star_map_slot_indicators`) and `star_map_harness_controller.gd` to remove lane count assertions.
+- **Pre-existing failures**: `session_completes_30_turns` and `ui_full_game_completes` fail due to game ending before turn 30 — unrelated to this change.
+- **Tools**: Updated `run_scenario.ps1` and `run_all_scenarios.ps1` default Screen from -1 to 1 (local gitignored copies).
