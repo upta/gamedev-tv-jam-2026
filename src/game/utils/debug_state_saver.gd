@@ -39,6 +39,7 @@ static func _build_state_dict(game_state: GameState, player_controller: PlayerCo
 	if player_controller != null:
 		result["player_pending_intent"] = _serialize_intent(player_controller.pending_intent)
 	result["events"] = _serialize_events(game_state.events)
+	result["console_errors"] = _serialize_console_log()
 	return result
 
 
@@ -118,6 +119,41 @@ static func _serialize_intent(intent: TurnPipeline.CarrierIntent) -> Dictionary:
 
 static func _serialize_events(events: Array) -> Array:
 	var result := []
-	for event: Dictionary in events:
-		result.append(event.duplicate())
+	for event: EventSystem.GameEvent in events:
+		result.append({
+			"id": event.id,
+			"description": event.description,
+			"target_lane_id": event.target_lane_id,
+			"target_planet_id": event.target_planet_id,
+			"demand_type": event.demand_type,
+			"modifier": event.modifier,
+			"duration_turns": event.duration_turns,
+			"remaining_turns": event.remaining_turns,
+		})
 	return result
+
+
+static func _serialize_console_log() -> Array:
+	var log_path := "user://logs/godot.log"
+	var file := FileAccess.open(log_path, FileAccess.READ)
+	if file == null:
+		return ["(could not open %s)" % log_path]
+
+	var all_lines: PackedStringArray = file.get_as_text().split("\n")
+	file.close()
+
+	# Keep last 200 lines as the search window
+	var start_idx := maxi(0, all_lines.size() - 200)
+	var filtered := []
+	for i in range(start_idx, all_lines.size()):
+		var line := all_lines[i].strip_edges()
+		if line.is_empty():
+			continue
+		if line.contains("ERROR") or line.contains("WARNING") or line.contains("SCRIPT ERROR"):
+			filtered.append(line)
+
+	# Cap at 100 entries
+	if filtered.size() > 100:
+		filtered = filtered.slice(filtered.size() - 100)
+
+	return filtered
