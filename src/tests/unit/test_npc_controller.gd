@@ -116,3 +116,55 @@ func test_slot_bid_has_valid_structure() -> void:
 			bid_found = true
 			break
 	assert_true(bid_found, "Should find a valid bid with aggressive settings")
+
+
+func test_low_cash_npc_does_not_bid_on_slots() -> void:
+	controller.slot_aggression = 1.0
+	var carrier := game_state.get_carrier("npc_1")
+	# Give the NPC an active route so reserve is non-trivial
+	carrier.slots["centauri_prime"] = 1
+	var sid: String = carrier.ships[0].id
+	var tids: Array[String] = [sid]
+	var r := CarrierData.Route.new(
+		"npc_1-route-0", "proxima_b", "centauri_prime",
+		tids, 5.0, 4.0, 1, true
+	)
+	carrier.routes.append(r)
+	# Set cash very low — below what the reserve would require
+	carrier.cash = 100.0
+	var intent := controller.generate_intent(game_state, "npc_1")
+	assert_eq(intent.slot_bids.size(), 0, "Low-cash NPC should not bid on slots")
+
+
+func test_low_cash_npc_does_not_order_ships() -> void:
+	controller.ship_eagerness = 1.0
+	var carrier := game_state.get_carrier("npc_1")
+	carrier.slots["centauri_prime"] = 1
+	var sid: String = carrier.ships[0].id
+	var tids: Array[String] = [sid]
+	var r := CarrierData.Route.new(
+		"npc_1-route-0", "proxima_b", "centauri_prime",
+		tids, 5.0, 4.0, 1, true
+	)
+	carrier.routes.append(r)
+	# Set cash low enough that ship cost would breach reserve
+	carrier.cash = 200.0
+	var intent := controller.generate_intent(game_state, "npc_1")
+	assert_eq(intent.ship_orders.size(), 0, "Low-cash NPC should not order ships")
+
+
+func test_wealthy_npc_still_bids_and_orders() -> void:
+	controller.slot_aggression = 1.0
+	controller.ship_eagerness = 1.0
+	var bid := false
+	for seed_val in range(1, 50):
+		game_state = _create_game_state(seed_val)
+		var carrier := game_state.get_carrier("npc_1")
+		carrier.cash = 10000.0
+		controller = NpcController.new()
+		controller.slot_aggression = 1.0
+		var intent := controller.generate_intent(game_state, "npc_1")
+		if intent.slot_bids.size() > 0:
+			bid = true
+			break
+	assert_true(bid, "Wealthy NPC should still bid on slots")

@@ -1,8 +1,8 @@
 [gd_scene load_steps=4 format=3]
 
-[ext_resource type="PackedScene" uid="uid://b1tl7yrqq6kf8" path="res://game/ui/modal_dialog.tscn" id="base"]
+[ext_resource type="PackedScene" path="res://game/ui/modal_dialog.tscn" id="base"]
 [ext_resource type="Script" path="res://game/ui/modals/turn_log_modal.gd" id="1"]
-[ext_resource type="PackedScene" uid="uid://cbkxldohm7vvr" path="res://game/ui/panels/turn_log_panel.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://game/ui/panels/turn_log_panel.tscn" id="2"]
 
 [node name="ModalDialog" instance=ExtResource("base")]
 script = ExtResource("1")

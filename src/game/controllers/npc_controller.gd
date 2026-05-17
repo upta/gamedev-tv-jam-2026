@@ -11,6 +11,10 @@ var route_preference: float = 0.5   # 0.0 = few expensive routes, 1.0 = many che
 var ship_eagerness: float = 0.5     # 0.0 = waits, 1.0 = buys ships immediately
 
 
+const RESERVE_BUFFER_TURNS: int = 8
+const MIN_CASH_RESERVE: float = 1200.0
+
+
 func generate_intent(game_state: GameState, carrier_id: String) -> TurnPipeline.CarrierIntent:
 	var intent := TurnPipeline.CarrierIntent.new()
 	intent.carrier_id = carrier_id
@@ -19,13 +23,25 @@ func generate_intent(game_state: GameState, carrier_id: String) -> TurnPipeline.
 	if carrier == null:
 		return intent
 
+	var reserve := _estimate_cash_reserve(carrier, game_state)
+
 	# Decision priority: Slots → Routes → Ships → Slot Sales
-	_consider_slot_bids(intent, carrier, game_state)
-	_consider_route_creation(intent, carrier, game_state)
-	_consider_ship_orders(intent, carrier, game_state)
+	_consider_slot_bids(intent, carrier, game_state, reserve)
+	_consider_route_creation(intent, carrier, game_state, reserve)
+	_consider_ship_orders(intent, carrier, game_state, reserve)
 	_consider_slot_sales(intent, carrier, game_state)
 
 	return intent
+
+
+func _estimate_cash_reserve(carrier: CarrierData, game_state: GameState) -> float:
+	var route_costs := 0.0
+	for route: CarrierData.Route in carrier.get_active_routes():
+		route_costs += FinancialCalculator.calculate_route_operating_cost(
+			route, carrier, game_state.catalog, game_state.galaxy
+		)
+	var slot_upkeep := FinancialCalculator.calculate_slot_upkeep(carrier)
+	return maxf((route_costs + slot_upkeep) * RESERVE_BUFFER_TURNS, MIN_CASH_RESERVE)
 
 
 # ---------------------------------------------------------------------------
@@ -36,6 +52,7 @@ func _consider_slot_bids(
 	intent: TurnPipeline.CarrierIntent,
 	carrier: CarrierData,
 	game_state: GameState,
+	reserve: float,
 ) -> void:
 	if game_state.rng.randf() >= slot_aggression:
 		return
@@ -43,7 +60,7 @@ func _consider_slot_bids(
 	var planets_with_slots := carrier.slots.keys().filter(
 		func(pid: String) -> bool: return carrier.get_slot_count(pid) > 0
 	)
-	if planets_with_slots.size() >= 4 or carrier.cash <= 800:
+	if planets_with_slots.size() >= 4:
 		return
 
 	# Find reachable planets where we don't already have slots
@@ -71,13 +88,17 @@ func _consider_slot_bids(
 	)
 
 	var bid_count := mini(candidates.size(), 2)
+	var cumulative_cost := 0.0
 	for i in range(bid_count):
 		var price := 150.0 + game_state.rng.randf_range(-50.0, 50.0)
+		if carrier.cash - cumulative_cost - price <= reserve:
+			break
 		intent.slot_bids.append({
 			"planet_id": candidates[i]["planet_id"],
 			"quantity": 1,
 			"price_per_slot": price,
 		})
+		cumulative_cost += price
 
 
 # ---------------------------------------------------------------------------
@@ -88,6 +109,7 @@ func _consider_route_creation(
 	intent: TurnPipeline.CarrierIntent,
 	carrier: CarrierData,
 	game_state: GameState,
+	reserve: float,
 ) -> void:
 	var available_ships: Array = carrier.get_available_ships()
 	if available_ships.is_empty():
@@ -120,6 +142,14 @@ func _consider_route_creation(
 			if chosen_ship == null:
 				continue
 
+			# Check if NPC can sustain the new route's operating costs
+			var ship_type := game_state.catalog.get_type(chosen_ship.type_id)
+			if ship_type != null:
+				var new_route_cost: float = distance / ship_type.efficiency
+				var new_reserve := reserve + new_route_cost * RESERVE_BUFFER_TURNS
+				if carrier.cash <= new_reserve:
+					continue
+
 			# Price based on demand
 			var demand_entry := game_state.demand_table.get_entry(lane_id, "forward")
 			var passenger_price := 5.0
@@ -151,6 +181,7 @@ func _consider_ship_orders(
 	intent: TurnPipeline.CarrierIntent,
 	carrier: CarrierData,
 	game_state: GameState,
+	reserve: float,
 ) -> void:
 	if game_state.rng.randf() >= ship_eagerness:
 		return
@@ -168,7 +199,7 @@ func _consider_ship_orders(
 		if cheapest == null or st.cost < cheapest.cost:
 			cheapest = st
 
-	if cheapest == null or carrier.cash < cheapest.cost:
+	if cheapest == null or carrier.cash - cheapest.cost <= reserve:
 		return
 
 	# 50/50 passenger/cargo split

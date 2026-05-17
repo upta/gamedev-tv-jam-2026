@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3]
 
-[ext_resource type="PackedScene" uid="uid://b1tl7yrqq6kf8" path="res://game/ui/modal_dialog.tscn" id="base"]
+[ext_resource type="PackedScene" path="res://game/ui/modal_dialog.tscn" id="base"]
 [ext_resource type="Script" path="res://game/ui/modals/slots_modal.gd" id="1"]
 
 [node name="ModalDialog" instance=ExtResource("base")]
