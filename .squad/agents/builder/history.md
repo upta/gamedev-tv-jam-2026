@@ -198,3 +198,18 @@ Dependency graph provided in plan. Can parallelize: P1.1–3, P1.5–6, P1.10–
 - **Layout:** ToolbarContainer (HBoxContainer, unique_name_in_owner) added between Spacer and NextTurnButton in top_bar.tscn.
 - **Pattern:** Buttons created via code (not scene) to keep TOOLBAR_BUTTONS as single source of truth. `const TOOLBAR_BUTTONS` array of `[label, modal_name]` pairs.
 - **No validation scenarios** — pure UI component with no gameplay state.
+
+## Learnings
+
+### UI Bug Fix Batch (2026-05-17)
+- **mouse_filter inheritance**: Parent Control having mouse_filter=IGNORE doesn't cascade to children in Godot — each child node needs its own mouse_filter=2 set explicitly
+- **Direction selector removal**: When game design says "round-trip", direction UI is noise — use the lane's natural origin/dest directly
+- **Pending intent filtering**: Always cross-check pending_intent when computing available resources (ships, slots) to prevent double-booking within a single turn
+- **Turn log ordering**: Prepending with move_child(node, 0) is the cleanest way to show newest-first in a VBoxContainer
+- **Dedicated harness controllers**: Created a separate ui_toolbar_harness_controller.gd rather than overloading the existing ui_game_harness_controller — keeps scenarios isolated and deterministic
+
+### Dashboard Refresh Fix + Debug State Save (2026-05-17)
+- **Missing `open()` override**: DashboardModal was the only modal missing `open() -> super.open(); refresh()`. All other modals (Ships, Slots, Routes) had it. Caused stale data display after turns.
+- **DebugStateSaver pattern**: Static utility class (`DebugStateSaver`) with `save()` and private `_serialize_*` methods. Serializes full GameState to `user://debug_state.json`. Includes carriers, galaxy, player intent, events.
+- **F12 + 💾 button**: Wired via `_unhandled_input()` in main.gd for F12, plus a TopBar `debug_save_pressed` signal for the button. Both call the same `_save_debug_state()` method.
+- **Project name for user:// path**: `project.godot` has `config/name="My Prototype"`, so OS path is `%APPDATA%/Godot/app_userdata/My Prototype/debug_state.json`.

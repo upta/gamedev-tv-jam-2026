@@ -33,6 +33,12 @@ func _ready() -> void:
 	_connect_signals()
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_F12:
+			_save_debug_state()
+
+
 func _bind_all() -> void:
 	_top_bar.bind(_session.game_state, _carrier_id)
 	_star_map.bind(_session.game_state)
@@ -45,6 +51,7 @@ func _bind_all() -> void:
 func _connect_signals() -> void:
 	_top_bar.next_turn_pressed.connect(_on_next_turn)
 	_top_bar.toolbar_button_pressed.connect(_on_toolbar_pressed)
+	_top_bar.debug_save_pressed.connect(_save_debug_state)
 	_game_over_screen.play_again_requested.connect(_on_play_again)
 	for modal_name: String in _modals:
 		_modals[modal_name].closed.connect(_on_modal_closed)
@@ -122,3 +129,8 @@ func _on_play_again() -> void:
 	_session = GameSetup.create_player_session(_player_controller)
 	_bind_all()
 	_top_bar.set_turn_in_progress(false)
+
+
+func _save_debug_state() -> void:
+	var path := DebugStateSaver.save(_session.game_state, _player_controller)
+	_toast_manager.show_toast("Debug state saved: %s" % path, "success")

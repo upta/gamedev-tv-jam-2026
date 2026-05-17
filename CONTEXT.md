@@ -71,3 +71,13 @@ _Avoid:_ action, command, order (as a general term)
 - "route" was used to mean both the geographic path and the scheduled service — **resolved:** Route = scheduled service, Lane = geographic path.
 - "order" is overloaded — ship purchase order vs. carrier intent — **resolved:** use "ship order" for purchases, "intent" for turn actions.
 - "slot" could imply a physical berth — **resolved:** Slots are abstract fungible permits, not physical locations.
+
+## Debug State Snapshot
+
+Press **F12** or click the **💾** button in the TopBar to save a full game state snapshot to disk.
+
+- **Godot path:** `user://debug_state.json`
+- **Windows OS path:** `%APPDATA%/Godot/app_userdata/My Prototype/debug_state.json`
+- **Contents:** current turn, all carrier data (cash, ships, routes, slots, pending orders, score), galaxy topology (planets + lanes), player's pending intent, active events.
+- **Usage:** AI agents can read this file to inspect the full game state during debugging sessions. The file is overwritten on each save.
+- **Git:** `debug_state.json` is in `.gitignore` — never committed.

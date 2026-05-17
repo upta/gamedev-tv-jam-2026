@@ -13,5 +13,10 @@ func bind(game_state: GameState, carrier_id: String) -> void:
 	_dashboard_panel.bind(game_state, carrier_id)
 
 
+func open() -> void:
+	super.open()
+	refresh()
+
+
 func refresh() -> void:
 	_dashboard_panel.refresh()

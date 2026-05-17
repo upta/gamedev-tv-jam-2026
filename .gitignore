@@ -7,6 +7,9 @@ export_presets.cfg
 # Validation artifacts (generated at runtime)
 artifacts/
 
+# Debug state snapshot (dev tool, never commit)
+debug_state.json
+
 # Symlinked directories (created by setup.ps1 / setup.sh)
 src/addons/agentic_godot_validation
 tools

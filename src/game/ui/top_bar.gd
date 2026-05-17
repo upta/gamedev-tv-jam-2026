@@ -3,6 +3,7 @@ extends PanelContainer
 
 signal next_turn_pressed()
 signal toolbar_button_pressed(modal_name: String)
+signal debug_save_pressed()
 
 const TOOLBAR_BUTTONS: Array[Array] = [
 	["📊 Dashboard", "dashboard"],
@@ -28,6 +29,7 @@ var _toolbar_buttons: Dictionary = {}
 func _ready() -> void:
 	_next_turn_button.pressed.connect(_on_next_turn_pressed)
 	_create_toolbar_buttons()
+	_create_debug_button()
 
 
 func _create_toolbar_buttons() -> void:
@@ -97,6 +99,19 @@ func _on_next_turn_pressed() -> void:
 
 func _on_toolbar_button_pressed(modal_name: String) -> void:
 	toolbar_button_pressed.emit(modal_name)
+
+
+func _on_debug_save_pressed() -> void:
+	debug_save_pressed.emit()
+
+
+func _create_debug_button() -> void:
+	var button := Button.new()
+	button.text = "💾"
+	button.tooltip_text = "Save debug state (F12)"
+	button.flat = true
+	button.pressed.connect(_on_debug_save_pressed)
+	_toolbar_container.add_child(button)
 
 
 func _format_cash(amount: float) -> String:
