@@ -26,6 +26,27 @@ static func create_default_session(seed: int = 0) -> GameSession:
 	return session
 
 
+static func create_player_session(player_controller: PlayerController, seed: int = 0) -> GameSession:
+	## Creates a session where the player's carrier uses the provided PlayerController
+	## and NPCs use NpcControllers. This is what the UI GameScene uses.
+	var game_state := GameState.new()
+	var galaxy := GalaxyData.create_default_galaxy()
+	var catalog := ShipCatalog.create_default_catalog()
+	var carriers := CarrierData.create_default_carriers(catalog)
+	game_state.initialize(galaxy, catalog, carriers, seed)
+
+	var controllers: Dictionary = {}
+	for carrier: CarrierData in carriers:
+		if carrier.id == "player":
+			controllers[carrier.id] = player_controller
+		else:
+			controllers[carrier.id] = _create_npc_controller(carrier.id)
+
+	var session := GameSession.new()
+	session.setup(game_state, controllers)
+	return session
+
+
 static func create_all_npc_session(seed: int = 0) -> GameSession:
 	## All four carriers get NpcController. For full headless testing/validation.
 	var game_state := GameState.new()

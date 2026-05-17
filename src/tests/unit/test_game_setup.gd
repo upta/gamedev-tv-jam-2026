@@ -63,6 +63,33 @@ func test_npc_personalities_differ() -> void:
 	assert_true(ctrl2.slot_aggression > ctrl3.slot_aggression)
 
 
+func test_create_player_session_returns_session() -> void:
+	var pc := PlayerController.new()
+	var session := GameSetup.create_player_session(pc, 42)
+	assert_not_null(session)
+	assert_is(session, GameSession)
+
+
+func test_create_player_session_uses_player_controller() -> void:
+	var pc := PlayerController.new()
+	var session := GameSetup.create_player_session(pc, 42)
+	assert_eq(session.controllers["player"], pc)
+
+
+func test_create_player_session_npcs_have_npc_controllers() -> void:
+	var pc := PlayerController.new()
+	var session := GameSetup.create_player_session(pc, 42)
+	assert_is(session.controllers["npc_1"], NpcController)
+	assert_is(session.controllers["npc_2"], NpcController)
+	assert_is(session.controllers["npc_3"], NpcController)
+
+
+func test_create_player_session_with_seed() -> void:
+	var pc := PlayerController.new()
+	var session := GameSetup.create_player_session(pc, 99)
+	assert_eq(session.game_state.rng.seed, 99)
+
+
 func test_default_session_can_run_to_completion() -> void:
 	var session := GameSetup.create_default_session(42)
 	session.run_all_turns()
