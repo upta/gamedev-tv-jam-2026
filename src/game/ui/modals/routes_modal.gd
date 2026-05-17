@@ -1,14 +1,15 @@
 class_name RoutesModal
 extends ModalDialog
 
-## Modal for creating and cancelling routes with lane selection.
+## Modal for creating and cancelling routes with origin/destination selection.
 
 var _player_controller: PlayerController
 var _game_state: GameState
 var _content: VBoxContainer
 
 # Create-route form state
-var _lane_option: OptionButton
+var _origin_option: OptionButton
+var _dest_option: OptionButton
 var _info_label: Label
 var _ship_checks: Array = []
 var _pax_spin: SpinBox
@@ -184,47 +185,54 @@ func _build_create_route(carrier: CarrierData) -> void:
 	header.text = "— Create New Route —"
 	_content.add_child(header)
 
-	# Lane selector
-	var lane_row := HBoxContainer.new()
-	var lane_label := Label.new()
-	lane_label.text = "Lane:"
-	lane_row.add_child(lane_label)
-	_lane_option = OptionButton.new()
-	_lane_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_lane_option.add_item("Select a lane...")
+	# Origin planet selector
+	var origin_row := HBoxContainer.new()
+	var origin_label := Label.new()
+	origin_label.text = "Origin:"
+	origin_row.add_child(origin_label)
+	_origin_option = OptionButton.new()
+	_origin_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_origin_option.add_item("Select origin...")
+	for planet: GalaxyData.Planet in _game_state.galaxy.planets:
+		_origin_option.add_item(planet.name)
+		_origin_option.set_item_metadata(_origin_option.item_count - 1, planet.id)
+	origin_row.add_child(_origin_option)
+	_content.add_child(origin_row)
 
-	for lane: GalaxyData.Lane in _game_state.galaxy.lanes:
-		var planet_a := _game_state.galaxy.get_planet(lane.origin_id)
-		var planet_b := _game_state.galaxy.get_planet(lane.dest_id)
-		var name_a: String = planet_a.name if planet_a else lane.origin_id
-		var name_b: String = planet_b.name if planet_b else lane.dest_id
-		_lane_option.add_item("%s ↔ %s (%.1f ly)" % [name_a, name_b, lane.distance])
-		_lane_option.set_item_metadata(_lane_option.item_count - 1, lane.id)
+	# Destination planet selector
+	var dest_row := HBoxContainer.new()
+	var dest_label := Label.new()
+	dest_label.text = "Destination:"
+	dest_row.add_child(dest_label)
+	_dest_option = OptionButton.new()
+	_dest_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_dest_option.add_item("Select destination...")
+	for planet: GalaxyData.Planet in _game_state.galaxy.planets:
+		_dest_option.add_item(planet.name)
+		_dest_option.set_item_metadata(_dest_option.item_count - 1, planet.id)
+	dest_row.add_child(_dest_option)
+	_content.add_child(dest_row)
 
-	lane_row.add_child(_lane_option)
-	_content.add_child(lane_row)
-
-	# Container for the rest of the create form (populated on lane selection)
+	# Container for the rest of the create form (populated on planet selection)
 	_create_section = VBoxContainer.new()
 	_content.add_child(_create_section)
 
-	_lane_option.item_selected.connect(_on_lane_selected)
+	_origin_option.item_selected.connect(_on_planet_pair_changed)
+	_dest_option.item_selected.connect(_on_planet_pair_changed)
 
 
-func _on_lane_selected(index: int) -> void:
+func _on_planet_pair_changed(_index: int) -> void:
 	for child: Node in _create_section.get_children():
 		child.queue_free()
 	_ship_checks.clear()
+	_create_btn = null
 
-	if index == 0:
+	var origin_id := _get_selected_planet_id(_origin_option)
+	var dest_id := _get_selected_planet_id(_dest_option)
+	if origin_id.is_empty() or dest_id.is_empty() or origin_id == dest_id:
 		return
 
-	var lane_id: String = _lane_option.get_item_metadata(index)
-	var lane: GalaxyData.Lane = null
-	for l: GalaxyData.Lane in _game_state.galaxy.lanes:
-		if l.id == lane_id:
-			lane = l
-			break
+	var lane := _game_state.galaxy.get_lane(origin_id, dest_id)
 	if lane == null:
 		return
 
@@ -232,17 +240,17 @@ func _on_lane_selected(index: int) -> void:
 	if carrier == null:
 		return
 
-	var planet_a := _game_state.galaxy.get_planet(lane.origin_id)
-	var planet_b := _game_state.galaxy.get_planet(lane.dest_id)
-	var name_a: String = planet_a.name if planet_a else lane.origin_id
-	var name_b: String = planet_b.name if planet_b else lane.dest_id
+	var origin_planet := _game_state.galaxy.get_planet(origin_id)
+	var dest_planet := _game_state.galaxy.get_planet(dest_id)
+	var origin_name: String = origin_planet.name if origin_planet else origin_id
+	var dest_name: String = dest_planet.name if dest_planet else dest_id
 
 	# Slot info
-	var origin_slots: int = carrier.get_slot_count(lane.origin_id)
-	var dest_slots: int = carrier.get_slot_count(lane.dest_id)
+	var origin_slots: int = carrier.get_slot_count(origin_id)
+	var dest_slots: int = carrier.get_slot_count(dest_id)
 	_info_label = Label.new()
 	_info_label.text = "Distance: %.1f ly | Slots: %d at %s, %d at %s" % [
-		lane.distance, origin_slots, name_a, dest_slots, name_b,
+		lane.distance, origin_slots, origin_name, dest_slots, dest_name,
 	]
 	_create_section.add_child(_info_label)
 
@@ -292,7 +300,7 @@ func _on_lane_selected(index: int) -> void:
 	# Create button
 	_create_btn = Button.new()
 	_create_btn.text = "Create Route"
-	_create_btn.pressed.connect(_on_create_route.bind(lane_id))
+	_create_btn.pressed.connect(_on_create_route)
 	_create_section.add_child(_create_btn)
 
 	_update_create_button_state()
@@ -311,30 +319,22 @@ func _update_create_button_state() -> void:
 			any_selected = true
 			break
 
-	# Check slots at lane endpoints
+	# Check slots at selected endpoints
 	var has_slots := true
-	var lane_id: String = _lane_option.get_item_metadata(_lane_option.selected) if _lane_option.selected > 0 else ""
-	if not lane_id.is_empty():
-		var lane: GalaxyData.Lane = null
-		for l: GalaxyData.Lane in _game_state.galaxy.lanes:
-			if l.id == lane_id:
-				lane = l
-				break
-		if lane:
-			var carrier := _game_state.get_player_carrier()
-			if carrier:
-				has_slots = carrier.has_slots_at(lane.origin_id) and carrier.has_slots_at(lane.dest_id)
+	var origin_id := _get_selected_planet_id(_origin_option)
+	var dest_id := _get_selected_planet_id(_dest_option)
+	if not origin_id.is_empty() and not dest_id.is_empty():
+		var carrier := _game_state.get_player_carrier()
+		if carrier:
+			has_slots = carrier.has_slots_at(origin_id) and carrier.has_slots_at(dest_id)
 
 	_create_btn.disabled = not any_selected or not has_slots
 
 
-func _on_create_route(lane_id: String) -> void:
-	var lane: GalaxyData.Lane = null
-	for l: GalaxyData.Lane in _game_state.galaxy.lanes:
-		if l.id == lane_id:
-			lane = l
-			break
-	if lane == null:
+func _on_create_route() -> void:
+	var origin_id := _get_selected_planet_id(_origin_option)
+	var dest_id := _get_selected_planet_id(_dest_option)
+	if origin_id.is_empty() or dest_id.is_empty() or origin_id == dest_id:
 		return
 
 	var selected_ids: Array = []
@@ -345,7 +345,7 @@ func _on_create_route(lane_id: String) -> void:
 		return
 
 	_player_controller.add_route_create(
-		lane_id, lane.origin_id, lane.dest_id, selected_ids,
+		origin_id, dest_id, selected_ids,
 		_pax_spin.value, _cargo_spin.value,
 	)
 
@@ -374,6 +374,12 @@ func _get_eligible_ships(min_range: float) -> Array:
 		if ship_type and ship_type.range >= min_range:
 			eligible.append(ship)
 	return eligible
+
+
+func _get_selected_planet_id(option: OptionButton) -> String:
+	if option.selected <= 0:
+		return ""
+	return option.get_item_metadata(option.selected)
 
 
 func _create_label_spinbox(

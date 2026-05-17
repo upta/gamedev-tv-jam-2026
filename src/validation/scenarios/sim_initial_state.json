@@ -38,13 +38,6 @@
     {
       "op": "assert_value",
       "checkpoint": "initial",
-      "path": "harness_state.galaxy.lane_count",
-      "comparator": "eq",
-      "expected": 15
-    },
-    {
-      "op": "assert_value",
-      "checkpoint": "initial",
       "path": "harness_state.demand_table_initialized",
       "comparator": "eq",
       "expected": true

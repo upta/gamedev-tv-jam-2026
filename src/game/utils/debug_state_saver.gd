@@ -50,18 +50,10 @@ static func _serialize_galaxy(galaxy: GalaxyData) -> Dictionary:
 			"name": planet.name,
 			"system": planet.system,
 			"total_slots": planet.total_slots,
+			"position": {"x": planet.position.x, "y": planet.position.y},
 		})
 
-	var lanes := []
-	for lane: GalaxyData.Lane in galaxy.lanes:
-		lanes.append({
-			"id": lane.id,
-			"origin_id": lane.origin_id,
-			"dest_id": lane.dest_id,
-			"distance": lane.distance,
-		})
-
-	return { "planets": planets, "lanes": lanes }
+	return { "planets": planets }
 
 
 static func _serialize_carriers(carriers: Array, catalog: ShipCatalog, galaxy: GalaxyData = null) -> Array:

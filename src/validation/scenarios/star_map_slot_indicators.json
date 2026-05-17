@@ -44,13 +44,6 @@
       "comparator": "eq",
       "expected": 12
     },
-    {
-      "op": "assert_value",
-      "checkpoint": "initial",
-      "path": "harness_state.metrics.lane_lines",
-      "comparator": "eq",
-      "expected": 15
-    },
     { "op": "quit" }
   ]
 }

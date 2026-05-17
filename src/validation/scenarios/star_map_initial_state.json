@@ -1,7 +1,7 @@
 {
   "scenario_id": "star_map_initial_state",
   "version": 3,
-  "description": "Verify StarMap initializes with correct planet/lane counts from default galaxy",
+  "description": "Verify StarMap initializes with correct planet counts from default galaxy",
   "harness_scene": "res://validation/harnesses/star_map_harness.tscn",
   "done_contract": {},
   "artifact_contract": {
@@ -31,13 +31,6 @@
     {
       "op": "assert_value",
       "checkpoint": "initial",
-      "path": "harness_state.lane_line_count",
-      "comparator": "eq",
-      "expected": 15
-    },
-    {
-      "op": "assert_value",
-      "checkpoint": "initial",
       "path": "harness_state.route_line_count",
       "comparator": "eq",
       "expected": 0
@@ -46,13 +39,6 @@
       "op": "assert_value",
       "checkpoint": "initial",
       "path": "harness_state.selected_planet_id",
-      "comparator": "eq",
-      "expected": ""
-    },
-    {
-      "op": "assert_value",
-      "checkpoint": "initial",
-      "path": "harness_state.selected_lane_id",
       "comparator": "eq",
       "expected": ""
     },

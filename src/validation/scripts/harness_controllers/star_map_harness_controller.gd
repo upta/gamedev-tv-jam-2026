@@ -2,23 +2,19 @@ extends Control
 
 ## Validation harness for the star map UI component.
 ## On reset: instantiates StarMap, binds it to a fresh GameState.
-## Exposes planet/lane/route/slot data through get_observed_state().
+## Exposes planet/route/slot data through get_observed_state().
 
 const StarMapScene := preload("res://game/ui/star_map/star_map.tscn")
 
 var star_map: Node  # StarMap instance (avoid class_name reference for load-order safety)
 var game_state_data: GameState
 var _last_planet_selected: String = ""
-var _last_lane_selected: String = ""
 var _planet_select_count: int = 0
-var _lane_select_count: int = 0
 
 
 func reset_harness() -> void:
 	_last_planet_selected = ""
-	_last_lane_selected = ""
 	_planet_select_count = 0
-	_lane_select_count = 0
 
 	if star_map != null and is_instance_valid(star_map):
 		star_map.queue_free()
@@ -37,7 +33,6 @@ func reset_harness() -> void:
 	star_map.bind(game_state_data)
 
 	star_map.planet_selected.connect(_on_planet_selected)
-	star_map.lane_selected.connect(_on_lane_selected)
 
 
 func get_observed_state() -> Dictionary:
@@ -53,14 +48,8 @@ func _on_planet_selected(planet_id: String) -> void:
 	_planet_select_count += 1
 
 
-func _on_lane_selected(lane_id: String, _origin_id: String, _dest_id: String) -> void:
-	_last_lane_selected = lane_id
-	_lane_select_count += 1
-
-
 func _build_harness_state() -> Dictionary:
 	var planet_count: int = star_map._planet_nodes.size() if star_map else 0
-	var lane_count: int = star_map._lane_lines.size() if star_map else 0
 	var route_line_count: int = star_map._route_lines.size() if star_map else 0
 
 	# Count planets that have slot indicators
@@ -82,15 +71,11 @@ func _build_harness_state() -> Dictionary:
 
 	return {
 		"planet_node_count": planet_count,
-		"lane_line_count": lane_count,
 		"route_line_count": route_line_count,
 		"planets_with_slots": planets_with_slots,
 		"selected_planet_id": star_map._selected_planet_id if star_map else "",
-		"selected_lane_id": star_map._selected_lane_id if star_map else "",
 		"last_planet_selected": _last_planet_selected,
-		"last_lane_selected": _last_lane_selected,
 		"planet_select_count": _planet_select_count,
-		"lane_select_count": _lane_select_count,
 		"carrier_slot_counts": carrier_slot_counts,
 	}
 
@@ -98,6 +83,5 @@ func _build_harness_state() -> Dictionary:
 func _build_metrics() -> Dictionary:
 	return {
 		"planet_nodes": star_map._planet_nodes.size() if star_map else 0,
-		"lane_lines": star_map._lane_lines.size() if star_map else 0,
 		"route_overlays": star_map._route_lines.size() if star_map else 0,
 	}
