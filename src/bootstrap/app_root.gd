@@ -28,7 +28,7 @@ func _ensure_input_actions() -> void:
 		if not InputMap.action_has_event(action_name, input_event):
 			InputMap.action_add_event(action_name, input_event)
 
-func _build_key_event(keycode: int) -> InputEventKey:
+func _build_key_event(keycode: Key) -> InputEventKey:
 	var input_event := InputEventKey.new()
 	input_event.physical_keycode = keycode
 	return input_event
