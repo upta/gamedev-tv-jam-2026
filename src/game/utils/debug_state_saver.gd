@@ -35,7 +35,7 @@ static func _build_state_dict(game_state: GameState, player_controller: PlayerCo
 	}
 	result["current_turn"] = game_state.current_turn
 	result["galaxy"] = _serialize_galaxy(game_state.galaxy)
-	result["carriers"] = _serialize_carriers(game_state.carriers, game_state.catalog)
+	result["carriers"] = _serialize_carriers(game_state.carriers, game_state.catalog, game_state.galaxy)
 	if player_controller != null:
 		result["player_pending_intent"] = _serialize_intent(player_controller.pending_intent)
 	result["events"] = _serialize_events(game_state.events)
@@ -64,10 +64,10 @@ static func _serialize_galaxy(galaxy: GalaxyData) -> Dictionary:
 	return { "planets": planets, "lanes": lanes }
 
 
-static func _serialize_carriers(carriers: Array, catalog: ShipCatalog) -> Array:
+static func _serialize_carriers(carriers: Array, catalog: ShipCatalog, galaxy: GalaxyData = null) -> Array:
 	var result := []
 	for carrier: CarrierData in carriers:
-		var score_data: Dictionary = ScoreCalculator.calculate_score(carrier, catalog)
+		var score_data: Dictionary = ScoreCalculator.calculate_score(carrier, catalog, galaxy)
 		result.append({
 			"id": carrier.id,
 			"carrier_name": carrier.carrier_name,

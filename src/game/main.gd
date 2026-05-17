@@ -72,7 +72,7 @@ func _on_next_turn() -> void:
 	if result.game_over or _session.is_complete:
 		_top_bar.set_game_over()
 		var rankings := ScoreCalculator.get_rankings(
-			_session.game_state.carriers, _session.game_state.catalog
+			_session.game_state.carriers, _session.game_state.catalog, _session.game_state.galaxy
 		)
 		_game_over_screen.show_results(rankings, result.turn_number, _carrier_id)
 

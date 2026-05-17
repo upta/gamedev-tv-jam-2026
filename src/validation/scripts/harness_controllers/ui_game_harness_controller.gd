@@ -98,7 +98,7 @@ func _get_player_score() -> float:
 	var carrier := _get_player_carrier()
 	if carrier == null:
 		return 0.0
-	var score := ScoreCalculator.calculate_score(carrier, game_scene._session.game_state.catalog)
+	var score := ScoreCalculator.calculate_score(carrier, game_scene._session.game_state.catalog, game_scene._session.game_state.galaxy)
 	return score["total"]
 
 

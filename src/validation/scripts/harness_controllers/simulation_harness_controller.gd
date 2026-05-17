@@ -54,7 +54,7 @@ func _build_harness_state() -> Dictionary:
 
 	for carrier: CarrierData in game_state_data.carriers:
 		var active_routes: Array = carrier.get_active_routes()
-		var score := ScoreCalculator.calculate_score(carrier, game_state_data.catalog)
+		var score := ScoreCalculator.calculate_score(carrier, game_state_data.catalog, game_state_data.galaxy)
 		state["carriers"][carrier.id] = {
 			"cash": carrier.cash,
 			"ship_count": carrier.ships.size(),

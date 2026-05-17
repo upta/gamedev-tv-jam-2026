@@ -67,7 +67,7 @@ func _build_harness_state() -> Dictionary:
 
 	for carrier: CarrierData in session.game_state.carriers:
 		var active_routes := carrier.get_active_routes()
-		var score := ScoreCalculator.calculate_score(carrier, session.game_state.catalog)
+		var score := ScoreCalculator.calculate_score(carrier, session.game_state.catalog, session.game_state.galaxy)
 		state["carriers"][carrier.id] = {
 			"cash": carrier.cash,
 			"ship_count": carrier.ships.size(),
@@ -81,7 +81,7 @@ func _build_harness_state() -> Dictionary:
 		if results.is_empty():
 			# run_next_turn doesn't populate final_results; compute inline
 			var rankings := ScoreCalculator.get_rankings(
-				session.game_state.carriers, session.game_state.catalog
+				session.game_state.carriers, session.game_state.catalog, session.game_state.galaxy
 			)
 			if rankings.size() > 0:
 				state["winner"] = {

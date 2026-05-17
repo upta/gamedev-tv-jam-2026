@@ -62,10 +62,10 @@ func refresh() -> void:
 
 	_cash_label.text = _format_cash(carrier.cash)
 
-	var score_data: Dictionary = ScoreCalculator.calculate_score(carrier, _game_state.catalog)
+	var score_data: Dictionary = ScoreCalculator.calculate_score(carrier, _game_state.catalog, _game_state.galaxy)
 	_score_label.text = "Score: %d" % int(score_data["total"])
 
-	var rankings: Array = ScoreCalculator.get_rankings(_game_state.carriers, _game_state.catalog)
+	var rankings: Array = ScoreCalculator.get_rankings(_game_state.carriers, _game_state.catalog, _game_state.galaxy)
 	var rank := 1
 	var total_carriers := rankings.size()
 	for entry: Dictionary in rankings:

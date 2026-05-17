@@ -5,7 +5,7 @@ signal play_again_requested()
 
 const GOLD_COLOR := Color(1, 0.85, 0)
 const PLAYER_HIGHLIGHT_COLOR := Color(0.5, 0.8, 1.0)
-const HEADER_LABELS: Array[String] = ["Rank", "Name", "Score", "Cash", "Ships", "Slots", "Routes"]
+const HEADER_LABELS: Array[String] = ["Rank", "Name", "Score", "Cash", "Ship Value", "Slot Value", "Route Value"]
 
 @onready var _turn_label: Label = $CenterContainer/VBoxContainer/TurnLabel
 @onready var _winner_label: Label = $CenterContainer/VBoxContainer/WinnerLabel

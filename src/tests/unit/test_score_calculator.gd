@@ -210,3 +210,48 @@ func test_rankings_include_carrier_name() -> void:
 func test_rankings_empty_array() -> void:
 	var rankings := ScoreCalculator.get_rankings([], catalog)
 	assert_eq(rankings.size(), 0, "no carriers → empty rankings")
+
+
+# ---------------------------------------------------------------------------
+# price-adjusted route value
+# ---------------------------------------------------------------------------
+
+func test_route_value_uses_price_factor() -> void:
+	var galaxy := GalaxyData.create_default_galaxy()
+	var lane := galaxy.get_lane("earth", "mars")
+	assert_not_null(lane, "earth-mars lane exists")
+
+	var suggested_pax := DemandCalculator.calculate_suggested_price(lane, "passenger")
+	var suggested_cargo := DemandCalculator.calculate_suggested_price(lane, "cargo")
+
+	# Fairly priced carrier
+	var c_fair := _make_carrier("fair", 0.0)
+	var ship_fair := _add_ship(c_fair, "sd-100")
+	var fair_ids: Array[String] = [ship_fair.id]
+	_add_route(c_fair, fair_ids, 1, suggested_pax, suggested_cargo)
+
+	# Overpriced carrier (10x suggested)
+	var c_over := _make_carrier("overpriced", 0.0)
+	var ship_over := _add_ship(c_over, "sd-100")
+	var over_ids: Array[String] = [ship_over.id]
+	_add_route(c_over, over_ids, 1, suggested_pax * 10.0, suggested_cargo * 10.0)
+
+	var score_fair := ScoreCalculator.calculate_score(c_fair, catalog, galaxy)
+	var score_over := ScoreCalculator.calculate_score(c_over, catalog, galaxy)
+
+	assert_true(
+		score_fair["route_value"] > score_over["route_value"],
+		"fairly priced route should score higher than overpriced route"
+	)
+
+
+func test_route_value_no_galaxy_fallback() -> void:
+	var carrier := _make_carrier("fallback", 0.0)
+	var ship := _add_ship(carrier, "sd-100")  # pax=20, cargo=20
+	var ship_ids: Array[String] = [ship.id]
+	_add_route(carrier, ship_ids, 1, 10.0, 5.0)
+
+	# Without galaxy — uses flat 0.5 fill rate
+	var score := ScoreCalculator.calculate_score(carrier, catalog)
+	# revenue = 1 * (20*10*0.5 + 20*5*0.5) = 150, route_value = 150 * 5.0 = 750
+	assert_almost_eq(score["route_value"], 750.0, 0.01, "null galaxy uses flat 0.5 fill rate")

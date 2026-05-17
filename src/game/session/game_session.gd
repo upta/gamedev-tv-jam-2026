@@ -81,7 +81,7 @@ func _is_game_over() -> bool:
 
 
 func _build_final_results() -> Dictionary:
-	var rankings := ScoreCalculator.get_rankings(game_state.carriers, game_state.catalog)
+	var rankings := ScoreCalculator.get_rankings(game_state.carriers, game_state.catalog, game_state.galaxy)
 	var winner_id := ""
 	var winner_score := 0
 	var reason := "final_turn"
