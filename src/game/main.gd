@@ -58,8 +58,10 @@ func _connect_signals() -> void:
 	for modal_name: String in _modals:
 		_modals[modal_name].closed.connect(_on_modal_closed)
 	_routes_modal.create_route_requested.connect(_on_create_route_requested)
+	_routes_modal.edit_route_requested.connect(_on_edit_route_requested)
 	_create_route_modal.closed.connect(_on_create_route_modal_closed)
 	_create_route_modal.route_created.connect(_on_route_created)
+	_create_route_modal.route_modified.connect(_on_route_modified)
 
 
 func _on_next_turn() -> void:
@@ -152,6 +154,11 @@ func _on_create_route_requested() -> void:
 	_create_route_modal.open()
 
 
+func _on_edit_route_requested(route: CarrierData.Route) -> void:
+	_routes_modal.close()
+	_create_route_modal.open_for_edit(route)
+
+
 func _on_create_route_modal_closed() -> void:
 	# Return to routes modal when create modal is closed/cancelled
 	_routes_modal.open()
@@ -161,4 +168,9 @@ func _on_create_route_modal_closed() -> void:
 
 func _on_route_created() -> void:
 	# Route was created — routes modal will refresh via intent_changed signal
+	pass
+
+
+func _on_route_modified() -> void:
+	# Route was modified — routes modal will refresh via intent_changed signal
 	pass

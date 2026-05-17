@@ -3,8 +3,10 @@ extends ModalDialog
 
 ## Modal showing active routes and pending route actions.
 ## Route creation is handled by CreateRouteModal, opened via the "Create Route" button.
+## Route editing is handled by CreateRouteModal in edit mode, opened via the "Edit" button.
 
 signal create_route_requested
+signal edit_route_requested(route: CarrierData.Route)
 
 var _player_controller: PlayerController
 var _game_state: GameState
@@ -92,8 +94,8 @@ func _build_active_routes(carrier: CarrierData) -> void:
 		row.add_child(label)
 
 		var cancel_btn := Button.new()
-		cancel_btn.text = "Cancel Route"
-		cancel_btn.pressed.connect(_on_cancel_route.bind(route.id))
+		cancel_btn.text = "Edit"
+		cancel_btn.pressed.connect(_on_edit_route.bind(route))
 		row.add_child(cancel_btn)
 		route_block.add_child(row)
 
@@ -123,8 +125,8 @@ func _build_active_routes(carrier: CarrierData) -> void:
 		_content.add_child(route_block)
 
 
-func _on_cancel_route(route_id: String) -> void:
-	_player_controller.cancel_route(route_id)
+func _on_edit_route(route: CarrierData.Route) -> void:
+	edit_route_requested.emit(route)
 
 
 func _get_route_financials(carrier_id: String, route_id: String) -> Dictionary:
@@ -174,6 +176,27 @@ func _build_pending_actions() -> void:
 
 		_content.add_child(row)
 
+	# Pending modifications
+	for i: int in range(intent.route_modifications.size()):
+		has_any = true
+		var rm: Dictionary = intent.route_modifications[i]
+		var route_id: String = rm.get("route_id", "")
+		var row := HBoxContainer.new()
+		var label := Label.new()
+		label.text = "Modify: %s (Pax: §%d Cargo: §%d Freq: %d)" % [
+			route_id, int(rm.get("passenger_price", 0)),
+			int(rm.get("cargo_price", 0)), rm.get("frequency", 1),
+		]
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(label)
+
+		var cancel_btn := Button.new()
+		cancel_btn.text = "Cancel"
+		cancel_btn.pressed.connect(_on_remove_route_modification.bind(i))
+		row.add_child(cancel_btn)
+
+		_content.add_child(row)
+
 	# Pending cancellations
 	for i: int in range(intent.route_cancellations.size()):
 		has_any = true
@@ -203,6 +226,10 @@ func _on_remove_route_create(index: int) -> void:
 
 func _on_remove_route_cancellation(index: int) -> void:
 	_player_controller.remove_route_cancellation(index)
+
+
+func _on_remove_route_modification(index: int) -> void:
+	_player_controller.remove_route_modification(index)
 
 
 # ---------------------------------------------------------------------------

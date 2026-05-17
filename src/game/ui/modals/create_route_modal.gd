@@ -1,14 +1,20 @@
 class_name CreateRouteModal
 extends ModalDialog
 
-## Dedicated modal for creating a new route.
-## Opened from the Routes Overview modal via the "Create Route" button.
+## Modal for creating a new route or editing an existing one.
+## In create mode: opened from Routes Overview via "Create Route" button.
+## In edit mode: opened from Routes Overview via "Edit" button on an active route.
 
 signal route_created
+signal route_modified
 
 var _player_controller: PlayerController
 var _game_state: GameState
 var _content: VBoxContainer
+
+# Edit mode
+var _edit_mode: bool = false
+var _editing_route: CarrierData.Route = null
 
 # Form state
 var _origin_id: String = ""
@@ -49,7 +55,21 @@ func bind(player_controller: PlayerController, game_state: GameState) -> void:
 
 
 func open() -> void:
+	_edit_mode = false
+	_editing_route = null
 	_reset_form()
+	set_title("New Route")
+	super.open()
+	_rebuild_form()
+
+
+func open_for_edit(route: CarrierData.Route) -> void:
+	_edit_mode = true
+	_editing_route = route
+	_origin_id = route.origin_id
+	_dest_id = route.dest_id
+	_selected_ship_ids = route.ship_ids.duplicate()
+	set_title("Edit Route")
 	super.open()
 	_rebuild_form()
 
@@ -87,10 +107,11 @@ func _rebuild_form() -> void:
 	_origin_display.text = _get_planet_display_name(_origin_id)
 	_origin_display.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	origin_row.add_child(_origin_display)
-	var origin_btn := Button.new()
-	origin_btn.text = "Select"
-	origin_btn.pressed.connect(_open_planet_selector.bind("origin"))
-	origin_row.add_child(origin_btn)
+	if not _edit_mode:
+		var origin_btn := Button.new()
+		origin_btn.text = "Select"
+		origin_btn.pressed.connect(_open_planet_selector.bind("origin"))
+		origin_row.add_child(origin_btn)
 	_content.add_child(origin_row)
 
 	# Destination row
@@ -103,10 +124,11 @@ func _rebuild_form() -> void:
 	_dest_display.text = _get_planet_display_name(_dest_id)
 	_dest_display.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	dest_row.add_child(_dest_display)
-	var dest_btn := Button.new()
-	dest_btn.text = "Select"
-	dest_btn.pressed.connect(_open_planet_selector.bind("dest"))
-	dest_row.add_child(dest_btn)
+	if not _edit_mode:
+		var dest_btn := Button.new()
+		dest_btn.text = "Select"
+		dest_btn.pressed.connect(_open_planet_selector.bind("dest"))
+		dest_row.add_child(dest_btn)
 	_content.add_child(dest_row)
 
 	# Ship row
@@ -166,7 +188,8 @@ func _rebuild_route_details(carrier: CarrierData) -> void:
 
 	# Flights per month — max depends on selected ships
 	var max_freq := _compute_max_frequency()
-	var freq_row := _create_label_spinbox("Flights per Month:", 1, maxi(max_freq, 1), 1, 1)
+	var freq_default: int = _editing_route.frequency if _edit_mode and _editing_route else 1
+	var freq_row := _create_label_spinbox("Flights per Month:", 1, maxi(max_freq, 1), 1, mini(freq_default, maxi(max_freq, 1)))
 	_details_section.add_child(freq_row)
 	_freq_spin = freq_row.get_child(1)
 	_freq_spin.editable = max_freq > 0
@@ -178,9 +201,9 @@ func _rebuild_route_details(carrier: CarrierData) -> void:
 	freq_row.add_child(freq_max_label)
 
 	# Pricing
-	var pax_default := int(roundf(suggested_pax))
+	var pax_default := int(roundf(_editing_route.passenger_price)) if _edit_mode and _editing_route else int(roundf(suggested_pax))
 	var pax_max := int(10 * ceilf(suggested_pax))
-	var cargo_default := int(roundf(suggested_cargo))
+	var cargo_default := int(roundf(_editing_route.cargo_price)) if _edit_mode and _editing_route else int(roundf(suggested_cargo))
 	var cargo_max := int(10 * ceilf(suggested_cargo))
 
 	var pax_row := _create_label_spinbox("Passenger Price:", 1, pax_max, 1, pax_default)
@@ -199,10 +222,25 @@ func _rebuild_route_details(carrier: CarrierData) -> void:
 	cancel_btn.pressed.connect(close)
 	btn_row.add_child(cancel_btn)
 	_create_btn = Button.new()
-	_create_btn.text = "Create"
-	_create_btn.pressed.connect(_on_create_route)
+	if _edit_mode:
+		_create_btn.text = "Save Changes"
+		_create_btn.pressed.connect(_on_save_route)
+	else:
+		_create_btn.text = "Create"
+		_create_btn.pressed.connect(_on_create_route)
 	btn_row.add_child(_create_btn)
 	_details_section.add_child(btn_row)
+
+	# Cancel Route button (edit mode only, at bottom, styled as destructive)
+	if _edit_mode:
+		var cancel_route_row := HBoxContainer.new()
+		cancel_route_row.alignment = BoxContainer.ALIGNMENT_CENTER
+		var cancel_route_btn := Button.new()
+		cancel_route_btn.text = "Cancel Route"
+		cancel_route_btn.add_theme_color_override("font_color", Color.RED)
+		cancel_route_btn.pressed.connect(_on_cancel_route_from_edit)
+		cancel_route_row.add_child(cancel_route_btn)
+		_details_section.add_child(cancel_route_row)
 
 	_update_create_button_state()
 
@@ -270,6 +308,18 @@ func _open_ship_selector() -> void:
 		return
 
 	var idle_ships := carrier.get_available_ships()
+
+	# In edit mode, also include ships currently assigned to the route being edited
+	if _edit_mode and _editing_route:
+		var idle_ids: Dictionary = {}
+		for ship: ShipCatalog.ShipInstance in idle_ships:
+			idle_ids[ship.id] = true
+		for ship_id: String in _editing_route.ship_ids:
+			if not idle_ids.has(ship_id):
+				for ship: ShipCatalog.ShipInstance in carrier.ships:
+					if ship.id == ship_id:
+						idle_ships.append(ship)
+						break
 
 	# Exclude ships already committed in other pending route creates
 	var pending_ship_ids: Dictionary = {}
@@ -455,6 +505,26 @@ func _on_create_route() -> void:
 	close()
 
 
+func _on_save_route() -> void:
+	if _editing_route == null or _selected_ship_ids.is_empty():
+		return
+
+	var freq: int = int(_freq_spin.value) if _freq_spin else 1
+	_player_controller.modify_route(
+		_editing_route.id, _selected_ship_ids.duplicate(),
+		_pax_spin.value, _cargo_spin.value, freq,
+	)
+	route_modified.emit()
+	close()
+
+
+func _on_cancel_route_from_edit() -> void:
+	if _editing_route == null:
+		return
+	_player_controller.cancel_route(_editing_route.id)
+	close()
+
+
 func _update_create_button_state() -> void:
 	if _create_btn == null:
 		return
@@ -545,6 +615,57 @@ func select_ships(ship_ids: Array) -> void:
 
 func confirm_create() -> void:
 	_on_create_route()
+
+
+func open_for_edit_by_id(route_id: String) -> void:
+	var carrier := _game_state.get_player_carrier()
+	if carrier == null:
+		return
+	for route: CarrierData.Route in carrier.get_active_routes():
+		if route.id == route_id:
+			open_for_edit(route)
+			return
+
+
+func get_edit_mode() -> bool:
+	return _edit_mode
+
+
+func get_editing_route_id() -> String:
+	if _editing_route:
+		return _editing_route.id
+	return ""
+
+
+func get_form_state() -> Dictionary:
+	return {
+		"origin_id": _origin_id,
+		"dest_id": _dest_id,
+		"ship_count": _selected_ship_ids.size(),
+		"ship_ids": _selected_ship_ids.duplicate(),
+		"frequency": int(_freq_spin.value) if _freq_spin else 0,
+		"passenger_price": _pax_spin.value if _pax_spin else 0.0,
+		"cargo_price": _cargo_spin.value if _cargo_spin else 0.0,
+	}
+
+
+func set_frequency(value: int) -> void:
+	if _freq_spin:
+		_freq_spin.value = value
+
+
+func set_passenger_price(value: float) -> void:
+	if _pax_spin:
+		_pax_spin.value = value
+
+
+func set_cargo_price(value: float) -> void:
+	if _cargo_spin:
+		_cargo_spin.value = value
+
+
+func confirm_save() -> void:
+	_on_save_route()
 
 
 func open_planet_selector(target: String) -> void:
