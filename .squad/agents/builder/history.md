@@ -219,3 +219,10 @@ Dependency graph provided in plan. Can parallelize: P1.1–3, P1.5–6, P1.10–
 - **Price factor floor**: Lowered from 0.2 to 0.05 — at 2x+ suggested price, only 5% of demand remains. Old floor of 20% was still very profitable at extreme prices.
 - **UI suggested prices**: Routes modal now shows suggested prices, defaults SpinBox to rounded suggested, caps max at 10x suggested. Prevents degenerate strategies while allowing experimentation.
 - **Toast offset**: `offset_top = 60` clears the ~40-50px toolbar. Simple .tscn property change.
+
+### ScoreCalculator Price-Adjusted Fill Rate (2026-05-17)
+- **Bug**: _estimate_route_revenue() used flat ESTIMATED_FILL_RATE = 0.5 regardless of pricing. A route at 10x suggested price got the same fill rate estimate as a fairly-priced route, inflating route_value ~10x.
+- **Fix**: When galaxy data is available, calculate suggested prices via DemandCalculator.calculate_suggested_price() and use DemandCalculator.calculate_price_factor() as the fill rate. Falls back to 0.5 when galaxy is null for backward compatibility.
+- **Signature change**: calculate_score, determine_winner, get_rankings all got optional galaxy: GalaxyData = null parameter. All 12 call sites updated to pass galaxy.
+- **Game over UI**: Renamed column headers from "Ships/Slots/Routes" to "Ship Value/Slot Value/Route Value" for clarity.
+- **Tests added**: 	est_route_value_uses_price_factor (overpriced < fair) and 	est_route_value_no_galaxy_fallback (null galaxy uses 0.5).
