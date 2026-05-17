@@ -15,7 +15,7 @@ static func calculate_suggested_price(lane: GalaxyData.Lane, demand_type: String
 static func calculate_price_factor(price: float, suggested_price: float) -> float:
 	if suggested_price <= 0.0:
 		return 1.0
-	return clampf(1.0 - (price - suggested_price) / suggested_price, 0.2, 1.5)
+	return clampf(1.0 - (price - suggested_price) / suggested_price, 0.05, 1.5)
 
 
 static func calculate_demand_split(
@@ -64,6 +64,8 @@ static func calculate_demand_split(
 				"cargo_weight": cargo_weight,
 				"pax_cap": pax_cap,
 				"cargo_cap": cargo_cap,
+				"pax_factor": pax_factor,
+				"cargo_factor": cargo_factor,
 			})
 
 	if route_data.is_empty():
@@ -77,20 +79,18 @@ static func calculate_demand_split(
 		if not result.has(cid):
 			result[cid] = { "passengers_served": 0, "cargo_served": 0 }
 
-		# Proportional split, capped by capacity
+		# Proportional split, capped by capacity AND by price-adjusted demand
 		var pax_share := 0
 		if total_pax_weight > 0.0:
-			pax_share = mini(
-				int(effective_pax * rd["pax_weight"] / total_pax_weight),
-				rd["pax_cap"],
-			)
+			var raw_share := int(effective_pax * rd["pax_weight"] / total_pax_weight)
+			var demand_at_price := int(effective_pax * rd["pax_factor"])
+			pax_share = mini(mini(raw_share, rd["pax_cap"]), demand_at_price)
 
 		var cargo_share := 0
 		if total_cargo_weight > 0.0:
-			cargo_share = mini(
-				int(effective_cargo * rd["cargo_weight"] / total_cargo_weight),
-				rd["cargo_cap"],
-			)
+			var raw_share := int(effective_cargo * rd["cargo_weight"] / total_cargo_weight)
+			var demand_at_price := int(effective_cargo * rd["cargo_factor"])
+			cargo_share = mini(mini(raw_share, rd["cargo_cap"]), demand_at_price)
 
 		result[cid]["passengers_served"] += pax_share
 		result[cid]["cargo_served"] += cargo_share

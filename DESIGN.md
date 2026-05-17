@@ -68,7 +68,8 @@ The player **reviews** the galaxy state (demand, competitors, finances), **decid
 **Demand & Revenue**
 - Demand is per (lane, direction) — passenger and cargo are independent
 - When multiple carriers serve the same (lane, direction), demand splits by (capacity × price_factor)
-- Price factor: `clamp(1.0 - (price - suggested_price) / suggested_price, 0.2, 1.5)`
+- Price factor: `clamp(1.0 - (price - suggested_price) / suggested_price, 0.05, 1.5)`
+- Price factor also caps absolute demand served — high prices reduce the number of willing travelers, not just competitive market share.
 - Suggested price: `(distance / 0.6) × 1.5` for passengers, `× 0.8` for cargo
 - Revenue = passengers_served × passenger_price + cargo_served × cargo_price
 

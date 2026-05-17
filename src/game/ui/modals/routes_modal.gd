@@ -246,6 +246,13 @@ func _on_lane_selected(index: int) -> void:
 	]
 	_create_section.add_child(_info_label)
 
+	# Suggested prices
+	var suggested_pax := DemandCalculator.calculate_suggested_price(lane, "passenger")
+	var suggested_cargo := DemandCalculator.calculate_suggested_price(lane, "cargo")
+	var suggested_label := Label.new()
+	suggested_label.text = "Suggested prices — Passenger: §%.2f  Cargo: §%.2f" % [suggested_pax, suggested_cargo]
+	_create_section.add_child(suggested_label)
+
 	# Eligible ships
 	var eligible_ships := _get_eligible_ships(lane.distance)
 	if eligible_ships.is_empty():
@@ -269,11 +276,16 @@ func _on_lane_selected(index: int) -> void:
 		_ship_checks.append(cb)
 
 	# Pricing
-	var pax_row := _create_label_spinbox("Passenger price:", 1, 1000, 1, 10)
+	var pax_default := int(roundf(suggested_pax))
+	var pax_max := int(10 * ceilf(suggested_pax))
+	var cargo_default := int(roundf(suggested_cargo))
+	var cargo_max := int(10 * ceilf(suggested_cargo))
+
+	var pax_row := _create_label_spinbox("Passenger price:", 1, pax_max, 1, pax_default)
 	_create_section.add_child(pax_row)
 	_pax_spin = pax_row.get_child(1)
 
-	var cargo_row := _create_label_spinbox("Cargo price:", 1, 1000, 1, 10)
+	var cargo_row := _create_label_spinbox("Cargo price:", 1, cargo_max, 1, cargo_default)
 	_create_section.add_child(cargo_row)
 	_cargo_spin = cargo_row.get_child(1)
 
