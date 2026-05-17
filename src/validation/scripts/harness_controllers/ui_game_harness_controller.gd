@@ -42,6 +42,26 @@ func _physics_process(_delta: float) -> void:
 			game_scene._on_next_turn()
 		160:
 			game_scene._on_next_turn()
+		205:
+			# Open routes modal
+			game_scene._on_toolbar_pressed("routes")
+		213:
+			# Click "Create Route" button — opens create route modal
+			game_scene._on_create_route_requested()
+		225:
+			# Set origin and destination on the create route modal
+			game_scene._create_route_modal.set_origin("earth")
+			game_scene._create_route_modal.set_destination("mars")
+		235:
+			# Select the player's ship
+			var carrier: CarrierData = game_scene._session.game_state.get_carrier("player")
+			if carrier:
+				var available: Array = carrier.get_available_ships()
+				if not available.is_empty():
+					game_scene._create_route_modal.select_ships([available[0].id])
+		245:
+			# Confirm the route creation
+			game_scene._create_route_modal.confirm_create()
 
 	if _step >= 180 and (_step - 180) % 20 == 0 and not game_scene._session.is_complete:
 		game_scene._on_next_turn()
@@ -70,6 +90,7 @@ func _build_harness_state() -> Dictionary:
 		"top_bar_turn_text": _get_top_bar_turn_text(),
 		"pending_actions": _get_pending_action_count(),
 		"active_modal": _get_active_modal(),
+		"create_route_modal_open": _is_create_route_modal_open(),
 	}
 
 
@@ -158,3 +179,12 @@ func _get_active_modal() -> String:
 	if game_scene == null:
 		return ""
 	return game_scene._active_modal
+
+
+func _is_create_route_modal_open() -> bool:
+	if game_scene == null:
+		return false
+	var modal = game_scene.get("_create_route_modal")
+	if modal == null:
+		return false
+	return modal.visible

@@ -17,6 +17,7 @@ var _active_modal: String = ""
 @onready var _ships_modal: ShipsModal = %ShipsModal
 @onready var _slots_modal: SlotsModal = %SlotsModal
 @onready var _routes_modal: RoutesModal = %RoutesModal
+@onready var _create_route_modal: CreateRouteModal = %CreateRouteModal
 
 
 func _ready() -> void:
@@ -46,6 +47,7 @@ func _bind_all() -> void:
 	_ships_modal.bind(_player_controller, _session.game_state)
 	_slots_modal.bind(_player_controller, _session.game_state)
 	_routes_modal.bind(_player_controller, _session.game_state)
+	_create_route_modal.bind(_player_controller, _session.game_state)
 
 
 func _connect_signals() -> void:
@@ -55,6 +57,9 @@ func _connect_signals() -> void:
 	_game_over_screen.play_again_requested.connect(_on_play_again)
 	for modal_name: String in _modals:
 		_modals[modal_name].closed.connect(_on_modal_closed)
+	_routes_modal.create_route_requested.connect(_on_create_route_requested)
+	_create_route_modal.closed.connect(_on_create_route_modal_closed)
+	_create_route_modal.route_created.connect(_on_route_created)
 
 
 func _on_next_turn() -> void:
@@ -100,6 +105,12 @@ func _show_turn_notifications(result: TurnPipeline.TurnResult) -> void:
 
 
 func _on_toolbar_pressed(modal_name: String) -> void:
+	# Close create route modal if open
+	if _create_route_modal.visible:
+		_create_route_modal.closed.disconnect(_on_create_route_modal_closed)
+		_create_route_modal.close()
+		_create_route_modal.closed.connect(_on_create_route_modal_closed)
+
 	if _active_modal == modal_name:
 		_modals[modal_name].close()
 		_active_modal = ""
@@ -134,3 +145,20 @@ func _on_play_again() -> void:
 func _save_debug_state() -> void:
 	var path := DebugStateSaver.save(_session.game_state, _player_controller)
 	_toast_manager.show_toast("Debug state saved: %s" % path, "success")
+
+
+func _on_create_route_requested() -> void:
+	_routes_modal.close()
+	_create_route_modal.open()
+
+
+func _on_create_route_modal_closed() -> void:
+	# Return to routes modal when create modal is closed/cancelled
+	_routes_modal.open()
+	_active_modal = "routes"
+	_top_bar.set_active_toolbar("routes")
+
+
+func _on_route_created() -> void:
+	# Route was created — routes modal will refresh via intent_changed signal
+	pass

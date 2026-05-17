@@ -1,0 +1,50 @@
+{
+  "scenario_id": "ui_create_route_flow",
+  "version": 3,
+  "description": "Verify the full create route flow: open routes modal, open create route modal, set origin/dest/ships, create route, verify pending action exists",
+  "harness_scene": "res://validation/harnesses/ui_game_harness.tscn",
+  "done_contract": {},
+  "artifact_contract": {
+    "required_files": ["summary.json", "event_log.json", "scene_tree.json", "console.log"],
+    "missing_file_is_failure": true
+  },
+  "exit_codes": {
+    "pass": 0,
+    "assertion_failure": 1,
+    "runtime_error": 2,
+    "timeout": 3,
+    "artifact_generation_error": 4
+  },
+  "cli_contract": {
+    "command_template": "godot --path <project> -- --test-mode --scenario <path> --artifacts <dir>"
+  },
+  "steps": [
+    { "op": "load_harness" },
+    { "op": "wait_frames", "frames": 218 },
+    { "op": "checkpoint", "name": "create_modal_open" },
+    {
+      "op": "assert_value",
+      "checkpoint": "create_modal_open",
+      "path": "harness_state.create_route_modal_open",
+      "comparator": "eq",
+      "expected": true
+    },
+    { "op": "wait_frames", "frames": 30 },
+    { "op": "checkpoint", "name": "after_create" },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_create",
+      "path": "harness_state.pending_actions",
+      "comparator": "gt",
+      "expected": 0
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_create",
+      "path": "harness_state.create_route_modal_open",
+      "comparator": "eq",
+      "expected": false
+    },
+    { "op": "quit" }
+  ]
+}
