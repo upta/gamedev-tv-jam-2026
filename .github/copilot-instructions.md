@@ -18,7 +18,9 @@ This is a Godot game prototype using the [agentic-godot-validation](https://gith
 - Validation scenarios are JSON contracts in `src/validation/scenarios/`
 - Harness scenes live in `src/validation/harnesses/` with controllers in `src/validation/scripts/harness_controllers/`
 - Run scenarios with `./tools/run_scenario.ps1 -Scenario src/validation/scenarios/<name>.json -GodotExe <path>`
+- Run GUT unit tests with `godot --headless --path src -s addons/gut/gut_cmdln.gd -gexit`
 - Do not modify files under `src/addons/agentic_godot_validation/` — changes belong in the submodule repo
+- Do not modify files under `src/addons/gut/` — managed by GUT upstream
 
 ## Validation-First Policy
 

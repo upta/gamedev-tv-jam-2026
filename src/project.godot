@@ -1,5 +1,5 @@
 ; Engine configuration file.
-; It's best edited using the editor and not directly,
+; It's best edited using the editor UI and not directly,
 ; since the parameters that go here are not all obvious.
 ;
 ; Format:
@@ -12,16 +12,21 @@ config_version=5
 
 config/name="My Prototype"
 run/main_scene="res://bootstrap/app_root.tscn"
+config/features=PackedStringArray("4.6")
+
+[autoload]
+
+GameState="*res://game/state/game_state.gd"
 
 [display]
 
 window/size/viewport_width=1280
 window/size/viewport_height=720
 
-[rendering]
+[editor_plugins]
 
-renderer/rendering_method="forward_plus"
+enabled=PackedStringArray("res://addons/gut/plugin.cfg")
 
-[autoload]
+[dotnet]
 
-GameState="*res://game/state/game_state.gd"
+project/assembly_name="My Prototype"
