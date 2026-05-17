@@ -15,9 +15,8 @@ const CARRIER_COLORS := {
 const PLAYER_ROUTE_WIDTH := 4.0
 const NPC_ROUTE_WIDTH := 2.0
 
-# Scale galaxy coordinates (light-years) to pixel space
-const MAP_SCALE := 80.0
-const MAP_OFFSET := Vector2(120, 200)
+const MAP_PADDING := 60.0
+const MAP_DEFAULT_SIZE := Vector2(1200, 700)
 
 const _PlanetNodeScene := preload("res://game/ui/star_map/planet_node.tscn")
 
@@ -59,9 +58,30 @@ func _build_map() -> void:
 
 	var galaxy: GalaxyData = _game_state.galaxy
 
+	# Compute bounding box of all planet positions in light-year space
+	var min_pos := Vector2(INF, INF)
+	var max_pos := Vector2(-INF, -INF)
+	for planet: GalaxyData.Planet in galaxy.planets:
+		min_pos.x = minf(min_pos.x, planet.position.x)
+		min_pos.y = minf(min_pos.y, planet.position.y)
+		max_pos.x = maxf(max_pos.x, planet.position.x)
+		max_pos.y = maxf(max_pos.y, planet.position.y)
+
+	# Calculate scale and offset to fit all planets within the viewport
+	var viewport_size: Vector2 = size if size.x > 0 and size.y > 0 else MAP_DEFAULT_SIZE
+	var available := viewport_size - Vector2(MAP_PADDING * 2, MAP_PADDING * 2)
+	var extent := max_pos - min_pos
+	if extent.x < 0.001:
+		extent.x = 1.0
+	if extent.y < 0.001:
+		extent.y = 1.0
+	var map_scale: float = minf(available.x / extent.x, available.y / extent.y)
+	var content_size := extent * map_scale
+	var map_offset := (viewport_size - content_size) * 0.5 - min_pos * map_scale
+
 	# Derive pixel positions from galaxy planet coordinates
 	for planet: GalaxyData.Planet in galaxy.planets:
-		_planet_positions[planet.id] = planet.position * MAP_SCALE + MAP_OFFSET
+		_planet_positions[planet.id] = planet.position * map_scale + map_offset
 
 	# Planets
 	for planet: GalaxyData.Planet in galaxy.planets:

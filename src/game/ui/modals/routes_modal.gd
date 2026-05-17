@@ -8,14 +8,23 @@ var _game_state: GameState
 var _content: VBoxContainer
 
 # Create-route form state
-var _origin_option: OptionButton
-var _dest_option: OptionButton
+var _origin_id: String = ""
+var _dest_id: String = ""
+var _origin_display: Label
+var _dest_display: Label
+var _ship_select_btn: Button
+var _selected_ship_ids: Array = []
+var _ship_display: Label
 var _info_label: Label
-var _ship_checks: Array = []
+var _freq_spin: SpinBox
 var _pax_spin: SpinBox
 var _cargo_spin: SpinBox
 var _create_btn: Button
 var _create_section: VBoxContainer
+
+# Sub-dialog
+var _selection_popup: PanelContainer
+var _selection_callback: Callable
 
 
 func _ready() -> void:
@@ -53,7 +62,7 @@ func refresh() -> void:
 	for child: Node in _content.get_children():
 		child.queue_free()
 
-	_ship_checks.clear()
+	_selected_ship_ids.clear()
 
 	var carrier := _game_state.get_player_carrier()
 	if carrier == null:
@@ -185,103 +194,95 @@ func _build_create_route(carrier: CarrierData) -> void:
 	header.text = "— Create New Route —"
 	_content.add_child(header)
 
-	# Origin planet selector
+	# Origin row
 	var origin_row := HBoxContainer.new()
 	var origin_label := Label.new()
-	origin_label.text = "Origin:"
+	origin_label.text = "Origin System"
+	origin_label.custom_minimum_size.x = 140
 	origin_row.add_child(origin_label)
-	_origin_option = OptionButton.new()
-	_origin_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_origin_option.add_item("Select origin...")
-	for planet: GalaxyData.Planet in _game_state.galaxy.planets:
-		_origin_option.add_item(planet.name)
-		_origin_option.set_item_metadata(_origin_option.item_count - 1, planet.id)
-	origin_row.add_child(_origin_option)
+	_origin_display = Label.new()
+	_origin_display.text = _get_planet_display_name(_origin_id)
+	_origin_display.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	origin_row.add_child(_origin_display)
+	var origin_btn := Button.new()
+	origin_btn.text = "Select"
+	origin_btn.pressed.connect(_open_planet_selector.bind("origin"))
+	origin_row.add_child(origin_btn)
 	_content.add_child(origin_row)
 
-	# Destination planet selector
+	# Destination row
 	var dest_row := HBoxContainer.new()
 	var dest_label := Label.new()
-	dest_label.text = "Destination:"
+	dest_label.text = "Destination System"
+	dest_label.custom_minimum_size.x = 140
 	dest_row.add_child(dest_label)
-	_dest_option = OptionButton.new()
-	_dest_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_dest_option.add_item("Select destination...")
-	for planet: GalaxyData.Planet in _game_state.galaxy.planets:
-		_dest_option.add_item(planet.name)
-		_dest_option.set_item_metadata(_dest_option.item_count - 1, planet.id)
-	dest_row.add_child(_dest_option)
+	_dest_display = Label.new()
+	_dest_display.text = _get_planet_display_name(_dest_id)
+	_dest_display.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dest_row.add_child(_dest_display)
+	var dest_btn := Button.new()
+	dest_btn.text = "Select"
+	dest_btn.pressed.connect(_open_planet_selector.bind("dest"))
+	dest_row.add_child(dest_btn)
 	_content.add_child(dest_row)
 
-	# Container for the rest of the create form (populated on planet selection)
+	# Ship row
+	var ship_row := HBoxContainer.new()
+	var ship_label := Label.new()
+	ship_label.text = "Ships"
+	ship_label.custom_minimum_size.x = 140
+	ship_row.add_child(ship_label)
+	_ship_display = Label.new()
+	_ship_display.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_update_ship_display()
+	ship_row.add_child(_ship_display)
+	_ship_select_btn = Button.new()
+	_ship_select_btn.text = "Select"
+	_ship_select_btn.pressed.connect(_open_ship_selector)
+	_ship_select_btn.disabled = _origin_id.is_empty() or _dest_id.is_empty() or _origin_id == _dest_id
+	ship_row.add_child(_ship_select_btn)
+	_content.add_child(ship_row)
+
+	# Dynamic section for route details
 	_create_section = VBoxContainer.new()
 	_content.add_child(_create_section)
 
-	_origin_option.item_selected.connect(_on_planet_pair_changed)
-	_dest_option.item_selected.connect(_on_planet_pair_changed)
+	_rebuild_route_details(carrier)
 
 
-func _on_planet_pair_changed(_index: int) -> void:
+func _rebuild_route_details(carrier: CarrierData) -> void:
 	for child: Node in _create_section.get_children():
 		child.queue_free()
-	_ship_checks.clear()
 	_create_btn = null
 
-	var origin_id := _get_selected_planet_id(_origin_option)
-	var dest_id := _get_selected_planet_id(_dest_option)
-	if origin_id.is_empty() or dest_id.is_empty() or origin_id == dest_id:
+	if _origin_id.is_empty() or _dest_id.is_empty() or _origin_id == _dest_id:
 		return
 
-	var lane := _game_state.galaxy.get_lane(origin_id, dest_id)
+	var lane := _game_state.galaxy.get_lane(_origin_id, _dest_id)
 	if lane == null:
+		var no_lane := Label.new()
+		no_lane.text = "No lane between these planets."
+		_create_section.add_child(no_lane)
 		return
 
-	var carrier := _game_state.get_player_carrier()
-	if carrier == null:
-		return
-
-	var origin_planet := _game_state.galaxy.get_planet(origin_id)
-	var dest_planet := _game_state.galaxy.get_planet(dest_id)
-	var origin_name: String = origin_planet.name if origin_planet else origin_id
-	var dest_name: String = dest_planet.name if dest_planet else dest_id
-
-	# Slot info
-	var origin_slots: int = carrier.get_slot_count(origin_id)
-	var dest_slots: int = carrier.get_slot_count(dest_id)
+	# Distance and slot info
+	var origin_slots: int = carrier.get_slot_count(_origin_id)
+	var dest_slots: int = carrier.get_slot_count(_dest_id)
 	_info_label = Label.new()
 	_info_label.text = "Distance: %.1f ly | Slots: %d at %s, %d at %s" % [
-		lane.distance, origin_slots, origin_name, dest_slots, dest_name,
+		lane.distance, origin_slots, _get_planet_display_name(_origin_id),
+		dest_slots, _get_planet_display_name(_dest_id),
 	]
 	_create_section.add_child(_info_label)
 
 	# Suggested prices
 	var suggested_pax := DemandCalculator.calculate_suggested_price(lane, "passenger")
 	var suggested_cargo := DemandCalculator.calculate_suggested_price(lane, "cargo")
-	var suggested_label := Label.new()
-	suggested_label.text = "Suggested prices — Passenger: §%.2f  Cargo: §%.2f" % [suggested_pax, suggested_cargo]
-	_create_section.add_child(suggested_label)
 
-	# Eligible ships
-	var eligible_ships := _get_eligible_ships(lane.distance)
-	if eligible_ships.is_empty():
-		var no_ships := Label.new()
-		no_ships.text = "No eligible ships (need range ≥ %.1f ly)." % lane.distance
-		_create_section.add_child(no_ships)
-		return
-
-	var ships_label := Label.new()
-	ships_label.text = "Select ships:"
-	_create_section.add_child(ships_label)
-
-	for ship: ShipCatalog.ShipInstance in eligible_ships:
-		var ship_type := _game_state.catalog.get_type(ship.type_id)
-		var type_name: String = ship_type.name if ship_type else ship.type_id
-		var cb := CheckBox.new()
-		cb.text = "%s (Pax:%d Cargo:%d)" % [type_name, ship.passenger_capacity, ship.cargo_capacity]
-		cb.set_meta("ship_id", ship.id)
-		cb.toggled.connect(_on_ship_check_toggled)
-		_create_section.add_child(cb)
-		_ship_checks.append(cb)
+	# Flights per month
+	var freq_row := _create_label_spinbox("Flights per Month:", 1, 4, 1, 1)
+	_create_section.add_child(freq_row)
+	_freq_spin = freq_row.get_child(1)
 
 	# Pricing
 	var pax_default := int(roundf(suggested_pax))
@@ -289,98 +290,283 @@ func _on_planet_pair_changed(_index: int) -> void:
 	var cargo_default := int(roundf(suggested_cargo))
 	var cargo_max := int(10 * ceilf(suggested_cargo))
 
-	var pax_row := _create_label_spinbox("Passenger price:", 1, pax_max, 1, pax_default)
+	var pax_row := _create_label_spinbox("Passenger Price:", 1, pax_max, 1, pax_default)
 	_create_section.add_child(pax_row)
 	_pax_spin = pax_row.get_child(1)
 
-	var cargo_row := _create_label_spinbox("Cargo price:", 1, cargo_max, 1, cargo_default)
+	var cargo_row := _create_label_spinbox("Cargo Price:", 1, cargo_max, 1, cargo_default)
 	_create_section.add_child(cargo_row)
 	_cargo_spin = cargo_row.get_child(1)
 
-	# Create button
+	# Bottom buttons
+	var btn_row := HBoxContainer.new()
+	btn_row.alignment = BoxContainer.ALIGNMENT_END
+	var cancel_btn := Button.new()
+	cancel_btn.text = "Cancel"
+	cancel_btn.pressed.connect(_reset_create_form)
+	btn_row.add_child(cancel_btn)
 	_create_btn = Button.new()
-	_create_btn.text = "Create Route"
+	_create_btn.text = "Create"
 	_create_btn.pressed.connect(_on_create_route)
-	_create_section.add_child(_create_btn)
+	btn_row.add_child(_create_btn)
+	_create_section.add_child(btn_row)
 
 	_update_create_button_state()
 
 
-func _on_ship_check_toggled(_pressed: bool) -> void:
-	_update_create_button_state()
+func _reset_create_form() -> void:
+	_origin_id = ""
+	_dest_id = ""
+	_selected_ship_ids.clear()
+	refresh()
 
 
-func _update_create_button_state() -> void:
-	if _create_btn == null:
+func _get_planet_display_name(planet_id: String) -> String:
+	if planet_id.is_empty():
+		return "None"
+	var planet := _game_state.galaxy.get_planet(planet_id)
+	return planet.name if planet else planet_id
+
+
+func _update_ship_display() -> void:
+	if _ship_display == null:
 		return
-	var any_selected := false
-	for cb: CheckBox in _ship_checks:
-		if cb.button_pressed:
-			any_selected = true
-			break
-
-	# Check slots at selected endpoints
-	var has_slots := true
-	var origin_id := _get_selected_planet_id(_origin_option)
-	var dest_id := _get_selected_planet_id(_dest_option)
-	if not origin_id.is_empty() and not dest_id.is_empty():
-		var carrier := _game_state.get_player_carrier()
-		if carrier:
-			has_slots = carrier.has_slots_at(origin_id) and carrier.has_slots_at(dest_id)
-
-	_create_btn.disabled = not any_selected or not has_slots
-
-
-func _on_create_route() -> void:
-	var origin_id := _get_selected_planet_id(_origin_option)
-	var dest_id := _get_selected_planet_id(_dest_option)
-	if origin_id.is_empty() or dest_id.is_empty() or origin_id == dest_id:
-		return
-
-	var selected_ids: Array = []
-	for cb: CheckBox in _ship_checks:
-		if cb.button_pressed:
-			selected_ids.append(cb.get_meta("ship_id"))
-	if selected_ids.is_empty():
-		return
-
-	_player_controller.add_route_create(
-		origin_id, dest_id, selected_ids,
-		_pax_spin.value, _cargo_spin.value,
-	)
+	if _selected_ship_ids.is_empty():
+		_ship_display.text = "None"
+	else:
+		_ship_display.text = "%d ship(s)" % _selected_ship_ids.size()
 
 
 # ---------------------------------------------------------------------------
-# Helpers
+# Planet Selection Sub-Dialog
 # ---------------------------------------------------------------------------
 
-func _get_eligible_ships(min_range: float) -> Array:
-	var player := _game_state.get_player_carrier()
-	if player == null:
-		return []
-	var idle_ships := player.get_available_ships()
+func _open_planet_selector(target: String) -> void:
+	var carrier := _game_state.get_player_carrier()
+	if carrier == null:
+		return
 
-	# Exclude ships already committed in pending route creates
+	var items_with_slots: Array[Dictionary] = []
+	var items_no_slots: Array[Dictionary] = []
+
+	for planet: GalaxyData.Planet in _game_state.galaxy.planets:
+		var slot_count: int = carrier.get_slot_count(planet.id)
+		if slot_count > 0:
+			items_with_slots.append({
+				"id": planet.id,
+				"label": "%s — %d slots" % [planet.name, slot_count],
+				"selectable": true,
+			})
+		else:
+			items_no_slots.append({
+				"id": planet.id,
+				"label": "%s — No slots" % planet.name,
+				"selectable": false,
+			})
+
+	items_with_slots.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["label"] < b["label"])
+	items_no_slots.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["label"] < b["label"])
+
+	var callback := func(selected_id: String) -> void:
+		if target == "origin":
+			_origin_id = selected_id
+		else:
+			_dest_id = selected_id
+		# Clear ship selection when planets change
+		_selected_ship_ids.clear()
+		refresh()
+
+	_show_selection_popup("Select Planet", items_with_slots, items_no_slots, callback)
+
+
+# ---------------------------------------------------------------------------
+# Ship Selection Sub-Dialog
+# ---------------------------------------------------------------------------
+
+func _open_ship_selector() -> void:
+	if _origin_id.is_empty() or _dest_id.is_empty() or _origin_id == _dest_id:
+		return
+
+	var lane := _game_state.galaxy.get_lane(_origin_id, _dest_id)
+	if lane == null:
+		return
+
+	var carrier := _game_state.get_player_carrier()
+	if carrier == null:
+		return
+
+	var idle_ships := carrier.get_available_ships()
+
+	# Exclude ships already committed in other pending route creates
 	var pending_ship_ids: Dictionary = {}
 	for rc: Dictionary in _player_controller.pending_intent.route_creates:
 		for ship_id: String in rc["ship_ids"]:
 			pending_ship_ids[ship_id] = true
 
-	var eligible: Array = []
+	var in_range: Array[Dictionary] = []
+	var out_range: Array[Dictionary] = []
+
 	for ship: ShipCatalog.ShipInstance in idle_ships:
 		if pending_ship_ids.has(ship.id):
 			continue
 		var ship_type := _game_state.catalog.get_type(ship.type_id)
-		if ship_type and ship_type.range >= min_range:
-			eligible.append(ship)
-	return eligible
+		if ship_type == null:
+			continue
+		var type_name: String = ship_type.name
+		var already_selected := _selected_ship_ids.has(ship.id)
+		if ship_type.range >= lane.distance:
+			in_range.append({
+				"id": ship.id,
+				"label": "%s (Pax:%d Cargo:%d)%s" % [
+					type_name, ship.passenger_capacity, ship.cargo_capacity,
+					" ✓" if already_selected else "",
+				],
+				"selectable": true,
+			})
+		else:
+			out_range.append({
+				"id": ship.id,
+				"label": "%s — Out of range" % type_name,
+				"selectable": false,
+			})
+
+	in_range.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["label"] < b["label"])
+	out_range.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["label"] < b["label"])
+
+	var callback := func(selected_id: String) -> void:
+		if _selected_ship_ids.has(selected_id):
+			_selected_ship_ids.erase(selected_id)
+		else:
+			_selected_ship_ids.append(selected_id)
+		_update_ship_display()
+		_update_create_button_state()
+
+	_show_selection_popup("Select Ship", in_range, out_range, callback, false)
 
 
-func _get_selected_planet_id(option: OptionButton) -> String:
-	if option.selected <= 0:
-		return ""
-	return option.get_item_metadata(option.selected)
+# ---------------------------------------------------------------------------
+# Generic Selection Popup
+# ---------------------------------------------------------------------------
 
+func _show_selection_popup(
+	title: String,
+	group_a: Array[Dictionary],
+	group_b: Array[Dictionary],
+	callback: Callable,
+	close_on_select: bool = true,
+) -> void:
+	_close_selection_popup()
+	_selection_callback = callback
+
+	_selection_popup = PanelContainer.new()
+	_selection_popup.custom_minimum_size = Vector2(400, 300)
+
+	var vbox := VBoxContainer.new()
+	_selection_popup.add_child(vbox)
+
+	# Title bar
+	var title_row := HBoxContainer.new()
+	var title_label := Label.new()
+	title_label.text = title
+	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_row.add_child(title_label)
+	var close_btn := Button.new()
+	close_btn.text = "✕"
+	close_btn.pressed.connect(_close_selection_popup)
+	title_row.add_child(close_btn)
+	vbox.add_child(title_row)
+
+	vbox.add_child(HSeparator.new())
+
+	# Scrollable list
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.custom_minimum_size.y = 200
+	var list := VBoxContainer.new()
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(list)
+	vbox.add_child(scroll)
+
+	# Group A (selectable)
+	for item: Dictionary in group_a:
+		var row := HBoxContainer.new()
+		var lbl := Label.new()
+		lbl.text = item["label"]
+		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(lbl)
+		var btn := Button.new()
+		btn.text = "Select"
+		var item_id: String = item["id"]
+		btn.pressed.connect(_on_selection_item_clicked.bind(item_id, close_on_select))
+		row.add_child(btn)
+		list.add_child(row)
+
+	# Divider between groups
+	if not group_a.is_empty() and not group_b.is_empty():
+		list.add_child(HSeparator.new())
+
+	# Group B (non-selectable)
+	for item: Dictionary in group_b:
+		var row := HBoxContainer.new()
+		var lbl := Label.new()
+		lbl.text = item["label"]
+		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		lbl.modulate = Color(0.5, 0.5, 0.5)
+		row.add_child(lbl)
+		list.add_child(row)
+
+	# Position popup centered in the panel
+	add_child(_selection_popup)
+	_selection_popup.set_anchors_preset(Control.PRESET_CENTER)
+	_selection_popup.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_selection_popup.grow_vertical = Control.GROW_DIRECTION_BOTH
+
+
+func _on_selection_item_clicked(item_id: String, close_on_select: bool) -> void:
+	if _selection_callback.is_valid():
+		_selection_callback.call(item_id)
+	if close_on_select:
+		_close_selection_popup()
+
+
+func _close_selection_popup() -> void:
+	if _selection_popup and is_instance_valid(_selection_popup):
+		_selection_popup.queue_free()
+		_selection_popup = null
+
+
+func _update_create_button_state() -> void:
+	if _create_btn == null:
+		return
+	var any_ships := not _selected_ship_ids.is_empty()
+
+	# Check slots at selected endpoints
+	var has_slots := true
+	if not _origin_id.is_empty() and not _dest_id.is_empty():
+		var carrier := _game_state.get_player_carrier()
+		if carrier:
+			has_slots = carrier.has_slots_at(_origin_id) and carrier.has_slots_at(_dest_id)
+
+	_create_btn.disabled = not any_ships or not has_slots
+
+
+func _on_create_route() -> void:
+	if _origin_id.is_empty() or _dest_id.is_empty() or _origin_id == _dest_id:
+		return
+	if _selected_ship_ids.is_empty():
+		return
+
+	var freq: int = int(_freq_spin.value) if _freq_spin else 1
+	_player_controller.add_route_create(
+		_origin_id, _dest_id, _selected_ship_ids.duplicate(),
+		_pax_spin.value, _cargo_spin.value, freq,
+	)
+	_reset_create_form()
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 func _create_label_spinbox(
 	label_text: String,
