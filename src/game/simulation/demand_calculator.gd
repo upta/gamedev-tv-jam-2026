@@ -15,7 +15,7 @@ static func calculate_suggested_price(lane: GalaxyData.Lane, demand_type: String
 static func calculate_price_factor(price: float, suggested_price: float) -> float:
 	if suggested_price <= 0.0:
 		return 1.0
-	return clampf(1.0 - (price - suggested_price) / suggested_price, 0.05, 1.5)
+	return clampf(1.0 - (price - suggested_price) / suggested_price, 0.0, 1.5)
 
 
 static func calculate_demand_split(

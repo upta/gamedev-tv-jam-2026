@@ -164,10 +164,18 @@ func _rebuild_route_details(carrier: CarrierData) -> void:
 	var suggested_pax := DemandCalculator.calculate_suggested_price(lane, "passenger")
 	var suggested_cargo := DemandCalculator.calculate_suggested_price(lane, "cargo")
 
-	# Flights per month
-	var freq_row := _create_label_spinbox("Flights per Month:", 1, 4, 1, 1)
+	# Flights per month — max depends on selected ships
+	var max_freq := _compute_max_frequency()
+	var freq_row := _create_label_spinbox("Flights per Month:", 1, maxi(max_freq, 1), 1, 1)
 	_details_section.add_child(freq_row)
 	_freq_spin = freq_row.get_child(1)
+	_freq_spin.editable = max_freq > 0
+
+	# Max frequency label
+	var freq_max_label := Label.new()
+	freq_max_label.name = "FreqMaxLabel"
+	freq_max_label.text = "/ %d" % max_freq if max_freq > 0 else "/ —"
+	freq_row.add_child(freq_max_label)
 
 	# Pricing
 	var pax_default := int(roundf(suggested_pax))
@@ -305,6 +313,7 @@ func _open_ship_selector() -> void:
 		else:
 			_selected_ship_ids.append(selected_id)
 		_update_ship_display()
+		_update_frequency_max()
 		_update_create_button_state()
 
 	_show_selection_popup("Select Ship", in_range, out_range, callback, false)
@@ -482,6 +491,37 @@ func _get_planet_display_name(planet_id: String) -> String:
 	return planet.name if planet else planet_id
 
 
+func _compute_max_frequency() -> int:
+	if _selected_ship_ids.is_empty() or _origin_id.is_empty() or _dest_id.is_empty():
+		return 0
+	var lane := _game_state.galaxy.get_lane(_origin_id, _dest_id)
+	if lane == null:
+		return 0
+	var carrier := _game_state.get_player_carrier()
+	if carrier == null:
+		return 0
+	return RouteValidator.calculate_max_frequency(
+		_selected_ship_ids, carrier, _game_state.catalog, lane.distance
+	)
+
+
+func _update_frequency_max() -> void:
+	if _freq_spin == null:
+		return
+	var max_freq := _compute_max_frequency()
+	_freq_spin.max_value = maxi(max_freq, 1)
+	_freq_spin.editable = max_freq > 0
+	if _freq_spin.value > max_freq and max_freq > 0:
+		_freq_spin.value = max_freq
+
+	# Update "/ N" label if it exists
+	var freq_row := _freq_spin.get_parent()
+	if freq_row:
+		var max_label := freq_row.get_node_or_null("FreqMaxLabel")
+		if max_label:
+			max_label.text = "/ %d" % max_freq if max_freq > 0 else "/ —"
+
+
 # ---------------------------------------------------------------------------
 # Programmatic API (for validation harness)
 # ---------------------------------------------------------------------------
@@ -499,6 +539,7 @@ func set_destination(planet_id: String) -> void:
 func select_ships(ship_ids: Array) -> void:
 	_selected_ship_ids = ship_ids.duplicate()
 	_update_ship_display()
+	_update_frequency_max()
 	_update_create_button_state()
 
 

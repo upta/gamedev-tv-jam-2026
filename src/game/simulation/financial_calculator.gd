@@ -70,7 +70,7 @@ static func calculate_route_operating_cost(
 		var ship_type := catalog.get_type(ship.type_id)
 		if ship_type == null:
 			continue
-		total_cost += lane.distance / ship_type.efficiency
+		total_cost += (lane.distance / ship_type.efficiency) * route.frequency
 
 	return total_cost
 

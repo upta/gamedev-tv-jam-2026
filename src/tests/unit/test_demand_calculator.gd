@@ -68,10 +68,10 @@ func test_price_factor_above_suggested():
 
 
 func test_price_factor_way_above_clamped_to_min():
-	# 1.0 - (30.0 - 10.0) / 10.0 = -1.0 → clamped 0.05
+	# 1.0 - (30.0 - 10.0) / 10.0 = -1.0 → clamped 0.0
 	assert_almost_eq(
 		DemandCalculator.calculate_price_factor(30.0, 10.0),
-		0.05, 0.001, "extreme overpricing → floor 0.05")
+		0.0, 0.001, "extreme overpricing → floor 0.0")
 
 
 func test_price_factor_way_below_clamped_to_max():
@@ -281,8 +281,8 @@ func test_demand_split_demand_modifier_scales_demand():
 # ===========================================================================
 
 func test_monopoly_overpricing_reduces_demand():
-	# Single carrier, price = 10x suggested → factor = clamp(1 - 9, 0.05, 1.5) = 0.05
-	# demand_at_price = int(100 * 0.05) = 5
+	# Single carrier, price = 10x suggested → factor = clamp(1 - 9, 0.0, 1.5) = 0.0
+	# demand_at_price = int(100 * 0.0) = 0
 	var suggested_pax := _suggested_pax()
 	var suggested_cargo := _suggested_cargo()
 	var ship := _make_ship("s1", 30, 30)
@@ -296,8 +296,8 @@ func test_monopoly_overpricing_reduces_demand():
 		[route], "forward", demand, [carrier], catalog,
 		suggested_pax, suggested_cargo, "planet_a")
 
-	assert_eq(result["c1"]["passengers_served"], 5, "10x overpricing → only 5% of demand (5 pax)")
-	assert_eq(result["c1"]["cargo_served"], 5, "10x overpricing → only 5% of cargo demand")
+	assert_eq(result["c1"]["passengers_served"], 0, "10x overpricing → zero demand (0 pax)")
+	assert_eq(result["c1"]["cargo_served"], 0, "10x overpricing → zero cargo demand")
 
 
 func test_reasonable_pricing_fills_capacity():
@@ -319,9 +319,9 @@ func test_reasonable_pricing_fills_capacity():
 
 
 func test_price_factor_floor_changed():
-	# Verify floor is 0.05, not the old 0.2
+	# Verify floor is 0.0 — demand drops to zero at extreme prices
 	var factor := DemandCalculator.calculate_price_factor(100.0, 10.0)
-	assert_almost_eq(factor, 0.05, 0.001, "extreme overpricing → floor is 0.05")
-	# At 2x suggested: factor = 1 - (20-10)/10 = 0.0 → clamped to 0.05
+	assert_almost_eq(factor, 0.0, 0.001, "extreme overpricing → floor is 0.0")
+	# At 2x suggested: factor = 1 - (20-10)/10 = 0.0
 	var factor2 := DemandCalculator.calculate_price_factor(20.0, 10.0)
-	assert_almost_eq(factor2, 0.05, 0.001, "2x suggested → clamped to 0.05")
+	assert_almost_eq(factor2, 0.0, 0.001, "2x suggested → demand is 0.0")

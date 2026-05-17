@@ -189,9 +189,9 @@ func test_operating_cost_single_ship():
 	var catalog := _make_catalog()
 	var galaxy := _make_galaxy_with_lane(6.0)
 
-	# distance=6.0, efficiency=0.8 → 6.0/0.8 = 7.5
+	# distance=6.0, efficiency=0.8, freq=1 → 6.0/0.8 × 1 = 7.5
 	var cost := FinancialCalculator.calculate_route_operating_cost(route, carrier, catalog, galaxy)
-	assert_almost_eq(cost, 7.5, 0.001, "6.0 / 0.8 = 7.5")
+	assert_almost_eq(cost, 7.5, 0.001, "6.0 / 0.8 × 1 = 7.5")
 
 
 func test_operating_cost_multiple_ships():
@@ -202,9 +202,9 @@ func test_operating_cost_multiple_ships():
 	var catalog := _make_catalog()
 	var galaxy := _make_galaxy_with_lane(6.0)
 
-	# 6.0/0.8 + 6.0/0.5 = 7.5 + 12.0 = 19.5
+	# (6.0/0.8 + 6.0/0.5) × freq 1 = 7.5 + 12.0 = 19.5
 	var cost := FinancialCalculator.calculate_route_operating_cost(route, carrier, catalog, galaxy)
-	assert_almost_eq(cost, 19.5, 0.001, "sum of per-ship costs")
+	assert_almost_eq(cost, 19.5, 0.001, "sum of per-ship costs × freq 1")
 
 
 func test_operating_cost_no_lane_returns_zero():
@@ -227,6 +227,27 @@ func test_operating_cost_missing_ship_skipped():
 
 	var cost := FinancialCalculator.calculate_route_operating_cost(route, carrier, catalog, galaxy)
 	assert_almost_eq(cost, 0.0, 0.001, "missing ship → zero cost")
+
+
+func test_operating_cost_scales_with_frequency():
+	var ship := _make_ship("s1", "test_type")
+	var carrier := _make_carrier("c1", [ship])
+	var catalog := _make_catalog()
+	var galaxy := _make_galaxy_with_lane(6.0)
+
+	# Freq 1: 6.0/0.8 × 1 = 7.5
+	var route1 := _make_route("r1", ["s1"] as Array[String])
+	route1.frequency = 1
+	var cost1 := FinancialCalculator.calculate_route_operating_cost(route1, carrier, catalog, galaxy)
+
+	# Freq 3: 6.0/0.8 × 3 = 22.5
+	var route3 := _make_route("r3", ["s1"] as Array[String])
+	route3.frequency = 3
+	var cost3 := FinancialCalculator.calculate_route_operating_cost(route3, carrier, catalog, galaxy)
+
+	assert_almost_eq(cost1, 7.5, 0.001, "freq 1 cost")
+	assert_almost_eq(cost3, 22.5, 0.001, "freq 3 cost = 3× freq 1")
+	assert_almost_eq(cost3, cost1 * 3.0, 0.001, "cost scales linearly with frequency")
 
 
 # ===========================================================================

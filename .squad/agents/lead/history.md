@@ -106,3 +106,23 @@
 - `src/game/ui/notifications/toast_manager.tscn` — mouse_filter fix
 
 **Work items:** P4.1–P4.12 (see `.squad/decisions/inbox/lead-ui-overhaul-plan.md`)
+
+### Economy Balance Analysis (2025-05-17, proposed)
+
+30. **Operating cost must scale with frequency.** `(distance / efficiency) × frequency` per ship, not flat per ship. One-line fix in `financial_calculator.gd:73`.
+
+31. **Speed-based frequency constraint.** `ship_speed = efficiency × 5.0`, `trips_per_ship = floor(speed / distance)`, `max_freq = sum(trips_per_ship)`. Changes `route_validator.gd:calculate_max_frequency()` signature to include lane distance and catalog.
+
+32. **Price factor floor → 0.0.** At 2× suggested price, demand drops to zero. Kills the "max price" exploit. One-line fix in `demand_calculator.gd:18`.
+
+33. **Dynamic frequency SpinBox.** `create_route_modal.gd` must recalculate max frequency when ship selection changes, not hardcode max=4.
+
+34. **NPC frequency awareness.** `npc_controller.gd` must use calculated max frequency instead of hardcoded `frequency: 1`.
+
+**Key file paths (Economy Balance):**
+- `src/game/simulation/financial_calculator.gd` — operating cost formula (line 73)
+- `src/game/simulation/route_validator.gd` — max frequency calculation (line 72-73)
+- `src/game/simulation/demand_calculator.gd` — price factor clamp (line 18)
+- `src/game/ui/modals/create_route_modal.gd` — frequency SpinBox (line 168)
+- `src/game/controllers/npc_controller.gd` — NPC frequency hardcode (line 170)
+- `.squad/decisions/inbox/lead-economy-balance.md` — full analysis

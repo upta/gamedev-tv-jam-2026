@@ -68,14 +68,15 @@ The player **reviews** the galaxy state (demand, competitors, finances), **decid
 **Demand & Revenue**
 - Demand is per (lane, direction) — passenger and cargo are independent
 - When multiple carriers serve the same (lane, direction), demand splits by (capacity × price_factor)
-- Price factor: `clamp(1.0 - (price - suggested_price) / suggested_price, 0.05, 1.5)`
+- Price factor: `clamp(1.0 - (price - suggested_price) / suggested_price, 0.0, 1.5)`
 - Price factor also caps absolute demand served — high prices reduce the number of willing travelers, not just competitive market share.
 - Suggested price: `(distance / 0.6) × 1.5` for passengers, `× 0.8` for cargo
 - Revenue = passengers_served × passenger_price + cargo_served × cargo_price
 
 **Frequency**
 - Integer round-trips per turn on a route
-- Constrained by ship count and travel time (distance / ship speed)
+- Constrained by ship count and travel time: `ship_speed = efficiency × 5.0`, `trips_per_ship = floor(speed / lane_distance)` (min 1)
+- `max_frequency = sum of trips_per_ship` across all assigned ships
 - Short lanes allow more trips per ship; long lanes need more ships for the same frequency
 
 **Events** (4 types, random)

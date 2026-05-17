@@ -183,14 +183,15 @@ func test_frequency_clamped_to_ship_count() -> void:
 	var carrier := _make_carrier()
 	var ship := _add_ship(carrier)
 
-	# Request frequency 5 with only 1 ship
+	# SD-100 eff=0.8, speed=4.0, earth→mars distance≈1.44 → trips=2 per ship
+	# Request frequency 5 with only 1 ship → max=2 → clamped to 2
 	var result := RouteValidator.validate_route_creation(
 		carrier, galaxy, catalog,
 		"earth", "mars",
 		[ship.id], 5, 1,
 	)
 	assert_true(result["valid"], "valid but clamped")
-	assert_eq(result["clamped_frequency"], 1, "clamped to 1 ship")
+	assert_eq(result["clamped_frequency"], 2, "clamped to speed-based max of 2")
 
 
 func test_frequency_not_clamped_when_enough_ships() -> void:
@@ -253,28 +254,63 @@ func test_modification_clamps_frequency() -> void:
 	var ship_ids: Array[String] = [ship.id]
 	var route := _add_active_route(carrier, ship_ids)
 
+	# SD-100 speed=4.0, earth→mars≈1.44 → max freq=2
 	var result := RouteValidator.validate_route_modification(
 		carrier, galaxy, catalog,
 		route, [ship.id], 5, 10.0, 5.0, 1,
 	)
 	assert_true(result["valid"], "valid but clamped")
-	assert_eq(result["clamped_frequency"], 1, "clamped to 1 ship")
+	assert_eq(result["clamped_frequency"], 2, "clamped to speed-based max of 2")
 
 
 # ---------------------------------------------------------------------------
 # calculate_max_frequency
 # ---------------------------------------------------------------------------
 
-func test_max_frequency_equals_ship_count() -> void:
+func test_max_frequency_fallback_equals_ship_count() -> void:
+	# Backward compat: no carrier/catalog → returns ship count
 	assert_eq(RouteValidator.calculate_max_frequency(["a", "b", "c"]), 3, "3 ships → freq 3")
 
 
-func test_max_frequency_single_ship() -> void:
+func test_max_frequency_fallback_single_ship() -> void:
 	assert_eq(RouteValidator.calculate_max_frequency(["a"]), 1, "1 ship → freq 1")
 
 
-func test_max_frequency_empty() -> void:
+func test_max_frequency_fallback_empty() -> void:
 	assert_eq(RouteValidator.calculate_max_frequency([]), 0, "no ships → freq 0")
+
+
+func test_max_frequency_speed_based() -> void:
+	# SD-100: eff=0.8, speed=4.0. Earth→Mars distance≈1.44 → trips=int(4.0/1.44)=2
+	var carrier := _make_carrier()
+	var ship := _add_ship(carrier, "sd-100")
+	var lane := galaxy.get_lane("earth", "mars")
+	var freq := RouteValidator.calculate_max_frequency(
+		[ship.id], carrier, catalog, lane.distance
+	)
+	assert_eq(freq, 2, "SD-100 on short lane → 2 trips/ship")
+
+
+func test_max_frequency_varies_by_ship_type() -> void:
+	var carrier := _make_carrier()
+	carrier.slots["proxima_b"] = 1
+	# FW-10 Scout: eff=1.0, speed=5.0, max_capacity=20
+	var scout := _add_ship(carrier, "fw-10", 10, 10)
+	# SD-300 Freighter: eff=0.5, speed=2.5, max_capacity=80
+	var freighter := _add_ship(carrier, "sd-300", 40, 40)
+
+	# On short lane (earth→mars ≈1.44):
+	var short_lane := galaxy.get_lane("earth", "mars")
+	var freq_scout_short := RouteValidator.calculate_max_frequency(
+		[scout.id], carrier, catalog, short_lane.distance
+	)
+	var freq_freighter_short := RouteValidator.calculate_max_frequency(
+		[freighter.id], carrier, catalog, short_lane.distance
+	)
+	# Scout: int(5.0/1.44)=3; Freighter: int(2.5/1.44)=1
+	assert_eq(freq_scout_short, 3, "Scout on short lane → 3 trips")
+	assert_eq(freq_freighter_short, 1, "Freighter on short lane → 1 trip")
+	assert_true(freq_scout_short > freq_freighter_short, "faster ship = more trips")
 
 
 # ---------------------------------------------------------------------------

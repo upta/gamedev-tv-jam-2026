@@ -54,13 +54,28 @@ func _build_harness_state() -> Dictionary:
 	for carrier: CarrierData in game_state_data.carriers:
 		var active_routes: Array = carrier.get_active_routes()
 		var score := ScoreCalculator.calculate_score(carrier, game_state_data.catalog, game_state_data.galaxy)
-		state["carriers"][carrier.id] = {
+		var carrier_state := {
 			"cash": carrier.cash,
 			"ship_count": carrier.ships.size(),
 			"route_count": active_routes.size(),
 			"slot_count": _total_slots(carrier),
 			"score": score["total"],
 		}
+
+		# Per-route operating costs for validation
+		var route_costs: Array = []
+		for route: CarrierData.Route in active_routes:
+			var op_cost := FinancialCalculator.calculate_route_operating_cost(
+				route, carrier, game_state_data.catalog, game_state_data.galaxy
+			)
+			route_costs.append({
+				"route_id": route.id,
+				"frequency": route.frequency,
+				"operating_cost": op_cost,
+			})
+		carrier_state["route_costs"] = route_costs
+
+		state["carriers"][carrier.id] = carrier_state
 
 	if last_turn_result != null:
 		state["last_result"] = {
@@ -80,11 +95,17 @@ func _build_metrics() -> Dictionary:
 		total_ships += carrier.ships.size()
 		total_routes += carrier.get_active_routes().size()
 
+	# Economy balance metrics
+	var price_factor_at_2x := DemandCalculator.calculate_price_factor(20.0, 10.0)
+	var price_factor_at_10x := DemandCalculator.calculate_price_factor(100.0, 10.0)
+
 	return {
 		"player_cash": player.cash if player else 0.0,
 		"total_carriers": game_state_data.carriers.size(),
 		"total_ships_in_play": total_ships,
 		"total_active_routes": total_routes,
+		"price_factor_at_2x_suggested": price_factor_at_2x,
+		"price_factor_at_10x_suggested": price_factor_at_10x,
 	}
 
 

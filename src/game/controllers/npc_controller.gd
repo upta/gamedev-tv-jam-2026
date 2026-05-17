@@ -145,7 +145,8 @@ func _consider_route_creation(
 			# Check if NPC can sustain the new route's operating costs
 			var ship_type := game_state.catalog.get_type(chosen_ship.type_id)
 			if ship_type != null:
-				var new_route_cost: float = distance / ship_type.efficiency
+				var npc_freq := _choose_frequency([chosen_ship.id], carrier, game_state, distance)
+				var new_route_cost: float = (distance / ship_type.efficiency) * npc_freq
 				var new_reserve := reserve + new_route_cost * RESERVE_BUFFER_TURNS
 				if carrier.cash <= new_reserve:
 					continue
@@ -167,7 +168,7 @@ func _consider_route_creation(
 				"ship_ids": [chosen_ship.id],
 				"passenger_price": passenger_price,
 				"cargo_price": cargo_price,
-				"frequency": 1,
+				"frequency": _choose_frequency([chosen_ship.id], carrier, game_state, distance),
 			})
 			# At most 1 route per turn
 			return
@@ -255,3 +256,10 @@ func _has_route_on_lane(carrier: CarrierData, lane_id: String) -> bool:
 		if route.lane_id == lane_id:
 			return true
 	return false
+
+
+func _choose_frequency(ship_ids: Array, carrier: CarrierData, game_state: GameState, lane_distance: float) -> int:
+	var max_freq := RouteValidator.calculate_max_frequency(
+		ship_ids, carrier, game_state.catalog, lane_distance
+	)
+	return maxi(1, int(max_freq * route_preference))

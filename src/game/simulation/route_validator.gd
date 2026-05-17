@@ -30,7 +30,7 @@ static func validate_route_creation(
 	if ship_error != "":
 		return _fail(ship_error)
 
-	var max_freq := calculate_max_frequency(ship_ids)
+	var max_freq := calculate_max_frequency(ship_ids, carrier, catalog, lane.distance)
 	var clamped := mini(frequency, max_freq)
 
 	return { "valid": true, "reason": "", "clamped_frequency": clamped }
@@ -63,14 +63,28 @@ static func validate_route_modification(
 	if ship_error != "":
 		return _fail(ship_error)
 
-	var max_freq := calculate_max_frequency(new_ship_ids)
+	var max_freq := calculate_max_frequency(new_ship_ids, carrier, catalog, lane.distance)
 	var clamped := mini(new_frequency, max_freq)
 
 	return { "valid": true, "reason": "", "clamped_frequency": clamped }
 
 
-static func calculate_max_frequency(ship_ids: Array) -> int:
-	return ship_ids.size()
+static func calculate_max_frequency(ship_ids: Array, carrier: CarrierData = null, catalog: ShipCatalog = null, lane_distance: float = 0.0) -> int:
+	if carrier == null or catalog == null or lane_distance <= 0.0:
+		return ship_ids.size()
+
+	var total_freq := 0
+	for ship_id: String in ship_ids:
+		var ship := _find_ship(carrier, ship_id)
+		if ship == null:
+			continue
+		var ship_type := catalog.get_type(ship.type_id)
+		if ship_type == null:
+			continue
+		var speed := ship_type.efficiency * 5.0
+		var trips := maxi(1, int(speed / lane_distance))
+		total_freq += trips
+	return total_freq
 
 
 static func get_route_capacity(
