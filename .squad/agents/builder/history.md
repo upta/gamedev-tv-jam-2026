@@ -265,3 +265,13 @@ Dependency graph provided in plan. Can parallelize: P1.1–3, P1.5–6, P1.10–
 - **Generic `_show_selection_popup()`**: Reusable popup builder accepting title, two grouped item arrays, callback, and optional close-on-select flag. Used by both planet and ship selectors.
 - **Form additions**: Flights per Month SpinBox (1-4), Cancel/Create button row, form reset on create or cancel.
 - **Validation**: All 24 scenarios pass unchanged, including `ui_player_creates_route` (which tests via harness controller, not UI interaction).
+
+### Route Creation UI Overhaul (2026-05-17)
+- **Files changed:** `routes_modal.gd`, new `create_route_modal.gd` + `.tscn`, `main.gd`, `main.tscn`, `ui_game_harness_controller.gd`
+- **Pattern:** Extracted create-route form from routes_modal into its own ModalDialog subclass (CreateRouteModal). Routes modal now only shows active routes, pending actions, and a "Create Route" button.
+- **Wiring:** CreateRouteModal is NOT in the `_modals` toolbar dictionary. It's opened programmatically from `_on_create_route_requested()`. When closed, it returns to routes modal via `_on_create_route_modal_closed()`.
+- **Toolbar edge case:** If user clicks toolbar while CreateRouteModal is open, we disconnect/reconnect the `closed` signal to avoid reopening routes modal.
+- **Programmatic API:** Added `set_origin()`, `set_destination()`, `select_ships()`, `confirm_create()` methods on CreateRouteModal for validation harness use.
+- **Harness controller:** Added create-route-modal test steps at odd frame numbers (205, 213, 225, 235, 245) to avoid conflict with auto-turn logic that fires at multiples of 20 from 180.
+- **Validation:** 2 new scenarios — `ui_routes_modal_shows_create_button`, `ui_create_route_flow`. All 26 scenarios pass.
+- **GDScript typing:** Inside match blocks, must use explicit type annotations (`var x: Type`) instead of type inference (`var x :=`).
