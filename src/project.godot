@@ -14,17 +14,15 @@ config/name="My Prototype"
 run/main_scene="res://bootstrap/app_root.tscn"
 config/features=PackedStringArray("4.6")
 
-[autoload]
-
 [display]
 
 window/size/viewport_width=1280
 window/size/viewport_height=720
 
-[editor_plugins]
-
-enabled=PackedStringArray("res://addons/gut/plugin.cfg")
-
 [dotnet]
 
 project/assembly_name="My Prototype"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/gut/plugin.cfg")
