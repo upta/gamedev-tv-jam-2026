@@ -51,3 +51,33 @@
 - `src/validation/scripts/harness_controllers/game_session_harness_controller.gd` — new controller
 
 **Work items:** P2.1–P2.11 (see `.squad/decisions/inbox/lead-phase2-plan.md`)
+
+### Phase 3 Architecture (2025-07-16, proposed)
+
+18. **PlayerController intent accumulation.** PlayerController extends CarrierController, holds a mutable `pending_intent` that UI forms build up. `generate_intent()` returns and resets. Signal `intent_changed` lets UI show pending action summary. Same interface as NpcController — D002 symmetry preserved.
+
+19. **No GameState autoload.** GameSession owns GameState. GameScene holds GameSession reference. UI panels receive GameState via dependency injection from GameScene, not a global autoload. Avoids class_name conflict entirely.
+
+20. **Single-screen layout.** HSplitContainer: Star Map (left 60%) + Side Panel (right 40%). Top bar with turn counter, cash, score, Next Turn button. No scene transitions. All info visible at once.
+
+21. **Star Map is Node2D in SubViewportContainer.** Planets as Area2D (click detection), lanes as Line2D. Hardcoded positions for 12 planets. System-colored clusters. Click-to-select drives ActionPanel context.
+
+22. **Turn log, not modal results.** TurnResult displayed as scrollable log entries in side panel + notification toasts for critical events. No blocking overlays mid-game. Game Over is the only overlay.
+
+23. **Context-sensitive action panel.** Side panel switches content based on star map selection: planet selected → slot bid/sell forms; lane selected → route create/modify forms; no selection → ship order form + pending actions summary.
+
+24. **UI validation via PlayerController API.** UI harness drives the game through PlayerController methods (add_slot_bid, add_route_create, etc.), not mouse click simulation. Keeps scenarios deterministic and decoupled from visual layout.
+
+**Key file paths (Phase 3):**
+- `src/game/controllers/player_controller.gd` — intent accumulator
+- `src/game/ui/star_map/star_map.gd` — star map display
+- `src/game/ui/panels/dashboard_panel.gd` — carrier state display
+- `src/game/ui/panels/action_panel.gd` — intent-building forms
+- `src/game/ui/panels/turn_log_panel.gd` — turn results feed
+- `src/game/ui/top_bar.gd` — turn counter + Next Turn button
+- `src/game/ui/notifications/toast_manager.gd` — event toasts
+- `src/game/ui/game_over_screen.gd` — end-game overlay
+- `src/game/main.gd` — game scene orchestrator (replaces placeholder)
+- `src/validation/harnesses/ui_game_harness.tscn` — UI integration harness
+
+**Work items:** P3.1–P3.12 (see `.squad/decisions/inbox/lead-phase3-plan.md`)
