@@ -1,0 +1,50 @@
+{
+  "scenario_id": "ui_create_route_popup_visible",
+  "version": 3,
+  "description": "Verify the planet selection popup renders visible and centered with the correct number of planet entries when opened from the create route modal",
+  "harness_scene": "res://validation/harnesses/ui_create_route_harness.tscn",
+  "done_contract": {},
+  "artifact_contract": {
+    "required_files": ["summary.json", "event_log.json", "scene_tree.json", "console.log"],
+    "missing_file_is_failure": true
+  },
+  "exit_codes": {
+    "pass": 0,
+    "assertion_failure": 1,
+    "runtime_error": 2,
+    "timeout": 3,
+    "artifact_generation_error": 4
+  },
+  "cli_contract": {
+    "command_template": "godot --path <project> -- --test-mode --scenario <path> --artifacts <dir>"
+  },
+  "steps": [
+    { "op": "load_harness" },
+    { "op": "wait_frames", "frames": 55 },
+    { "op": "checkpoint", "name": "create_modal_open" },
+    {
+      "op": "assert_value",
+      "checkpoint": "create_modal_open",
+      "path": "harness_state.create_route_modal_open",
+      "comparator": "eq",
+      "expected": true
+    },
+    { "op": "wait_frames", "frames": 15 },
+    { "op": "checkpoint", "name": "popup_open" },
+    {
+      "op": "assert_value",
+      "checkpoint": "popup_open",
+      "path": "harness_state.selection_popup_visible",
+      "comparator": "eq",
+      "expected": true
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "popup_open",
+      "path": "harness_state.selection_popup_item_count",
+      "comparator": "gt",
+      "expected": 0
+    },
+    { "op": "quit" }
+  ]
+}

@@ -29,6 +29,7 @@ var _details_section: VBoxContainer
 
 # Sub-dialog
 var _selection_popup: PanelContainer
+var _selection_overlay: ColorRect
 var _selection_callback: Callable
 
 
@@ -56,6 +57,10 @@ func open() -> void:
 func close() -> void:
 	_close_selection_popup()
 	super.close()
+
+
+func _exit_tree() -> void:
+	_close_selection_popup()
 
 
 # ---------------------------------------------------------------------------
@@ -381,11 +386,19 @@ func _show_selection_popup(
 		done_row.add_child(done_btn)
 		vbox.add_child(done_row)
 
-	# Position popup centered
-	add_child(_selection_popup)
-	_selection_popup.set_anchors_preset(Control.PRESET_CENTER)
-	_selection_popup.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_selection_popup.grow_vertical = Control.GROW_DIRECTION_BOTH
+	# Add overlay + popup to scene root so it escapes modal layout constraints
+	var viewport_size := get_viewport().get_visible_rect().size
+
+	_selection_overlay = ColorRect.new()
+	_selection_overlay.color = Color(0, 0, 0, 0.4)
+	_selection_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_selection_overlay.size = viewport_size
+	_selection_overlay.gui_input.connect(_on_selection_overlay_input)
+	get_tree().root.add_child(_selection_overlay)
+
+	get_tree().root.add_child(_selection_popup)
+	_selection_popup.size = Vector2(400, 300)
+	_selection_popup.position = (viewport_size - _selection_popup.size) / 2.0
 
 
 func _on_selection_item_clicked(item_id: String, close_on_select: bool) -> void:
@@ -396,9 +409,17 @@ func _on_selection_item_clicked(item_id: String, close_on_select: bool) -> void:
 
 
 func _close_selection_popup() -> void:
+	if _selection_overlay and is_instance_valid(_selection_overlay):
+		_selection_overlay.queue_free()
+		_selection_overlay = null
 	if _selection_popup and is_instance_valid(_selection_popup):
 		_selection_popup.queue_free()
 		_selection_popup = null
+
+
+func _on_selection_overlay_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed:
+		_close_selection_popup()
 
 
 # ---------------------------------------------------------------------------
@@ -478,6 +499,30 @@ func select_ships(ship_ids: Array) -> void:
 
 func confirm_create() -> void:
 	_on_create_route()
+
+
+func open_planet_selector(target: String) -> void:
+	_open_planet_selector(target)
+
+
+func is_selection_popup_visible() -> bool:
+	return _selection_popup != null and is_instance_valid(_selection_popup) and _selection_popup.visible
+
+
+func get_selection_popup_item_count() -> int:
+	if not is_selection_popup_visible():
+		return 0
+	# Count rows with a "Select" button in the popup's scroll list
+	var vbox: VBoxContainer = _selection_popup.get_child(0)
+	for child: Node in vbox.get_children():
+		if child is ScrollContainer:
+			var list: VBoxContainer = child.get_child(0)
+			var count := 0
+			for row: Node in list.get_children():
+				if row is HBoxContainer:
+					count += 1
+			return count
+	return 0
 
 
 # ---------------------------------------------------------------------------
