@@ -129,3 +129,11 @@ All processed in carrier_order (index-based tie-breaking, D004).
 - `GameState.last_turn_financials` is a simple pattern for exposing turn results to UI without changing signal signatures. Set it in `advance_turn()` before incrementing the turn counter.
 - The simulation harness controller's `get_observed_state()` can expose nested arrays (e.g., `route_performance.0.passengers_served`) and the validation framework resolves dot-separated array indices correctly.
 - Indentation matters critically in GDScript — an extra tab level causes parse errors that cascade through the entire class resolution chain, breaking unrelated scripts that reference the class.
+
+### Route Editing Modal (2026-05-17)
+
+- Adding edit mode to an existing create modal is clean: `_edit_mode` bool + `_editing_route` reference controls form behavior. The `open()` method resets to create mode, `open_for_edit()` sets edit mode — no state leakage between modes.
+- In edit mode, ships assigned to the route being edited must be added back to the available pool for the ship selector, since `get_available_ships()` excludes them. Build a dictionary of idle IDs and append missing route ships from `carrier.ships`.
+- Programmatic API methods (`get_form_state()`, `set_passenger_price()`, `confirm_save()`) are essential for validation harness controllers to drive and inspect the edit flow.
+- PlayerController already had `modify_route()` and `route_modifications` — no pipeline changes needed.
+- The RoutesModal pending actions section needed to display `route_modifications` alongside creates and cancellations.
