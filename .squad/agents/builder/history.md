@@ -1,306 +1,6 @@
 # Builder History
 
-## Session: Implementation Planning (2026-05-16T23:11:53Z)
-**Status:** Ready to begin Phase 1  
-**Plan Location:** `.squad/decisions/inbox/lead-implementation-plan.md`  
-**Decisions Location:** `.squad/decisions.md`
-
-### Phase 1 Work Order (12 Items)
-The implementation plan specifies Phase 1 as a sequence of 12 work items (P1.1–P1.12) covering:
-
-1. **P1.1–P1.3 (parallel):** Galaxy, Ship Catalog, Carrier Data resources
-2. **P1.4:** GameState autoload
-3. **P1.12 harness (early):** Simulation harness for scenario testing
-4. **P1.5–P1.6 (parallel):** Route logic, Slot auction
-5. **P1.7:** Demand calculator
-6. **P1.8:** Financial calculator
-7. **P1.9:** Turn pipeline
-8. **P1.10–P1.11 (parallel):** Score calculator, Event system
-
-Each work item ships with validation scenarios. No exceptions.
-
-### Key Architectural Decisions
-See `.squad/decisions.md` for 5 core decisions:
-- GameState as single source of truth
-- Symmetric carrier identity
-- Lane/Route ownership distinction
-- Deterministic simultaneous turns
-- Directional competitive demand
-
-### Dependencies & Parallelization
-Dependency graph provided in plan. Can parallelize: P1.1–3, P1.5–6, P1.10–11.
-
-**Next:** Begin P1.1–P1.3 in parallel.
-
-## Learnings
-
-### P1.3: Carrier Data (2026-05-17)
-- **File:** `src/game/state/carrier_data.gd`
-- **Pattern:** Resource class with inner classes `Route` and `ShipRef`. ShipRef is a lightweight mirror of ship_catalog.gd's ShipInstance — avoids hard dependency until P1.4 unifies types.
-- **Naming:** Used `carrier_name` instead of `name` to avoid shadowing `Object.name`.
-- **Slots:** Dictionary keyed by planet_id → int count. Missing key = 0.
-- **Factory:** `create_default_carriers()` is a static method producing 4 carriers with 3000 cash, 2 slots each on different planets, and 1 basic ship. Planet IDs use lowercase descriptive strings (earth, mars, proxima_b, etc.) to match galaxy_data.gd conventions.
-- **Ship assignment:** `get_available_ships()` collects all ship_ids from active routes into a set, then returns ships not in that set.
-- **No validation scenarios** — harness doesn't exist yet (deferred to P1.12).
-
-## Learnings
-
-### P1.1: Galaxy Data (2026-05-17)
-**File:** `src/game/state/galaxy_data.gd`
-
-**What was built:**
-- `GalaxyData` Resource class with inner classes `Planet` and `Lane`
-- Lookup methods: `get_planet()`, `get_lane()` (bidirectional), `get_lanes_from()`, `get_distance()`
-- `create_default_galaxy()` static factory producing 12 planets across 4 systems (Sol, Alpha Centauri, Wolf 359, Tau Ceti) with 15 lanes
-- Internal hash indices (`_planet_index`, `_lane_index`, `_lanes_from_index`) built once via `_build_indices()` for O(1) lookups
-
-**Patterns chosen:**
-- Inner classes over separate Resource subclasses — keeps the entire topology definition in one file, simpler for a data-only structure
-- String-keyed dictionaries for indices — `"origin::dest"` composite key for lane lookups, both directions stored
-- `get_distance()` returns `-1.0` for missing lanes (sentinel value, not an error) — callers can check easily
-- Lane distances: intra-system 1.0–2.5, inter-system 7.0–14.0 — meaningful gameplay variance
-
-**Galaxy topology notes:**
-- Earth and Centauri Prime are the major hubs (highest connectivity + slots)
-- Outpost and Frosthold are remote endpoints connected by the longest lane (14.0) — creates a "frontier" feel
-- Graph is fully connected but not complete — forces route planning tradeoffs
-
-## Learnings
-
-### P1.2: Ship Catalog (2026-05-16)
-- **Built:** `src/game/state/ship_catalog.gd` — Resource class with inner classes `ShipType` and `ShipInstance`
-- **Pattern:** Inner classes for data structs, static factory `create_default_catalog()`, instance factory with validation
-- **Instance IDs:** Format `{type_id}-{counter}` (e.g., `sd-100-0001`), counter scoped to catalog instance
-- **Capacity split validation:** `create_ship_instance()` enforces passenger + cargo == max_capacity, push_error on mismatch
-- **Ship lineup:** 7 types across 2 manufacturers (Sol Dynamics: balanced; Frontier Works: specialized extremes)
-- **Efficiency convention:** Higher = better. Operating cost = distance / efficiency
-
-### P1.4: GameState Autoload (2026-05-17)
-- **File:** `src/game/state/game_state.gd`
-- **Type:** Node autoload (not Resource) — registered in project.godot as `GameState`
-- **Signals:** `turn_resolved(turn_number)`, `game_over(carrier_id, reason)` — stubs for P1.9
-- **Carrier index:** `_build_carrier_index()` creates O(1) lookup Dictionary keyed by carrier id
-- **Placeholders:** `demand_table` is null (P1.7), `events` is empty Array (P1.10-P1.11)
-- **Type unification:** Removed `ShipRef` from `carrier_data.gd`. Ships now stored as `ShipCatalog.ShipInstance`. Factory `create_default_carriers()` accepts a `ShipCatalog` and creates proper SD-100 instances (20/20 passenger/cargo split, available_turn 0). Decision documented in `.squad/decisions/inbox/builder-gamestate.md`.
-- **No validation scenarios** — harness doesn't exist yet (deferred to P1.12).
-
-### P1.5: Route Logic (2026-05-17)
-- **File:** `src/game/simulation/route_validator.gd`
-- **Pattern:** Static utility class (`RouteValidator`), all methods static, no state. Extends RefCounted.
-- **Frequency simplified:** Each ship = 1 round-trip per turn regardless of distance. `max_frequency = ship_count`. Avoids speed-based frequency complexity — the interesting decision is how many ships to assign.
-- **Validation order:** Slots at both endpoints → lane exists → per-ship checks (exists, range, availability, delivery turn) → clamp frequency.
-- **Modification vs creation:** `validate_route_modification` excludes the route being modified when checking ship availability, so ships on the current route are considered "available" for reassignment.
-- **`get_route_capacity` signature:** Added `carrier` parameter beyond the spec since ship lookup requires the carrier's fleet array. Capacity = sum of ship capacities × frequency.
-- **No validation scenarios** — harness doesn't exist yet (deferred to P1.12).
-
-### P1.6: Slot Auction Resolver (2026-05-17)
-- **File:** `src/game/simulation/auction_resolver.gd`
-- **Pattern:** Static utility class (`class_name AuctionResolver`, extends RefCounted). All methods static — returns results, never mutates state (D001).
-- **Auction resolution:** Groups bids by planet, sorts descending by price_per_slot, tie-breaks by carrier_order index (D004). Awards min(requested, remaining) slots per bid. Full bid rejected if carrier can't afford total cost (no partial funding).
-- **Slot sales:** Instant, zero refund (sunk cost). Validates carrier owns enough slots and that selling won't orphan active routes at that planet. Each active route with origin or dest at the planet counts as 1 slot used.
-- **Helper:** `get_available_slots()` computes planet.total_slots minus sum of all carriers' slot counts.
-- **Directory:** Created `src/game/simulation/` (first file in this directory).
-- **No validation scenarios** — harness doesn't exist yet (deferred to P1.12).
-
-### P1.7: Demand Calculator (2026-05-18)
-- **Files:** `src/game/state/demand_data.gd`, `src/game/simulation/demand_calculator.gd`
-- **Pattern:** DemandData is a Resource with inner class DemandEntry; DemandCalculator is a static utility (RefCounted, all static methods) — mirrors RouteValidator pattern.
-- **Directional demand (D005):** Each lane generates TWO DemandEntry objects (forward + reverse). Passenger demand weighted toward destination planet slots; cargo demand weighted toward origin planet slots. This creates natural asymmetry.
-- **Demand formulas:** `passenger = dest_slots * 8 + origin_slots * 2` (clamped 20–100), `cargo = origin_slots * 6 + dest_slots * 2` (clamped 10–80). Earth→Mars forward: 84 pax / 76 cargo; Mars→Earth reverse: 100 pax / 68 cargo.
-- **Price factor:** `clamp(1.0 - (price - suggested) / suggested, 0.2, 1.5)` — underpricing boosts demand up to 1.5×, overpricing floors at 0.2×.
-- **Suggested price:** `(distance / 0.6) * 1.5` for passenger, ×0.8 for cargo. Anchored to average ship efficiency.
-- **Demand split:** Proportional by `capacity × price_factor`. Each carrier's share capped by their actual capacity. Multiple routes from same carrier on same lane aggregate.
-- **Direction matching:** `lane_origin_id` parameter added to `calculate_demand_split` — forward routes have `route.origin_id == lane.origin_id`, reverse routes have the opposite.
-- **Index pattern:** `_entry_index` with `"lane_id::direction"` composite key, matching galaxy_data.gd's `_lane_index` convention.
-- **No validation scenarios** — harness doesn't exist yet (deferred to P1.12).
-
-### P1.11: Event System Stub (2026-05-17)
-- **File:** `src/game/events/event_system.gd`
-- **Pattern:** Static utility class (`class_name EventSystem`, extends RefCounted) with `GameEvent` inner class. All methods static — matches RouteValidator and AuctionResolver patterns.
-- **Directory:** Created `src/game/events/`.
-- **Stub status:** `generate_events()` returns empty array — Phase 2 adds random generation. `apply_events()`, `tick_events()`, and `get_active_event_descriptions()` are fully implemented.
-- **apply_events():** Resets all DemandEntry `passenger_modifier` and `cargo_modifier` to 1.0, then multiplies by each active event's modifier. Handles `target_lane_id == ""` as global (affects all lanes). Works correctly with empty events array (just resets modifiers).
-- **DemandData dependency:** DemandData (P1.7) doesn't exist yet. `apply_events()` expects `demand_data.entries` array with objects having `lane_id`, `passenger_modifier`, and `cargo_modifier` fields. Will need alignment when P1.7 lands.
-- **Descriptions:** Format: "Mining boom on Titan — cargo demand +50% (2 turns remaining)". Uses `roundi()` for clean percentage display.
-- **No validation scenarios** — harness doesn't exist yet (deferred to P1.12).
-
-### P1.10: Score Calculator (2026-05-18)
-- **File:** `src/game/simulation/score_calculator.gd`
-- **Pattern:** Static utility class (`class_name ScoreCalculator`, extends RefCounted). All methods static, no state.
-- **Score formula:** `total = cash + ship_assets + slot_value + route_value`
-- **Ship assets:** Sum of purchase cost (from catalog) for both `carrier.ships` and `carrier.pending_orders`. No depreciation in prototype.
-- **Slot value:** Total slots across all planets × `BASE_SLOT_VALUE` (200.0).
-- **Route value:** Active routes only. Estimated monthly revenue × `ROUTE_MULTIPLIER` (5.0). Revenue = `frequency × (passenger_cap × passenger_price + cargo_cap × cargo_price) × ESTIMATED_FILL_RATE (0.5)`. Ship capacities looked up from carrier.ships via internal ship index.
-- **Rankings:** `get_rankings()` returns sorted array with rank numbers. Tie-break by array insertion order (D004 — Godot's `sort_custom` is stable).
-- **Winner:** `determine_winner()` returns first carrier with highest score (lower index wins ties per D004).
-- **Placeholder note:** Route value estimation is rough — P1.8 (financial calculator) will add `last_turn_revenue` to routes for real data.
-- **No validation scenarios** — harness doesn't exist yet (deferred to P1.12).
-
-### P1.8: Financial Calculator (2025-07-25)
-- **File:** `src/game/simulation/financial_calculator.gd`
-- **Pattern:** Static utility class (`class_name FinancialCalculator`, extends RefCounted). All methods static, no state.
-- **SLOT_UPKEEP_COST:** 10.0 per slot per turn — meaningful over 30 turns but not crippling.
-- **Revenue:** `passengers_served × passenger_price + cargo_served × cargo_price`. Demand split result is keyed by carrier_id.
-- **Operating cost:** Per ship on route: `lane.distance / ship_type.efficiency`. Summed across all ships on the route.
-- **process_financials grouping:** Groups all active routes across all carriers by `(lane_id, direction)` key. Calls `DemandCalculator.calculate_demand_split` once per group (not per route) — critical for correct competitive demand. Direction determined by comparing `route.origin_id` to `lane.origin_id`.
-- **Bankruptcy:** Carrier flagged bankrupt when `cash <= 0.0` after net applied.
-- **deliver_pending_ships:** Moves ships from `pending_orders` to `ships` when `available_turn <= current_turn`. Rebuilds `pending_orders` array to avoid mutation-during-iteration. Called at start of turn, before financials.
-- **No validation scenarios** — harness doesn't exist yet (deferred to P1.12).
-
-### P1.9: Turn Pipeline (2025-07-25)
-- **File:** `src/game/simulation/turn_pipeline.gd`
-- **Pattern:** Static utility class (`class_name TurnPipeline`, extends RefCounted). All methods static — matches project conventions. Inner classes `CarrierIntent` and `TurnResult`.
-- **8-step pipeline:** Deliver → Auctions → Routes → Ships → Slot Sales → Financials → Events → Report. Fixed order per D004.
-- **Determinism (D004):** All intent processing iterates `game_state.carriers` array (not the intents array) to guarantee carrier index order for tie-breaking. `carrier_order` array built from carrier IDs in array position order.
-- **API alignment:** Task spec had slightly different method names than actual code. Used actual signatures: `AuctionResolver.resolve_auctions()` (not `resolve_auction`), bids use `"quantity"` key (not `"count"`), `AuctionResolver.process_slot_sale()` (not `resolve_slot_sale`).
-- **Route IDs:** `"{carrier_id}-route-{N}"` where N starts at `carrier.routes.size()` and increments per creation within the turn. Avoids ID collisions with existing routes.
-- **Resilience:** Validation failures (route creation/modification, ship orders) produce `push_warning` and skip — never crash the pipeline. Ship orders check affordability before deducting cash; `create_ship_instance` returning null is handled.
-- **Game-over detection:** Triggered when `current_turn >= 30` or any carrier goes bankrupt. Winner determined by `ScoreCalculator.determine_winner()`.
-- **GameState changes:** `demand_table` typed as `DemandData` (was untyped null). `initialize()` now calls `DemandData.create_default_demand(galaxy)`. Added `advance_turn(intents)` convenience method that calls `resolve_turn`, increments `current_turn`, and emits `turn_resolved`/`game_over` signals.
-- **Slot sales:** Processed as step 5 (between Ships and Financials). Uses `AuctionResolver.process_slot_sale()` which validates ownership and route dependencies.
-- **No validation scenarios** — harness doesn't exist yet (deferred to P1.12).
-
-### P1.12: Validation Harness (2025-07-25)
-- **Files:** `src/validation/scripts/harness_controllers/simulation_harness_controller.gd`, `src/validation/harnesses/simulation_harness.tscn`, `src/validation/scenarios/sim_*.json` (4 scenarios)
-- **Pattern:** Harness extends Node (headless), creates fresh `GameState.new()` per test (not the autoload). One turn resolves per `_physics_process` frame — scenarios use `wait_frames` to advance.
-- **Lane ID correction:** Task spec said `"earth_mars"` but actual galaxy_data.gd uses `"sol_earth_mars"`. Used correct ID.
-- **Scripted intents:** Turn 1 creates a route on sol_earth_mars for the player using their starting SD-100 ship. Ensures financials/route assertions have data to validate.
-- **State exposure:** `get_observed_state()` returns `harness_state` (turn, carriers keyed by id with cash/ships/routes/slots/score, galaxy topology, last_result), `metrics` (player_cash, totals), plus empty `nodes`/`signals`.
-- **Scenarios:** `sim_initial_state` (7 assertions on default state), `sim_turn_advances` (turn counter + cash delta via assert_pipeline), `sim_financials` (route count, cash change, no game over), `sim_score_ranking` (rankings length, rank ordering, positive score).
-- **Turn cap:** `_physics_process` stops resolving after turn 30 to prevent infinite loops in test.
-- **Removed `.gitkeep`** from harnesses/, scenarios/, harness_controllers/ directories.
-
-### P4.1: ToastManager Mouse Filter Fix (2025-07-25)
-- **File:** `src/game/ui/notifications/toast_manager.tscn`
-- **Fix:** Added `mouse_filter = 2` (IGNORE) to root Control node. Full-screen anchored Controls default to STOP, blocking all clicks underneath.
-
-### P4.2: ModalDialog Base Component (2025-07-25)
-- **Files:** `src/game/ui/modal_dialog.gd`, `src/game/ui/modal_dialog.tscn`
-- **Pattern:** `class_name ModalDialog` extends Control. Full-screen anchors with mouse_filter toggling: IGNORE when closed (doesn't block input), STOP when open (captures clicks).
-- **Structure:** Overlay (ColorRect, click-to-close) + Panel (PanelContainer, anchors 0.15/0.85/0.1/0.9) + TitleBar (HBoxContainer with Label + "✕" Button) + ContentContainer (MarginContainer with ScrollContainer child).
-- **API:** `open()`, `close()`, `set_title(text)`, `get_content_container() -> MarginContainer`. Signal `closed` emitted on dismiss.
-- **Subclass pattern:** Extend ModalDialog scene, add children to the ScrollContainer inside ContentContainer for scrollable content areas.
-- **No validation scenarios** — pure UI component with no gameplay state.
-
-### P4.3: Full-Screen Star Map (2025-07-25)
-- **Files:** `src/game/main.tscn`, `src/game/main.gd`
-- **Removed:** HSplitContainer, StarMapPanel wrapper, SidePanel (DashboardPanel, ActionPanel, TurnLogPanel). Removed ext_resources for panel scenes (ids 4, 5, 6).
-- **Layout:** StarMap is now direct child of VBoxContainer with `size_flags_vertical = 3` (EXPAND_FILL). Full-screen below TopBar.
-- **main.gd cleanup:** Removed `_dashboard_panel`, `_action_panel`, `_turn_log_panel` @onready vars. Removed `_on_planet_selected()`, `_on_lane_selected()` handlers and their signal connections. Removed panel `bind()`, `refresh()`, `show_default()`, `add_turn_result()`, `clear_log()` calls.
-- **Kept:** TopBar, StarMap, ToastManager, GameOverScreen. Core turn logic, notifications, play-again flow.
-- **No validation scenarios** — pure layout change with no gameplay state impact.
-
-### P4.4: Toolbar Buttons in TopBar (2025-07-25)
-- **Files:** `src/game/ui/top_bar.gd`, `src/game/ui/top_bar.tscn`
-- **New signal:** `toolbar_button_pressed(modal_name: String)` — emitted when any toolbar button is clicked.
-- **Buttons:** 5 buttons created dynamically in `_create_toolbar_buttons()`: Dashboard, Routes, Ships, Slots, Turn Log. Each mapped to a modal name string.
-- **Active state:** `set_active_toolbar(modal_name)` — sets matching button to non-flat (pressed appearance), all others to flat. Pass empty string to deactivate all.
-- **Layout:** ToolbarContainer (HBoxContainer, unique_name_in_owner) added between Spacer and NextTurnButton in top_bar.tscn.
-- **Pattern:** Buttons created via code (not scene) to keep TOOLBAR_BUTTONS as single source of truth. `const TOOLBAR_BUTTONS` array of `[label, modal_name]` pairs.
-- **No validation scenarios** — pure UI component with no gameplay state.
-
-## Learnings
-
-### UI Bug Fix Batch (2026-05-17)
-- **mouse_filter inheritance**: Parent Control having mouse_filter=IGNORE doesn't cascade to children in Godot — each child node needs its own mouse_filter=2 set explicitly
-- **Direction selector removal**: When game design says "round-trip", direction UI is noise — use the lane's natural origin/dest directly
-- **Pending intent filtering**: Always cross-check pending_intent when computing available resources (ships, slots) to prevent double-booking within a single turn
-- **Turn log ordering**: Prepending with move_child(node, 0) is the cleanest way to show newest-first in a VBoxContainer
-- **Dedicated harness controllers**: Created a separate ui_toolbar_harness_controller.gd rather than overloading the existing ui_game_harness_controller — keeps scenarios isolated and deterministic
-
-## Learnings
-
-### Phase 5 Wave 1: Data Model Refactor (2026-05-18)
-- **Scope**: Removed fixed lane topology, added 2D planet positions with dynamic Euclidean distance calculation
-- **Key change**: `GalaxyData` no longer has `lanes` array, `_lane_index`, `_lanes_from_index`, or `get_lanes_from()`. `get_lane()` creates Lane objects on-the-fly from planet positions.
-- **`derive_lane_id()` is static**: Critical because CarrierData.Route._init() calls it, and CarrierData doesn't have a galaxy instance. Format: `"alpha::beta"` (alphabetical sort, `::` separator).
-- **Route.lane_id is derived, not passed**: Removed lane_id from Route._init() params. All callers updated (TurnPipeline, PlayerController, NpcController, tests).
-- **Demand now covers 66 pairs**: All unique planet pairs instead of 15 fixed lanes. 132 entries (66 × 2 directions).
-- **NPC controller rewritten**: No longer iterates `galaxy.lanes`. Iterates all planet pairs where carrier has slots at both ends.
-- **Event system updated**: Uses `derive_lane_id()` for random lane targeting. Planet-targeted events parse lane_id string to check planet membership.
-- **Financial calculator direction fix**: Direction relative to canonical lane_id ordering (alphabetical first = "forward"), not the dynamic Lane's origin_id.
-- **Game balance shifted**: New distances cause earlier bankruptcies in some seeds. Integration tests relaxed to accept any turn count > 0 and ≤ 30.
-- **Blast radius**: 21 files changed. UI layer (star_map, routes_modal) and debug_state_saver still reference `galaxy.lanes` — expected to break at runtime until waves 2-4.
-
-### Selection Popup Positioning Fix (2026-05-17)
-- **Bug**: Planet/ship selection popup in CreateRouteModal rendered as a collapsed bar in top-left corner. Root cause: `set_anchors_preset(PRESET_CENTER)` with `grow_*` doesn't work inside complex layout hierarchies (ModalDialog → Panel → VBox → Content → Scroll).
-- **Fix**: Add popup + semi-transparent overlay directly to `get_tree().root`, bypassing all parent layout constraints. Popup is explicitly sized (400×300) and positioned at viewport center.
-- **Cleanup**: Overlay and popup freed on close, exit_tree, and overlay click. `_selection_overlay: ColorRect` added as new member variable.
-- **Programmatic API**: Added `open_planet_selector()`, `is_selection_popup_visible()`, `get_selection_popup_item_count()` for validation harness access.
-- **Validation**: Created dedicated `ui_create_route_harness_controller.gd` + `ui_create_route_harness.tscn` to test popup without conflicting with turn-running logic in ui_game_harness_controller. New scenario `ui_create_route_popup_visible.json` asserts popup visibility and item count > 0.
-- **Pattern**: When UI controls need to escape parent layout constraints in Godot, add to `get_tree().root` — never rely on anchor presets inside nested layouts.
-
-### Dashboard Refresh Fix + Debug State Save (2026-05-17)
-- **Missing `open()` override**: DashboardModal was the only modal missing `open() -> super.open(); refresh()`. All other modals (Ships, Slots, Routes) had it. Caused stale data display after turns.
-- **DebugStateSaver pattern**: Static utility class (`DebugStateSaver`) with `save()` and private `_serialize_*` methods. Serializes full GameState to `user://debug_state.json`. Includes carriers, galaxy, player intent, events.
-- **F12 + 💾 button**: Wired via `_unhandled_input()` in main.gd for F12, plus a TopBar `debug_save_pressed` signal for the button. Both call the same `_save_debug_state()` method.
-- **Project name for user:// path**: `project.godot` has `config/name="My Prototype"`, so OS path is `%APPDATA%/Godot/app_userdata/My Prototype/debug_state.json`.
-
-### Economy Balance Fix (2026-05-17)
-- **Monopoly exploit**: When only one carrier serves a lane, price_factor cancels out in proportional split (weight/total_weight = 1.0 always). Fix: add absolute demand cap `demand_at_price = int(effective_demand * price_factor)` so high prices reduce willingness to fly regardless of competition.
-- **Price factor floor**: Lowered from 0.2 to 0.05 — at 2x+ suggested price, only 5% of demand remains. Old floor of 20% was still very profitable at extreme prices.
-- **UI suggested prices**: Routes modal now shows suggested prices, defaults SpinBox to rounded suggested, caps max at 10x suggested. Prevents degenerate strategies while allowing experimentation.
-- **Toast offset**: `offset_top = 60` clears the ~40-50px toolbar. Simple .tscn property change.
-
-### ScoreCalculator Price-Adjusted Fill Rate (2026-05-17)
-- **Bug**: _estimate_route_revenue() used flat ESTIMATED_FILL_RATE = 0.5 regardless of pricing. A route at 10x suggested price got the same fill rate estimate as a fairly-priced route, inflating route_value ~10x.
-- **Fix**: When galaxy data is available, calculate suggested prices via DemandCalculator.calculate_suggested_price() and use DemandCalculator.calculate_price_factor() as the fill rate. Falls back to 0.5 when galaxy is null for backward compatibility.
-- **Signature change**: calculate_score, determine_winner, get_rankings all got optional galaxy: GalaxyData = null parameter. All 12 call sites updated to pass galaxy.
-- **Game over UI**: Renamed column headers from "Ships/Slots/Routes" to "Ship Value/Slot Value/Route Value" for clarity.
-- **Tests added**: 	est_route_value_uses_price_factor (overpriced < fair) and 	est_route_value_no_galaxy_fallback (null galaxy uses 0.5).
-
-### Dynamic Lanes UI Migration (2026-05-17)
-- **Context**: Phase 5 route architecture removed `galaxy.lanes` array. GalaxyData now computes lanes dynamically via `get_lane(origin_id, dest_id)` using Euclidean distance between planet positions.
-- **routes_modal.gd**: Replaced single lane OptionButton with two planet pickers (origin + dest). Uses `galaxy.get_lane()` for distance/pricing. Fixed `add_route_create()` call — removed `lane_id` param to match new 5-arg signature.
-- **star_map.gd**: Removed all lane line infrastructure (`_lane_lines`, `_LaneLine`, `_on_lane_clicked`, `_unhandled_input` lane detection, `_point_to_segment_distance`). Replaced hardcoded `PLANET_POSITIONS` dict with dynamic positions derived from `planet.position * MAP_SCALE + MAP_OFFSET`. Route overlays use `GalaxyData.derive_lane_id()` for offset grouping.
-- **debug_state_saver.gd**: Removed lanes iteration from `_serialize_galaxy()`. Added planet position to serialized output.
-- **Validation**: Updated 3 scenarios (`sim_initial_state`, `star_map_initial_state`, `star_map_slot_indicators`) and `star_map_harness_controller.gd` to remove lane count assertions.
-- **Pre-existing failures**: `session_completes_30_turns` and `ui_full_game_completes` fail due to game ending before turn 30 — unrelated to this change.
-- **Tools**: Updated `run_scenario.ps1` and `run_all_scenarios.ps1` default Screen from -1 to 1 (local gitignored copies).
-
-### NPC Cash Reserve Fix (2026-05-17)
-- **Root cause:** Phase 5 lane removal changed inter-planet distances. NPC_2 (slot_aggression=0.8) went bankrupt at turn 11, killing the game early.
-- **Fix:** Added `_estimate_cash_reserve()` to `npc_controller.gd`. Reserve = max(8 turns of operating costs, §1200 floor). Guards slot bids, ship orders, and route creation against reserve.
-- **Key insight:** Static buffer multiplier alone wasn't enough — NPCs overextend in early turns when they have few obligations. A minimum cash floor (§1200) prevents early overexpansion regardless of current costs.
-- **Also fixed:** Stale `uid://` references in 3 modal `.tscn` files (dashboard_modal, turn_log_modal, slots_modal). Removed invalid UIDs, keeping text path resolution.
-- **Result:** All 24 scenarios pass. All 239 GUT tests pass. Game reaches turn 30 with all carriers solvent.
-
-### Star Map Auto-Fit + Routes Modal Sub-Dialog Redesign (2026-05-18)
-- **Star map auto-fit**: Replaced fixed `MAP_SCALE=80.0` and `MAP_OFFSET=Vector2(120,200)` with dynamic bounding-box calculation. Computes min/max of all planet positions in light-year space, scales to fit within viewport with 60px padding, centers content. Falls back to 1200×700 if Control size is zero at build time.
-- **Routes modal redesign**: Replaced OptionButton dropdowns with multi-step form matching wireframes. Origin/Dest/Ship rows each have a display label and [Select] button that opens a reusable sub-dialog popup.
-- **Planet sub-dialog**: Groups planets into "Has Slots" (selectable, sorted alphabetically) and "No Slots" (grayed out, non-selectable). Closes on selection.
-- **Ship sub-dialog**: Groups idle ships into "In Range" (selectable, shows capacity and ✓ if already selected) and "Out of Range" (grayed out). Excludes ships committed to pending creates. Stays open for multi-select (toggle behavior).
-- **Generic `_show_selection_popup()`**: Reusable popup builder accepting title, two grouped item arrays, callback, and optional close-on-select flag. Used by both planet and ship selectors.
-- **Form additions**: Flights per Month SpinBox (1-4), Cancel/Create button row, form reset on create or cancel.
-- **Validation**: All 24 scenarios pass unchanged, including `ui_player_creates_route` (which tests via harness controller, not UI interaction).
-
-### Route Creation UI Overhaul (2026-05-17)
-- **Files changed:** `routes_modal.gd`, new `create_route_modal.gd` + `.tscn`, `main.gd`, `main.tscn`, `ui_game_harness_controller.gd`
-- **Pattern:** Extracted create-route form from routes_modal into its own ModalDialog subclass (CreateRouteModal). Routes modal now only shows active routes, pending actions, and a "Create Route" button.
-- **Wiring:** CreateRouteModal is NOT in the `_modals` toolbar dictionary. It's opened programmatically from `_on_create_route_requested()`. When closed, it returns to routes modal via `_on_create_route_modal_closed()`.
-- **Toolbar edge case:** If user clicks toolbar while CreateRouteModal is open, we disconnect/reconnect the `closed` signal to avoid reopening routes modal.
-- **Programmatic API:** Added `set_origin()`, `set_destination()`, `select_ships()`, `confirm_create()` methods on CreateRouteModal for validation harness use.
-- **Harness controller:** Added create-route-modal test steps at odd frame numbers (205, 213, 225, 235, 245) to avoid conflict with auto-turn logic that fires at multiples of 20 from 180.
-- **Validation:** 2 new scenarios — `ui_routes_modal_shows_create_button`, `ui_create_route_flow`. All 26 scenarios pass.
-- **GDScript typing:** Inside match blocks, must use explicit type annotations (`var x: Type`) instead of type inference (`var x :=`).
-### Debug State Saver Fix + Console Logging (2026-07-25)
-- **File:** `src/game/utils/debug_state_saver.gd`
-- **Bug:** `_serialize_events` typed loop variable as `Dictionary` but `game_state.events` contains `EventSystem.GameEvent` objects. Fixed type annotation to match actual data.
-- **Feature:** Added `_serialize_console_log()` — reads last 200 lines from `user://logs/godot.log`, filters for ERROR/WARNING/SCRIPT ERROR, caps at 100 entries. Output goes into `console_errors` key in debug state JSON.
-- **All scenarios pass, GUT tests pass, Godot launches clean.**
-
-### Economy Balance Overhaul (2026-07-25)
-- **5 fixes implemented** from Lead's economy balance proposal (approved by Brady):
-  1. **Operating cost × frequency** — `financial_calculator.gd` line 73. Each trip costs fuel. Freq 4 now costs 4× freq 1.
-  2. **Speed-based max frequency** — `route_validator.gd` `calculate_max_frequency()`. New signature adds carrier, catalog, lane_distance with backward-compat fallback. `speed = efficiency × 5.0`, `trips = max(1, int(speed / distance))`.
-  3. **Price factor floor 0.0** — `demand_calculator.gd`. At 2× suggested price, demand = 0. Kills "max price" exploit.
-  4. **Dynamic frequency SpinBox** — `create_route_modal.gd`. SpinBox max updates when ships are selected. Shows "/ N" max label. Disabled when no ships.
-  5. **NPC frequency** — `npc_controller.gd`. NPCs use `max(1, int(max_freq × route_preference))` instead of hardcoded 1.
-- **Tests updated**: 3 test files (financial_calculator, demand_calculator, route_validator). Old assertions corrected for new formulas. New tests: cost scales linearly, price factor hits 0.0, max freq varies by ship type.
-- **DESIGN.md updated**: Price factor floor and frequency formula.
-- **3 validation scenarios added**: `economy_cost_scales_with_frequency`, `economy_demand_zero_at_extreme_price`, `economy_frequency_speed_limited`.
-- **Ship capacity splits matter in tests**: `_add_ship()` with non-default types must provide correct pax+cargo matching `max_capacity` or `create_ship_instance` errors.
-- **All 242+ unit tests pass, all 31 scenarios pass.**
+## Recent Sessions
 
 ### Session Completion: Economy Balance & Debug Stability (2026-05-17T185810Z)
 
@@ -318,3 +18,105 @@ Dependency graph provided in plan. Can parallelize: P1.1–3, P1.5–6, P1.10–
 **Decision Records:** D009–D015 in `.squad/decisions.md`
 
 **Status:** Code pushed to origin. Ready for playtesting.
+
+---
+
+## Core Context
+
+### Phase 1 Implementation Summary
+
+Phase 1 delivered the headless simulation core (12 work items, P1.1–P1.12). All items complete with validation scenarios passing.
+
+**Key components built:**
+- **P1.1–P1.3:** Galaxy Data, Ship Catalog, Carrier Data (resources with inner classes)
+- **P1.4:** GameState autoload with carrier indexing and type unification (removed ShipRef)
+- **P1.5–P1.6:** Route Logic validation and Slot Auction resolver
+- **P1.7–P1.8:** Demand Calculator (directional, price-factor-based) and Financial Calculator (with operating costs)
+- **P1.9:** Turn Pipeline (deterministic, 8-stage)
+- **P1.10–P1.11:** Score Calculator and Event System (demand modifiers)
+- **P1.12:** Simulation harness and validation scenarios
+
+**Architectural decisions (D001–D008):**
+- GameState as single source of truth (all simulation state, no scene tree dependency)
+- Symmetric carrier identity (Player and NPCs are identical data structures)
+- Lane/Route ownership distinction (Lane = shared topology, Route = carrier's service)
+- Deterministic simultaneous turns (fixed ordering, atomic results)
+- Directional competitive demand (split by capacity × price_factor)
+- Inner classes for data structures (kept in single files for cohesion)
+- Ship instance ID format (type_id-counter for human readability)
+- ShipRef removed in P1.4 (unified to ShipInstance)
+
+**Testing:** 200+ GUT unit tests, 24+ validation scenarios, all passing.
+
+**Key file paths:**
+- `src/game/state/` — Galaxy, Ship Catalog, Carrier Data, GameState
+- `src/game/simulation/` — Route logic, Auctions, Demand, Financial, Turn Pipeline, Scoring, Events
+- `src/validation/harnesses/` — simulation_harness.tscn + harness_controller
+
+### Implementation Details & Learnings
+
+#### P1.1–P1.3: Foundational Resources (2026-05-17)
+
+**Galaxy Data:** Inner classes for Planet and Lane, O(1) indexed lookups. 12 planets, 15 lanes. Default factory builds 4 solar systems (Sol, Alpha Centauri, Wolf 359, Tau Ceti). Lane distances: intra-system 1.0–2.5, inter-system 7.0–14.0.
+
+**Ship Catalog:** 7 ship types (Sol Dynamics + Frontier Works). Inner classes for ShipType and ShipInstance. ID format: `type_id-counter` (e.g., `sd-100-0001`). Instance factory validates capacity split (passenger + cargo == max_capacity).
+
+**Carrier Data:** Inner classes for Route and (removed) ShipRef. Factory creates 4 carriers with 3000 cash, 2 slots each, 1 starting ship (SD-100 with 20/20 capacity split). Routes indexed by lane_id; slots indexed by planet_id.
+
+#### P1.5–P1.6: Route & Auction Logic (2026-05-17)
+
+**Route Validator:** Static utility class. Frequency model: each ship = 1 round-trip/turn (simplified from speed-based). Validation: slots → lane → per-ship checks → clamp frequency. Modification excludes the route being modified from ship availability checks.
+
+**Auction Resolver:** Static utility class. Resolution: sort bids descending by price_per_slot, tie-break by carrier_order (D004). Full bid or nothing (no partial funding). Slot sales instant with validation (can't orphan routes).
+
+#### P1.7–P1.8: Demand & Financial (2026-05-17)
+
+**Demand Calculator:** Directional lanes (planet_a→planet_b ≠ planet_b→planet_a). Demand = base_demand × price_factor. Price factor: `clamp(1.0 - (price - suggested) / suggested, 0.2, 1.5)` (later changed to 0.0 floor in economy balance). Competition splits proportional to capacity × price_factor. Separate passenger and cargo demand.
+
+**Financial Calculator:** Counts revenue (demand × price × frequency) and operating costs (distance / efficiency per ship, later × frequency). NPC reserve estimation added to prevent overexpansion.
+
+#### P1.9: Turn Pipeline (2026-05-17)
+
+**Deterministic simultaneous turns:** 8-stage pipeline:
+1. Collect intents from all carriers
+2. Resolve auctions
+3. Validate & apply routes
+4. Validate & apply ships
+5. Calculate demand
+6. Calculate financials
+7. Generate events
+8. Report results + check game_over
+
+All processed in carrier_order (index-based tie-breaking, D004).
+
+#### P1.10–P1.11: Scoring & Events (2026-05-17)
+
+**Score Calculator:** Weighted formula: `route_count × 10 + ship_count × 5 + cash × 0.01 + completed_turns × 5`. Routes weighted highest (strategic importance). Cash scaled down to avoid dominance.
+
+**Event System:** GameEvent class with target_lane_id, target_planet_id, modifier (1.0–1.5), duration. Events expire after N turns. Demand modifiers applied in demand calculation. Stub replaced with probability-based generation in Phase 2.
+
+#### P1.12: Simulation Harness (2026-05-17)
+
+**Harness:** Wraps GameState in Node for _physics_process frame-stepping. Exposes harness_state with carriers, galaxy, demand, signals. Scenarios assert on numerical state (cash, routes, ships, scores). 24+ scenarios covering normal flow, edge cases, and regressions.
+
+**Validation patterns:** `assert_value` for scalar checks, `assert_pipeline` for multi-step sequences, `nodes` for tree structure validation.
+
+### Later Enhancements
+
+#### Dynamic Lanes & UI Improvements (2026-05-18)
+
+**Dynamic Lane Topology:** Lanes no longer pre-defined. `get_lane()` creates lanes dynamically using Euclidean distance. `derive_lane_id()` generates canonical IDs. Impact: DemandData expanded to 132 entries (66 pairs × 2 directions). **Decision D013.**
+
+**Dedicated Harness Controllers:** Separated `ui_toolbar_harness_controller.gd` from `ui_game_harness_controller.gd` for independent modal testing. **Decision D014.**
+
+**NPC Cash Reserve:** Dynamic reserve = `max(8 turns × ongoing costs, §1200 floor)`. Prevents early overexpansion. **Decision D011.**
+
+#### Type & Price Decisions (2026-05-17)
+
+**Type Unification (D010):** Removed ShipRef inner class. Ships now stored as ShipCatalog.ShipInstance directly. `create_default_carriers()` now accepts ShipCatalog parameter.
+
+**Price Factor Dual Role (D012):** Price factor now caps absolute demand (in addition to competitive weight). Floor lowered from 0.2 to 0.05.
+
+**Simplified Frequency (D015):** Each ship = 1 trip/turn. Later revised to speed-based in economy balance (D009).
+
+---
