@@ -31,6 +31,7 @@ This is a Godot game prototype using the [agentic-godot-validation](https://gith
 
 A feature is not done until a human can play-test it for game feel — not for whether it works. "It works" is the agent's job to prove before any human touches the game. Specifically:
 
+0. **Godot launches without script errors.** GDScript is not compiled, so the smoke test is: `godot --headless --path src --quit` exits cleanly with no errors in the console. Run this after every code change that touches `.gd` files. Common failure mode: circular `class_name` dependencies between scripts (use `load()` to defer cross-references when needed).
 1. **Validation scenarios exist** for the change — covering the intended behavior, not just the happy path.
 2. **New scenarios pass.** Writing a scenario is not enough. Run it and confirm green.
 3. **All existing scenarios still pass.** Run the full suite (`run_all_scenarios.ps1`) and confirm no regressions. If something broke, fix it before calling the work done.
@@ -44,3 +45,11 @@ If any of these are missing, the feature is not done. A human should never encou
 - Prefer `nodes`, `metrics`, and `signals` under `harness_state`
 - Prefer `assert_value` and `assert_pipeline` over custom scenario operations
 - Keep harnesses deterministic and minimal
+
+## GDScript Conventions
+
+- **Avoid circular `class_name` dependencies.** If script A uses class B as a type annotation and script B uses class A, Godot will fail to parse at startup. Break cycles by removing the type annotation on one side and using `load("res://path/to/script.gd")` for runtime access instead of the global class name.
+- **Prefer inner classes for tightly-coupled data types** (e.g., `CarrierData.Route`, `TurnPipeline.CarrierIntent`). Access from other scripts via the parent class name.
+- **Static utility classes** extend `RefCounted` with all `static func` methods and no instance state.
+- **Use typed arrays** (`Array[String]`, `Array[CarrierData]`) for collections where the element type is known.
+- **Use `carrier_name` instead of `name`** on CarrierData to avoid shadowing `Object.name`.

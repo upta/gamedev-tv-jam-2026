@@ -45,8 +45,11 @@ func _build_carrier_index() -> void:
 		_carrier_index[carrier.id] = carrier
 
 
-func advance_turn(intents: Array) -> TurnPipeline.TurnResult:
-	var result := TurnPipeline.resolve_turn(self, intents)
+## Resolves one turn and advances the counter.
+## Returns the TurnResult (untyped to avoid circular dependency with TurnPipeline).
+func advance_turn(intents: Array):
+	var pipeline_script = load("res://game/simulation/turn_pipeline.gd")
+	var result = pipeline_script.resolve_turn(self, intents)
 	current_turn += 1
 	turn_resolved.emit(result.turn_number)
 	if result.game_over:
