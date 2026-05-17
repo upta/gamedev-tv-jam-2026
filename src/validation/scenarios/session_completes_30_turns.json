@@ -1,0 +1,55 @@
+{
+  "scenario_id": "session_completes_30_turns",
+  "version": 3,
+  "description": "Full game session runs 30 turns to completion with a winner declared",
+  "harness_scene": "res://validation/harnesses/game_session_harness.tscn",
+  "done_contract": {},
+  "artifact_contract": {
+    "required_files": ["summary.json", "event_log.json", "scene_tree.json", "console.log"],
+    "missing_file_is_failure": true
+  },
+  "exit_codes": {
+    "pass": 0,
+    "assertion_failure": 1,
+    "runtime_error": 2,
+    "timeout": 3,
+    "artifact_generation_error": 4
+  },
+  "cli_contract": {
+    "command_template": "godot --path <project> -- --test-mode --scenario <path> --artifacts <dir>"
+  },
+  "steps": [
+    { "op": "load_harness" },
+    { "op": "wait_frames", "frames": 31 },
+    { "op": "checkpoint", "name": "final" },
+    {
+      "op": "assert_value",
+      "checkpoint": "final",
+      "path": "harness_state.harness_state.session_status",
+      "comparator": "eq",
+      "expected": "completed"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "final",
+      "path": "harness_state.harness_state.turns_completed",
+      "comparator": "eq",
+      "expected": 30
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "final",
+      "path": "harness_state.harness_state.winner.carrier_id",
+      "comparator": "neq",
+      "expected": ""
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "final",
+      "path": "harness_state.harness_state.winner.score",
+      "comparator": "gt",
+      "expected": 0
+    },
+    { "op": "quit" }
+  ]
+}

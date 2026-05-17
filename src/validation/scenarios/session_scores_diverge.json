@@ -1,0 +1,50 @@
+{
+  "scenario_id": "session_scores_diverge",
+  "version": 3,
+  "description": "Final carrier scores are not all identical - game produces differentiated outcomes",
+  "harness_scene": "res://validation/harnesses/game_session_harness.tscn",
+  "done_contract": {},
+  "artifact_contract": {
+    "required_files": ["summary.json", "event_log.json", "scene_tree.json", "console.log"],
+    "missing_file_is_failure": true
+  },
+  "exit_codes": {
+    "pass": 0,
+    "assertion_failure": 1,
+    "runtime_error": 2,
+    "timeout": 3,
+    "artifact_generation_error": 4
+  },
+  "cli_contract": {
+    "command_template": "godot --path <project> -- --test-mode --scenario <path> --artifacts <dir>"
+  },
+  "steps": [
+    { "op": "load_harness" },
+    { "op": "wait_frames", "frames": 31 },
+    { "op": "checkpoint", "name": "final" },
+    {
+      "op": "assert_value",
+      "checkpoint": "final",
+      "path": "harness_state.harness_state.session_status",
+      "comparator": "eq",
+      "expected": "completed"
+    },
+    {
+      "op": "assert_pipeline",
+      "sources": {
+        "score_1": { "kind": "checkpoint", "checkpoint": "final", "path": "harness_state.harness_state.carriers.npc_1.score" },
+        "score_2": { "kind": "checkpoint", "checkpoint": "final", "path": "harness_state.harness_state.carriers.npc_2.score" },
+        "score_3": { "kind": "checkpoint", "checkpoint": "final", "path": "harness_state.harness_state.carriers.npc_3.score" }
+      },
+      "pipeline": [
+        { "op": "subtract", "inputs": ["score_1", "score_2"], "as": "diff_1_2" }
+      ],
+      "assert": {
+        "actual": "diff_1_2",
+        "comparator": "neq",
+        "expected": 0
+      }
+    },
+    { "op": "quit" }
+  ]
+}
