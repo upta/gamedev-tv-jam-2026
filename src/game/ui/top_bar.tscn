@@ -50,6 +50,10 @@ text = "Events: 0"
 layout_mode = 2
 size_flags_horizontal = 3
 
+[node name="ToolbarContainer" type="HBoxContainer" parent="HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+
 [node name="NextTurnButton" type="Button" parent="HBoxContainer"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(120, 0)

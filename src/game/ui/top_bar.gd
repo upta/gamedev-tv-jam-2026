@@ -2,6 +2,15 @@ class_name TopBar
 extends PanelContainer
 
 signal next_turn_pressed()
+signal toolbar_button_pressed(modal_name: String)
+
+const TOOLBAR_BUTTONS: Array[Array] = [
+	["📊 Dashboard", "dashboard"],
+	["🚀 Routes", "routes"],
+	["🛸 Ships", "ships"],
+	["🏷️ Slots", "slots"],
+	["📜 Turn Log", "turn_log"],
+]
 
 @onready var _turn_label: Label = %TurnLabel
 @onready var _cash_label: Label = %CashLabel
@@ -9,13 +18,28 @@ signal next_turn_pressed()
 @onready var _rank_label: Label = %RankLabel
 @onready var _events_label: Label = %EventsLabel
 @onready var _next_turn_button: Button = %NextTurnButton
+@onready var _toolbar_container: HBoxContainer = %ToolbarContainer
 
 var _game_state: GameState
 var _carrier_id: String
+var _toolbar_buttons: Dictionary = {}
 
 
 func _ready() -> void:
 	_next_turn_button.pressed.connect(_on_next_turn_pressed)
+	_create_toolbar_buttons()
+
+
+func _create_toolbar_buttons() -> void:
+	for entry: Array in TOOLBAR_BUTTONS:
+		var label: String = entry[0]
+		var modal_name: String = entry[1]
+		var button := Button.new()
+		button.text = label
+		button.flat = true
+		button.pressed.connect(_on_toolbar_button_pressed.bind(modal_name))
+		_toolbar_container.add_child(button)
+		_toolbar_buttons[modal_name] = button
 
 
 func bind(game_state: GameState, carrier_id: String) -> void:
@@ -61,8 +85,18 @@ func set_game_over() -> void:
 	_next_turn_button.text = "Game Over"
 
 
+func set_active_toolbar(modal_name: String) -> void:
+	for name: String in _toolbar_buttons:
+		var button: Button = _toolbar_buttons[name]
+		button.flat = (name != modal_name)
+
+
 func _on_next_turn_pressed() -> void:
 	next_turn_pressed.emit()
+
+
+func _on_toolbar_button_pressed(modal_name: String) -> void:
+	toolbar_button_pressed.emit(modal_name)
 
 
 func _format_cash(amount: float) -> String:
