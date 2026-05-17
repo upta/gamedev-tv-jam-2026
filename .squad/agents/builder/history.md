@@ -301,3 +301,20 @@ Dependency graph provided in plan. Can parallelize: P1.1–3, P1.5–6, P1.10–
 - **3 validation scenarios added**: `economy_cost_scales_with_frequency`, `economy_demand_zero_at_extreme_price`, `economy_frequency_speed_limited`.
 - **Ship capacity splits matter in tests**: `_add_ship()` with non-default types must provide correct pax+cargo matching `max_capacity` or `create_ship_instance` errors.
 - **All 242+ unit tests pass, all 31 scenarios pass.**
+
+### Session Completion: Economy Balance & Debug Stability (2026-05-17T185810Z)
+
+**By:** Builder (background agents: builder-debug-fix, builder-economy-balance)
+
+**Deliverables:**
+1. **Debug State Saver Fix:** Fixed GameEvent type annotation in `_serialize_events()`. Added console error logging to debug state JSON export.
+2. **Economy Balance (5 fixes):** Operating cost × frequency, speed-based max frequency, price floor 0.0, dynamic frequency SpinBox, NPC frequency tuning. All 5 implemented, tested, deployed.
+
+**Testing Complete:**
+- 242+ GUT unit tests (financial_calculator, demand_calculator, route_validator, and related)
+- 31+ validation scenarios covering economy, pricing, frequency, NPC behavior
+- Zero regressions — all existing scenarios pass
+
+**Decision Records:** D009–D015 in `.squad/decisions.md`
+
+**Status:** Code pushed to origin. Ready for playtesting.

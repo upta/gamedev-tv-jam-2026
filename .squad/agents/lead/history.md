@@ -125,4 +125,27 @@
 - `src/game/simulation/demand_calculator.gd` — price factor clamp (line 18)
 - `src/game/ui/modals/create_route_modal.gd` — frequency SpinBox (line 168)
 - `src/game/controllers/npc_controller.gd` — NPC frequency hardcode (line 170)
-- `.squad/decisions/inbox/lead-economy-balance.md` — full analysis
+- `.squad/decisions.md` — D009 (merged from lead-economy-balance.md)
+
+### Economy Balance Implementation Complete (2026-05-17)
+
+**By:** builder-economy-balance agent (background, claude-opus-4.6)
+
+All 5 fixes implemented and deployed:
+1. Cost × Frequency — operating cost now scales linearly with frequency
+2. Speed-based max frequency — `ship_speed = efficiency × 5.0`, trips capped by distance
+3. Price floor 0.0 — demand drops to zero at 2× suggested price
+4. Dynamic frequency SpinBox — max updates when ships selected, displays "/ N" label
+5. NPC frequency tuning — NPCs use `max(1, int(max_freq × route_preference))`
+
+**Validation:**
+- 242+ GUT unit tests pass (financial_calculator, demand_calculator, route_validator)
+- 31+ validation scenarios pass (economy_*, price_*, frequency_*, npc_* scenarios)
+- All existing scenarios remain green (no regressions)
+- Code pushed to origin
+
+**Outcome:** Game economy now balanced. Decision space opened: frequency vs. cost tradeoff, ship selection matters, pricing creates strategy, route selection tension between short (cheap, low revenue) and long (expensive, high revenue) lanes.
+
+**Brady approval:** ✓ Proposal approved. Implementation delivered exactly as specified.
+
+**Decision record:** D009 in `.squad/decisions.md`

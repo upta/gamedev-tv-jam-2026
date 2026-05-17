@@ -78,10 +78,118 @@
 
 ---
 
+---
+
+## D009: Economy Balance — Five-Fix Proposal (Approved)
+
+**Decision:** Implemented 5 strategic fixes to collapse the dominant "max price, max frequency, wait" strategy:
+
+1. **Operating cost scales with frequency** — `total_cost = (distance / efficiency) × frequency` per ship, not flat
+2. **Speed-based frequency constraint** — `max_frequency = sum(trips_per_ship)` where `trips_per_ship = floor(efficiency × 5.0 / lane_distance)`, min 1 if in range
+3. **Price factor floor 0.0** — at 2× suggested price, demand drops to 0 (was 0.05 floor)
+4. **Dynamic frequency SpinBox** — max value updates when ships are selected, shows "/ N" label
+5. **NPC frequency tuning** — NPCs use `max(1, int(max_freq × route_preference))` instead of hardcoded 1
+
+**Rationale:** These fixes create real decision space: frequency vs. cost tradeoff, ship selection impact, pricing as a real lever, and tension between short (cheap, low revenue) vs. long (expensive, high revenue) lanes.
+
+**Impact:** Game economy now balanced and meaningful. 242+ GUT tests pass. 31+ validation scenarios confirm behavior.
+
+---
+
+## D010: Type Unification — ShipRef Removed
+
+**Decision:** Removed `ShipRef` inner class from `CarrierData`. Ships now stored as `ShipCatalog.ShipInstance` directly. The `create_default_carriers()` factory now accepts a `ShipCatalog` parameter.
+
+**Rationale:** Eliminates parallel type hierarchy. Starting ships reference real catalog type `sd-100` instead of nonexistent `"basic"`. Capacity split (20 passenger / 20 cargo = 40 max) validated by catalog.
+
+**Impact:** `CarrierData.create_default_carriers()` signature changed — requires `ShipCatalog` argument.
+
+---
+
+## D011: NPC Cash Reserve Constants
+
+**Decision:** NPCs maintain dynamic cash reserve = `max(8 turns × ongoing costs, §1200 floor)`. All spending (slots, ships, routes) gated against this reserve.
+
+**Rationale:** After phase topology changes, aggressive NPCs went bankrupt. Buffer multiplier alone insufficient — NPCs overextend in early turns with few obligations. §1200 floor prevents early overexpansion.
+
+**Constants:**
+- `RESERVE_BUFFER_TURNS = 8`
+- `MIN_CASH_RESERVE = 1200.0` (40% of starting §3000)
+
+**Impact:** All NPCs remain solvent to turn 30. Fewer routes/ships but no bankruptcies.
+
+---
+
+## D012: Price Factor as Dual-Role Modifier
+
+**Decision:** Price factor now serves two roles:
+1. **Competitive weight** — influences market share split (existing)
+2. **Absolute demand cap** — `demand_at_price = effective_demand × price_factor` limits passengers willing to fly
+
+Price factor floor lowered from 0.2 to 0.05. At 2x+ suggested price, only 5% of demand will fly.
+
+**Rationale:** Monopolists can no longer charge extreme prices and fill ships. Pricing creates real strategy.
+
+**Impact:** All existing tests updated, 3 new tests added. All 24 validation scenarios pass.
+
+---
+
+## D013: Dynamic Lane Topology
+
+**Decision:** Lanes no longer pre-defined in `GalaxyData`. Any planet can connect to any other. `get_lane()` creates Lane objects dynamically using Euclidean distance from 2D planet positions. `derive_lane_id()` generates canonical IDs in `"alpha::beta"` format.
+
+**Impact:**
+- **DemandData** now has 132 entries (66 unique pairs × 2 directions) instead of 30
+- **Route.lane_id** derived from origin/dest — never passed as parameter
+- **NpcController** iterates all slot-planet pairs instead of `galaxy.lanes`
+- **EventSystem** targets random planet pairs instead of random lanes
+- Game balance shifted — some seeds produce earlier bankruptcies
+
+**Rationale:** Enables free-form galaxy topology. Foundation for Phase 5 star map rework.
+
+---
+
+## D014: Dedicated Harness Controllers per UI Concern
+
+**Decision:** Created separate `ui_toolbar_harness_controller.gd` for modal open/close testing, rather than adding to shared `ui_game_harness_controller.gd`.
+
+**Rationale:** Keeps existing scenarios deterministic. Each harness controller has single responsibility. New toolbar scenarios evolve independently without affecting game-flow scenarios.
+
+**Impact:** New files: `ui_toolbar_harness_controller.gd`, `ui_toolbar_harness.tscn`, `ui_toolbar_clickable.json`.
+
+---
+
+## D015: Simplified Frequency Model (Phase 1)
+
+**Decision:** Each ship assigned to route contributes exactly 1 round-trip per turn, regardless of lane distance or ship efficiency. `max_frequency = number of assigned ships`.
+
+**Rationale:** For prototype, interesting decision is *how many ships to assign*, not micro-optimizing frequency via ship speed. Mental model simple: more ships = more trips = more capacity. Ship efficiency already repurposed for operating cost calculations (P1.8).
+
+**Impact:** `calculate_max_frequency()` is trivially `ship_ids.size()`. If speed-based frequency needed later, only one function changes.
+
+**Note:** Later revised to D009 (speed-based frequency constraint) for better gameplay balance.
+
+---
+
+## User Directives
+
+### 2026-05-17T03-30-23Z: Testing Responsibility
+**By:** Brady (via Copilot)
+
+The team runs all tests — humans never run tests for QA. The dev team (agents) is responsible for running GUT unit tests and validation scenarios, confirming they pass, and fixing failures before presenting work as done.
+
+### 2026-05-17T01:01Z: Debug State Save
+**By:** Brady (via Copilot)
+
+Add a button/shortcut to save the current game state to a well-known file location so agents can look it up during debugging. Define the file path in instructions so all agents know where to find it.
+
+---
+
 ## Work Order & Phases
 
-**Phase 1:** Headless simulation core (12 work items, P1.1–P1.12)  
-**Phase 2:** Full 30-turn game loop + NPC AI  
-**Phase 3:** UI shell  
+**Phase 1:** Headless simulation core (12 work items, P1.1–P1.12) — **COMPLETE**
+**Phase 2:** Full 30-turn game loop + NPC AI — In progress  
+**Phase 3:** UI shell — Proposed  
+**Phase 4:** Full-screen star map + modal dialogs — Proposed
 
-See lead-implementation-plan.md for full specification.
+See lead-implementation-plan.md (Phase 1), lead-phase2-plan.md (Phase 2), and lead-ui-overhaul-plan.md (Phase 4) for full specifications.
