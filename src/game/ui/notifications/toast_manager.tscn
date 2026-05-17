@@ -20,3 +20,4 @@ anchor_bottom = 0.5
 offset_left = -10.0
 offset_top = 10.0
 offset_right = -10.0
+mouse_filter = 2

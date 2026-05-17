@@ -69,6 +69,7 @@ func _build_harness_state() -> Dictionary:
 		"game_over_visible": _is_game_over_visible(),
 		"top_bar_turn_text": _get_top_bar_turn_text(),
 		"pending_actions": _get_pending_action_count(),
+		"active_modal": _get_active_modal(),
 	}
 
 
@@ -151,3 +152,9 @@ func _get_player_carrier() -> CarrierData:
 	if game_scene == null or game_scene.get("_session") == null:
 		return null
 	return game_scene._session.game_state.get_carrier(game_scene._carrier_id)
+
+
+func _get_active_modal() -> String:
+	if game_scene == null:
+		return ""
+	return game_scene._active_modal

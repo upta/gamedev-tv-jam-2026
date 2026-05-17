@@ -16,21 +16,26 @@ func _ready() -> void:
 
 
 func add_turn_result(turn_number: int, result: TurnPipeline.TurnResult, carrier_id: String) -> void:
-	if _log_entries.get_child_count() > 0:
-		var sep := HSeparator.new()
-		_log_entries.add_child(sep)
-
 	var rtl := RichTextLabel.new()
 	rtl.bbcode_enabled = true
 	rtl.fit_content = true
 	rtl.scroll_active = false
 	rtl.selection_enabled = false
 	rtl.text = _build_turn_bbcode(turn_number, result, carrier_id)
-	_log_entries.add_child(rtl)
 
-	# Auto-scroll to bottom on next frame so layout has updated
+	# Prepend — newest turn at top
+	_log_entries.add_child(rtl)
+	_log_entries.move_child(rtl, 0)
+
+	# Add separator after new entry (if there are older entries below)
+	if _log_entries.get_child_count() > 1:
+		var sep := HSeparator.new()
+		_log_entries.add_child(sep)
+		_log_entries.move_child(sep, 1)
+
+	# Scroll to top to show newest
 	await get_tree().process_frame
-	_scroll_container.scroll_vertical = int(_scroll_container.get_v_scroll_bar().max_value)
+	_scroll_container.scroll_vertical = 0
 
 
 func clear_log() -> void:

@@ -9,7 +9,6 @@ var _content: VBoxContainer
 
 # Create-route form state
 var _lane_option: OptionButton
-var _direction_option: OptionButton
 var _info_label: Label
 var _ship_checks: Array = []
 var _pax_spin: SpinBox
@@ -238,20 +237,6 @@ func _on_lane_selected(index: int) -> void:
 	var name_a: String = planet_a.name if planet_a else lane.origin_id
 	var name_b: String = planet_b.name if planet_b else lane.dest_id
 
-	# Direction selector
-	var dir_row := HBoxContainer.new()
-	var dir_label := Label.new()
-	dir_label.text = "Direction:"
-	dir_row.add_child(dir_label)
-	_direction_option = OptionButton.new()
-	_direction_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_direction_option.add_item("%s → %s" % [name_a, name_b])
-	_direction_option.set_item_metadata(0, {"origin": lane.origin_id, "dest": lane.dest_id})
-	_direction_option.add_item("%s → %s" % [name_b, name_a])
-	_direction_option.set_item_metadata(1, {"origin": lane.dest_id, "dest": lane.origin_id})
-	dir_row.add_child(_direction_option)
-	_create_section.add_child(dir_row)
-
 	# Slot info
 	var origin_slots: int = carrier.get_slot_count(lane.origin_id)
 	var dest_slots: int = carrier.get_slot_count(lane.dest_id)
@@ -314,24 +299,31 @@ func _update_create_button_state() -> void:
 			any_selected = true
 			break
 
-	# Check slots at selected direction endpoints
+	# Check slots at lane endpoints
 	var has_slots := true
-	if _direction_option != null and _direction_option.selected >= 0:
-		var dir_data: Dictionary = _direction_option.get_item_metadata(_direction_option.selected)
-		var carrier := _game_state.get_player_carrier()
-		if carrier:
-			has_slots = carrier.has_slots_at(dir_data["origin"]) and carrier.has_slots_at(dir_data["dest"])
+	var lane_id: String = _lane_option.get_item_metadata(_lane_option.selected) if _lane_option.selected > 0 else ""
+	if not lane_id.is_empty():
+		var lane: GalaxyData.Lane = null
+		for l: GalaxyData.Lane in _game_state.galaxy.lanes:
+			if l.id == lane_id:
+				lane = l
+				break
+		if lane:
+			var carrier := _game_state.get_player_carrier()
+			if carrier:
+				has_slots = carrier.has_slots_at(lane.origin_id) and carrier.has_slots_at(lane.dest_id)
 
 	_create_btn.disabled = not any_selected or not has_slots
 
 
 func _on_create_route(lane_id: String) -> void:
-	var dir_idx: int = _direction_option.selected
-	if dir_idx < 0:
+	var lane: GalaxyData.Lane = null
+	for l: GalaxyData.Lane in _game_state.galaxy.lanes:
+		if l.id == lane_id:
+			lane = l
+			break
+	if lane == null:
 		return
-	var dir_data: Dictionary = _direction_option.get_item_metadata(dir_idx)
-	var origin_id: String = dir_data["origin"]
-	var dest_id: String = dir_data["dest"]
 
 	var selected_ids: Array = []
 	for cb: CheckBox in _ship_checks:
@@ -341,7 +333,7 @@ func _on_create_route(lane_id: String) -> void:
 		return
 
 	_player_controller.add_route_create(
-		lane_id, origin_id, dest_id, selected_ids,
+		lane_id, lane.origin_id, lane.dest_id, selected_ids,
 		_pax_spin.value, _cargo_spin.value,
 	)
 
@@ -355,8 +347,17 @@ func _get_eligible_ships(min_range: float) -> Array:
 	if player == null:
 		return []
 	var idle_ships := player.get_available_ships()
+
+	# Exclude ships already committed in pending route creates
+	var pending_ship_ids: Dictionary = {}
+	for rc: Dictionary in _player_controller.pending_intent.route_creates:
+		for ship_id: String in rc["ship_ids"]:
+			pending_ship_ids[ship_id] = true
+
 	var eligible: Array = []
 	for ship: ShipCatalog.ShipInstance in idle_ships:
+		if pending_ship_ids.has(ship.id):
+			continue
 		var ship_type := _game_state.catalog.get_type(ship.type_id)
 		if ship_type and ship_type.range >= min_range:
 			eligible.append(ship)

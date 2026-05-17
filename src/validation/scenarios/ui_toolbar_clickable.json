@@ -1,0 +1,70 @@
+{
+  "scenario_id": "ui_toolbar_clickable",
+  "version": 3,
+  "description": "Verify toolbar buttons can open and close modals — ensures ToastContainer and other overlays do not block clicks",
+  "harness_scene": "res://validation/harnesses/ui_toolbar_harness.tscn",
+  "done_contract": {},
+  "artifact_contract": {
+    "required_files": ["summary.json", "event_log.json", "scene_tree.json", "console.log"],
+    "missing_file_is_failure": true
+  },
+  "exit_codes": {
+    "pass": 0,
+    "assertion_failure": 1,
+    "runtime_error": 2,
+    "timeout": 3,
+    "artifact_generation_error": 4
+  },
+  "cli_contract": {
+    "command_template": "godot --path <project> -- --test-mode --scenario <path> --artifacts <dir>"
+  },
+  "steps": [
+    { "op": "load_harness" },
+    { "op": "wait_frames", "frames": 15 },
+    { "op": "checkpoint", "name": "initial" },
+    {
+      "op": "assert_value",
+      "checkpoint": "initial",
+      "path": "harness_state.active_modal",
+      "comparator": "eq",
+      "expected": ""
+    },
+    { "op": "wait_frames", "frames": 10 },
+    { "op": "checkpoint", "name": "ships_open" },
+    {
+      "op": "assert_value",
+      "checkpoint": "ships_open",
+      "path": "harness_state.active_modal",
+      "comparator": "eq",
+      "expected": "ships"
+    },
+    { "op": "wait_frames", "frames": 10 },
+    { "op": "checkpoint", "name": "ships_closed" },
+    {
+      "op": "assert_value",
+      "checkpoint": "ships_closed",
+      "path": "harness_state.active_modal",
+      "comparator": "eq",
+      "expected": ""
+    },
+    { "op": "wait_frames", "frames": 10 },
+    { "op": "checkpoint", "name": "routes_open" },
+    {
+      "op": "assert_value",
+      "checkpoint": "routes_open",
+      "path": "harness_state.active_modal",
+      "comparator": "eq",
+      "expected": "routes"
+    },
+    { "op": "wait_frames", "frames": 10 },
+    { "op": "checkpoint", "name": "routes_closed" },
+    {
+      "op": "assert_value",
+      "checkpoint": "routes_closed",
+      "path": "harness_state.active_modal",
+      "comparator": "eq",
+      "expected": ""
+    },
+    { "op": "quit" }
+  ]
+}
