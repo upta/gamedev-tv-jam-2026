@@ -169,3 +169,32 @@ Dependency graph provided in plan. Can parallelize: P1.1–3, P1.5–6, P1.10–
 - **Scenarios:** `sim_initial_state` (7 assertions on default state), `sim_turn_advances` (turn counter + cash delta via assert_pipeline), `sim_financials` (route count, cash change, no game over), `sim_score_ranking` (rankings length, rank ordering, positive score).
 - **Turn cap:** `_physics_process` stops resolving after turn 30 to prevent infinite loops in test.
 - **Removed `.gitkeep`** from harnesses/, scenarios/, harness_controllers/ directories.
+
+### P4.1: ToastManager Mouse Filter Fix (2025-07-25)
+- **File:** `src/game/ui/notifications/toast_manager.tscn`
+- **Fix:** Added `mouse_filter = 2` (IGNORE) to root Control node. Full-screen anchored Controls default to STOP, blocking all clicks underneath.
+
+### P4.2: ModalDialog Base Component (2025-07-25)
+- **Files:** `src/game/ui/modal_dialog.gd`, `src/game/ui/modal_dialog.tscn`
+- **Pattern:** `class_name ModalDialog` extends Control. Full-screen anchors with mouse_filter toggling: IGNORE when closed (doesn't block input), STOP when open (captures clicks).
+- **Structure:** Overlay (ColorRect, click-to-close) + Panel (PanelContainer, anchors 0.15/0.85/0.1/0.9) + TitleBar (HBoxContainer with Label + "✕" Button) + ContentContainer (MarginContainer with ScrollContainer child).
+- **API:** `open()`, `close()`, `set_title(text)`, `get_content_container() -> MarginContainer`. Signal `closed` emitted on dismiss.
+- **Subclass pattern:** Extend ModalDialog scene, add children to the ScrollContainer inside ContentContainer for scrollable content areas.
+- **No validation scenarios** — pure UI component with no gameplay state.
+
+### P4.3: Full-Screen Star Map (2025-07-25)
+- **Files:** `src/game/main.tscn`, `src/game/main.gd`
+- **Removed:** HSplitContainer, StarMapPanel wrapper, SidePanel (DashboardPanel, ActionPanel, TurnLogPanel). Removed ext_resources for panel scenes (ids 4, 5, 6).
+- **Layout:** StarMap is now direct child of VBoxContainer with `size_flags_vertical = 3` (EXPAND_FILL). Full-screen below TopBar.
+- **main.gd cleanup:** Removed `_dashboard_panel`, `_action_panel`, `_turn_log_panel` @onready vars. Removed `_on_planet_selected()`, `_on_lane_selected()` handlers and their signal connections. Removed panel `bind()`, `refresh()`, `show_default()`, `add_turn_result()`, `clear_log()` calls.
+- **Kept:** TopBar, StarMap, ToastManager, GameOverScreen. Core turn logic, notifications, play-again flow.
+- **No validation scenarios** — pure layout change with no gameplay state impact.
+
+### P4.4: Toolbar Buttons in TopBar (2025-07-25)
+- **Files:** `src/game/ui/top_bar.gd`, `src/game/ui/top_bar.tscn`
+- **New signal:** `toolbar_button_pressed(modal_name: String)` — emitted when any toolbar button is clicked.
+- **Buttons:** 5 buttons created dynamically in `_create_toolbar_buttons()`: Dashboard, Routes, Ships, Slots, Turn Log. Each mapped to a modal name string.
+- **Active state:** `set_active_toolbar(modal_name)` — sets matching button to non-flat (pressed appearance), all others to flat. Pass empty string to deactivate all.
+- **Layout:** ToolbarContainer (HBoxContainer, unique_name_in_owner) added between Spacer and NextTurnButton in top_bar.tscn.
+- **Pattern:** Buttons created via code (not scene) to keep TOOLBAR_BUTTONS as single source of truth. `const TOOLBAR_BUTTONS` array of `[label, modal_name]` pairs.
+- **No validation scenarios** — pure UI component with no gameplay state.

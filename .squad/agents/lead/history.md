@@ -81,3 +81,28 @@
 - `src/validation/harnesses/ui_game_harness.tscn` — UI integration harness
 
 **Work items:** P3.1–P3.12 (see `.squad/decisions/inbox/lead-phase3-plan.md`)
+
+### Phase 4 Architecture — UI Overhaul (2025-07-17, proposed)
+
+25. **Full-screen star map + modal dialogs.** HSplitContainer/SidePanel layout retired. Star map fills the screen below TopBar. Dashboard, Routes, Ships, Slots, and Turn Log each become modal dialogs opened from toolbar buttons in TopBar. Contextual map-click popups deferred.
+
+26. **Custom overlay modals, not Godot Window/PopupPanel.** ModalDialog base: full-screen Control with dim ColorRect overlay + centered PanelContainer. Works in web exports. Click-outside-to-close. `mouse_filter=IGNORE` when hidden.
+
+27. **Toolbar wiring through GameScene.** TopBar emits `toolbar_button_pressed(name)`. GameScene toggles modals. Only one modal open at a time. Modals read GameState directly, call PlayerController methods for actions.
+
+28. **ActionPanel retired, forms distributed.** Slot bid/sell → SlotsModal. Route create/cancel → RoutesModal. Ship order → ShipsModal. Each modal has its own planet/lane selector dropdown instead of relying on map clicks.
+
+29. **DashboardPanel and TurnLogPanel reused inside modals.** Instanced as content children of their respective modals. Zero rewrite of display logic.
+
+**Key file paths (Phase 4):**
+- `src/game/ui/modal_dialog.gd/.tscn` — reusable modal base (new)
+- `src/game/ui/modals/dashboard_modal.gd/.tscn` — dashboard in modal (new)
+- `src/game/ui/modals/turn_log_modal.gd/.tscn` — turn log in modal (new)
+- `src/game/ui/modals/ships_modal.gd/.tscn` — ship orders (new)
+- `src/game/ui/modals/slots_modal.gd/.tscn` — slot bid/sell (new)
+- `src/game/ui/modals/routes_modal.gd/.tscn` — route management (new)
+- `src/game/ui/top_bar.gd/.tscn` — extended with toolbar buttons
+- `src/game/main.gd/.tscn` — major rework for modal layout
+- `src/game/ui/notifications/toast_manager.tscn` — mouse_filter fix
+
+**Work items:** P4.1–P4.12 (see `.squad/decisions/inbox/lead-ui-overhaul-plan.md`)
