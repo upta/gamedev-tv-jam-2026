@@ -120,3 +120,12 @@ All processed in carrier_order (index-based tie-breaking, D004).
 **Simplified Frequency (D015):** Each ship = 1 trip/turn. Later revised to speed-based in economy balance (D009).
 
 ---
+
+## Learnings
+
+### Route Performance Metrics (2026-05-19)
+
+- `financial_calculator.gd` `process_financials()` already computes demand splits per (lane, direction) and per-carrier. Adding per-route served/capacity data was straightforward — the demand split result keyed by carrier_id is already available at the route iteration level.
+- `GameState.last_turn_financials` is a simple pattern for exposing turn results to UI without changing signal signatures. Set it in `advance_turn()` before incrementing the turn counter.
+- The simulation harness controller's `get_observed_state()` can expose nested arrays (e.g., `route_performance.0.passengers_served`) and the validation framework resolves dot-separated array indices correctly.
+- Indentation matters critically in GDScript — an extra tab level causes parse errors that cascade through the entire class resolution chain, breaking unrelated scripts that reference the class.
