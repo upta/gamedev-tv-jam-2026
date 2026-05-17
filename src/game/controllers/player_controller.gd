@@ -28,7 +28,6 @@ func add_slot_bid(planet_id: String, quantity: int, price_per_slot: float) -> vo
 
 
 func add_route_create(
-	lane_id: String,
 	origin_id: String,
 	dest_id: String,
 	ship_ids: Array,
@@ -37,7 +36,6 @@ func add_route_create(
 	frequency: int = 1,
 ) -> void:
 	pending_intent.route_creates.append({
-		"lane_id": lane_id,
 		"origin_id": origin_id,
 		"dest_id": dest_id,
 		"ship_ids": ship_ids,

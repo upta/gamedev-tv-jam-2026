@@ -9,7 +9,6 @@ static func validate_route_creation(
 	carrier: CarrierData,
 	galaxy: GalaxyData,
 	catalog: ShipCatalog,
-	lane_id: String,
 	origin_id: String,
 	dest_id: String,
 	ship_ids: Array,

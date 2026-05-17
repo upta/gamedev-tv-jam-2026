@@ -97,8 +97,11 @@ static func process_financials(
 			if lane == null:
 				continue
 
-			var direction := "forward" if route.origin_id == lane.origin_id else "reverse"
-			var key := lane.id + "::" + direction
+			# Direction is relative to canonical lane_id ordering (alphabetical)
+			var canonical_lane_id := GalaxyData.derive_lane_id(route.origin_id, route.dest_id)
+			var parts := canonical_lane_id.split("::")
+			var direction := "forward" if route.origin_id == parts[0] else "reverse"
+			var key := canonical_lane_id + "::" + direction
 
 			if not lane_dir_routes.has(key):
 				lane_dir_routes[key] = { "lane": lane, "direction": direction, "entries": [] }

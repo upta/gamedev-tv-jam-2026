@@ -49,22 +49,19 @@ func _consider_slot_bids(
 	# Find reachable planets where we don't already have slots
 	var candidates: Array = []
 	for planet_id: String in planets_with_slots:
-		for lane: GalaxyData.Lane in game_state.galaxy.get_lanes_from(planet_id):
-			var neighbor_id := _other_end(lane, planet_id)
-			if carrier.has_slots_at(neighbor_id):
+		for planet: GalaxyData.Planet in game_state.galaxy.planets:
+			if planet.id == planet_id:
 				continue
-			var planet := game_state.galaxy.get_planet(neighbor_id)
-			if planet == null:
+			if carrier.has_slots_at(planet.id):
 				continue
-			# Avoid duplicates
 			var already := false
 			for c: Dictionary in candidates:
-				if c["planet_id"] == neighbor_id:
+				if c["planet_id"] == planet.id:
 					already = true
 					break
 			if not already:
 				candidates.append({
-					"planet_id": neighbor_id,
+					"planet_id": planet.id,
 					"total_slots": planet.total_slots,
 				})
 
@@ -96,46 +93,54 @@ func _consider_route_creation(
 	if available_ships.is_empty():
 		return
 
-	# Find lanes where carrier has slots at both ends and no active route
-	for lane: GalaxyData.Lane in game_state.galaxy.lanes:
-		if not _can_use_lane(carrier, lane):
-			continue
-		if _has_route_on_lane(carrier, lane.id):
-			continue
+	# Find planet pairs where carrier has slots at both ends and no active route
+	var slot_planets: Array = carrier.slots.keys().filter(
+		func(pid: String) -> bool: return carrier.get_slot_count(pid) > 0
+	)
+	for i in range(slot_planets.size()):
+		for j in range(i + 1, slot_planets.size()):
+			var origin_id: String = slot_planets[i]
+			var dest_id: String = slot_planets[j]
+			var lane_id := GalaxyData.derive_lane_id(origin_id, dest_id)
+			if _has_route_on_lane(carrier, lane_id):
+				continue
 
-		# Find a ship with enough range
-		var chosen_ship: ShipCatalog.ShipInstance = null
-		for ship: ShipCatalog.ShipInstance in available_ships:
-			var ship_type := game_state.catalog.get_type(ship.type_id)
-			if ship_type != null and ship_type.range >= lane.distance:
-				chosen_ship = ship
-				break
+			var distance := game_state.galaxy.calculate_distance(origin_id, dest_id)
+			if distance < 0.0:
+				continue
 
-		if chosen_ship == null:
-			continue
+			# Find a ship with enough range
+			var chosen_ship: ShipCatalog.ShipInstance = null
+			for ship: ShipCatalog.ShipInstance in available_ships:
+				var ship_type := game_state.catalog.get_type(ship.type_id)
+				if ship_type != null and ship_type.range >= distance:
+					chosen_ship = ship
+					break
 
-		# Price based on demand
-		var demand_entry := game_state.demand_table.get_entry(lane.id, "forward")
-		var passenger_price := 5.0
-		var cargo_price := 4.0
-		if demand_entry != null:
-			passenger_price = demand_entry.base_demand_passenger * 0.08
-			cargo_price = demand_entry.base_demand_cargo * 0.06
-		# ±20% variance
-		passenger_price *= 1.0 + game_state.rng.randf_range(-0.2, 0.2)
-		cargo_price *= 1.0 + game_state.rng.randf_range(-0.2, 0.2)
+			if chosen_ship == null:
+				continue
 
-		intent.route_creates.append({
-			"lane_id": lane.id,
-			"origin_id": lane.origin_id,
-			"dest_id": lane.dest_id,
-			"ship_ids": [chosen_ship.id],
-			"passenger_price": passenger_price,
-			"cargo_price": cargo_price,
-			"frequency": 1,
-		})
-		# At most 1 route per turn
-		return
+			# Price based on demand
+			var demand_entry := game_state.demand_table.get_entry(lane_id, "forward")
+			var passenger_price := 5.0
+			var cargo_price := 4.0
+			if demand_entry != null:
+				passenger_price = demand_entry.base_demand_passenger * 0.08
+				cargo_price = demand_entry.base_demand_cargo * 0.06
+			# ±20% variance
+			passenger_price *= 1.0 + game_state.rng.randf_range(-0.2, 0.2)
+			cargo_price *= 1.0 + game_state.rng.randf_range(-0.2, 0.2)
+
+			intent.route_creates.append({
+				"origin_id": origin_id,
+				"dest_id": dest_id,
+				"ship_ids": [chosen_ship.id],
+				"passenger_price": passenger_price,
+				"cargo_price": cargo_price,
+				"frequency": 1,
+			})
+			# At most 1 route per turn
+			return
 
 
 # ---------------------------------------------------------------------------
@@ -214,18 +219,8 @@ func _consider_slot_sales(
 # Helpers
 # ---------------------------------------------------------------------------
 
-func _can_use_lane(carrier: CarrierData, lane: GalaxyData.Lane) -> bool:
-	return carrier.has_slots_at(lane.origin_id) and carrier.has_slots_at(lane.dest_id)
-
-
 func _has_route_on_lane(carrier: CarrierData, lane_id: String) -> bool:
 	for route: CarrierData.Route in carrier.get_active_routes():
 		if route.lane_id == lane_id:
 			return true
 	return false
-
-
-func _other_end(lane: GalaxyData.Lane, planet_id: String) -> String:
-	if lane.origin_id == planet_id:
-		return lane.dest_id
-	return lane.origin_id

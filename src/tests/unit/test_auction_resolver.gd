@@ -8,9 +8,8 @@ var catalog: ShipCatalog
 
 func before_each() -> void:
 	galaxy = GalaxyData.new()
-	galaxy.planets.append(GalaxyData.Planet.new("earth", "Earth", "sol", 10))
-	galaxy.planets.append(GalaxyData.Planet.new("mars", "Mars", "sol", 8))
-	galaxy.lanes.append(GalaxyData.Lane.new("sol_earth_mars", "earth", "mars", 1.5))
+	galaxy.planets.append(GalaxyData.Planet.new("earth", "Earth", "sol", 10, Vector2(0.0, 0.0)))
+	galaxy.planets.append(GalaxyData.Planet.new("mars", "Mars", "sol", 8, Vector2(1.2, -0.8)))
 	galaxy._build_indices()
 
 	catalog = ShipCatalog.create_default_catalog()
@@ -43,7 +42,6 @@ func _add_active_route(carrier: CarrierData, origin: String, dest: String) -> Ca
 	var ship_ids: Array[String] = [ship.id]
 	var route := CarrierData.Route.new(
 		"route_%d" % carrier.routes.size(),
-		"lane_0",
 		origin,
 		dest,
 		ship_ids,

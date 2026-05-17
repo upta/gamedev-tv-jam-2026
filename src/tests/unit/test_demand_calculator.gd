@@ -147,7 +147,7 @@ func _make_route(
 	freq: int = 1, active: bool = true,
 ) -> CarrierData.Route:
 	return CarrierData.Route.new(
-		id, "test_lane", origin, dest, ship_ids,
+		id, origin, dest, ship_ids,
 		pax_price, cargo_price, freq, active)
 
 

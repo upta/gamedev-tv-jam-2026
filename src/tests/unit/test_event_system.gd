@@ -74,33 +74,36 @@ func test_planet_targeted_event_affects_connected_lanes() -> void:
 	)
 	var demand := DemandData.create_default_demand(galaxy)
 
-	# Apply with galaxy reference for planet matching
-	EventSystem.apply_events([event], demand, galaxy)
+	# Apply — planet matching now uses lane_id format "planet_a::planet_b"
+	EventSystem.apply_events([event], demand)
 
-	# Earth is connected to: sol_earth_mars, sol_earth_titan, inter_earth_proxima
-	var earth_mars := demand.get_entry("sol_earth_mars", "forward")
+	# Earth lanes use derived IDs: "earth::mars", "earth::titan", "earth::proxima_b"
+	var earth_mars := demand.get_entry("earth::mars", "forward")
+	assert_not_null(earth_mars, "earth::mars demand entry should exist")
 	assert_ne(earth_mars.modifier_cargo, 1.0, "Earth lane should be affected")
 
-	var earth_titan := demand.get_entry("sol_earth_titan", "forward")
+	var earth_titan := demand.get_entry("earth::titan", "forward")
+	assert_not_null(earth_titan, "earth::titan demand entry should exist")
 	assert_ne(earth_titan.modifier_cargo, 1.0, "Earth lane should be affected")
 
-	# Mars-Europa should NOT be affected (doesn't touch earth)
-	var mars_europa := demand.get_entry("sol_mars_europa", "forward")
-	assert_eq(mars_europa.modifier_cargo, 1.0, "Non-earth lane should not be affected")
+	# Europa-Mars should NOT be affected (doesn't touch earth)
+	var europa_mars := demand.get_entry("europa::mars", "forward")
+	assert_not_null(europa_mars, "europa::mars demand entry should exist")
+	assert_eq(europa_mars.modifier_cargo, 1.0, "Non-earth lane should not be affected")
 
 
 func test_lane_targeted_event_only_affects_that_lane() -> void:
 	var event := EventSystem.GameEvent.new(
-		"test_lane", "Demand Surge", "sol_earth_mars", "", "both", 1.4, 2
+		"test_lane", "Demand Surge", "earth::mars", "", "both", 1.4, 2
 	)
 	var demand := DemandData.create_default_demand(galaxy)
-	EventSystem.apply_events([event], demand, galaxy)
+	EventSystem.apply_events([event], demand)
 
-	var target := demand.get_entry("sol_earth_mars", "forward")
+	var target := demand.get_entry("earth::mars", "forward")
 	assert_eq(target.modifier_passenger, 1.4)
 	assert_eq(target.modifier_cargo, 1.4)
 
-	var other := demand.get_entry("sol_earth_titan", "forward")
+	var other := demand.get_entry("earth::titan", "forward")
 	assert_eq(other.modifier_passenger, 1.0)
 	assert_eq(other.modifier_cargo, 1.0)
 

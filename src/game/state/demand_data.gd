@@ -65,21 +65,30 @@ func get_effective_demand_cargo(lane_id: String, direction: String) -> int:
 static func create_default_demand(galaxy: GalaxyData) -> DemandData:
 	var data := DemandData.new()
 
-	for lane: GalaxyData.Lane in galaxy.lanes:
-		var origin := galaxy.get_planet(lane.origin_id)
-		var dest := galaxy.get_planet(lane.dest_id)
-		if origin == null or dest == null:
-			continue
+	# Generate demand for ALL unique planet pairs (any-to-any connectivity).
+	for i in range(galaxy.planets.size()):
+		for j in range(i + 1, galaxy.planets.size()):
+			var planet_a: GalaxyData.Planet = galaxy.planets[i]
+			var planet_b: GalaxyData.Planet = galaxy.planets[j]
+			var lane_id := GalaxyData.derive_lane_id(planet_a.id, planet_b.id)
 
-		# Passengers gravitate toward the destination; cargo flows from the origin.
-		# Asymmetry between forward and reverse makes directional competition meaningful.
-		var fwd_passenger := _demand_passenger(origin.total_slots, dest.total_slots)
-		var fwd_cargo := _demand_cargo(origin.total_slots, dest.total_slots)
-		var rev_passenger := _demand_passenger(dest.total_slots, origin.total_slots)
-		var rev_cargo := _demand_cargo(dest.total_slots, origin.total_slots)
+			# Forward = alphabetically first → second
+			var first_planet: GalaxyData.Planet
+			var second_planet: GalaxyData.Planet
+			if planet_a.id < planet_b.id:
+				first_planet = planet_a
+				second_planet = planet_b
+			else:
+				first_planet = planet_b
+				second_planet = planet_a
 
-		data.entries.append(DemandEntry.new(lane.id, "forward", fwd_passenger, fwd_cargo))
-		data.entries.append(DemandEntry.new(lane.id, "reverse", rev_passenger, rev_cargo))
+			var fwd_pax := _demand_passenger(first_planet.total_slots, second_planet.total_slots)
+			var fwd_cargo := _demand_cargo(first_planet.total_slots, second_planet.total_slots)
+			var rev_pax := _demand_passenger(second_planet.total_slots, first_planet.total_slots)
+			var rev_cargo := _demand_cargo(second_planet.total_slots, first_planet.total_slots)
+
+			data.entries.append(DemandEntry.new(lane_id, "forward", fwd_pax, fwd_cargo))
+			data.entries.append(DemandEntry.new(lane_id, "reverse", rev_pax, rev_cargo))
 
 	data._build_index()
 	return data

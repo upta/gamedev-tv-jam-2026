@@ -9,7 +9,7 @@ extends RefCounted
 class CarrierIntent:
 	var carrier_id: String
 	var slot_bids: Array = []           # [{ "planet_id": str, "quantity": int, "price_per_slot": float }]
-	var route_creates: Array = []       # [{ "lane_id": str, "origin_id": str, "dest_id": str, "ship_ids": Array, "passenger_price": float, "cargo_price": float, "frequency": int }]
+	var route_creates: Array = []       # [{ "origin_id": str, "dest_id": str, "ship_ids": Array, "passenger_price": float, "cargo_price": float, "frequency": int }]
 	var route_modifications: Array = [] # [{ "route_id": str, "ship_ids": Array, "passenger_price": float, "cargo_price": float, "frequency": int }]
 	var route_cancellations: Array = [] # [route_id: str]
 	var ship_orders: Array = []         # [{ "type_id": str, "passenger_capacity": int, "cargo_capacity": int }]
@@ -193,7 +193,7 @@ static func _resolve_routes(
 		for create: Dictionary in intent.route_creates:
 			var validation := RouteValidator.validate_route_creation(
 				carrier, game_state.galaxy, game_state.catalog,
-				create["lane_id"], create["origin_id"], create["dest_id"],
+				create["origin_id"], create["dest_id"],
 				create["ship_ids"], create["frequency"],
 				game_state.current_turn
 			)
@@ -210,7 +210,6 @@ static func _resolve_routes(
 
 			var new_route := CarrierData.Route.new(
 				route_id,
-				create["lane_id"],
 				create["origin_id"],
 				create["dest_id"],
 				typed_ship_ids,

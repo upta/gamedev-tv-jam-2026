@@ -8,11 +8,9 @@ var catalog: ShipCatalog
 
 func before_each() -> void:
 	galaxy = GalaxyData.new()
-	galaxy.planets.append(GalaxyData.Planet.new("earth", "Earth", "sol", 10))
-	galaxy.planets.append(GalaxyData.Planet.new("mars", "Mars", "sol", 8))
-	galaxy.planets.append(GalaxyData.Planet.new("proxima_b", "Proxima b", "alpha_centauri", 6))
-	galaxy.lanes.append(GalaxyData.Lane.new("sol_earth_mars", "earth", "mars", 1.5))
-	galaxy.lanes.append(GalaxyData.Lane.new("inter_earth_proxima", "earth", "proxima_b", 8.0))
+	galaxy.planets.append(GalaxyData.Planet.new("earth", "Earth", "sol", 10, Vector2(0.0, 0.0)))
+	galaxy.planets.append(GalaxyData.Planet.new("mars", "Mars", "sol", 8, Vector2(1.2, -0.8)))
+	galaxy.planets.append(GalaxyData.Planet.new("proxima_b", "Proxima b", "alpha_centauri", 6, Vector2(7.0, 2.5)))
 	galaxy._build_indices()
 
 	catalog = ShipCatalog.create_default_catalog()
@@ -41,7 +39,6 @@ func _add_ship(carrier: CarrierData, type_id: String = "sd-100", pax: int = 20, 
 func _add_active_route(carrier: CarrierData, ship_ids: Array[String], origin: String = "earth", dest: String = "mars") -> CarrierData.Route:
 	var route := CarrierData.Route.new(
 		"route_%d" % carrier.routes.size(),
-		"sol_earth_mars",
 		origin,
 		dest,
 		ship_ids,
@@ -64,7 +61,7 @@ func test_valid_creation() -> void:
 
 	var result := RouteValidator.validate_route_creation(
 		carrier, galaxy, catalog,
-		"sol_earth_mars", "earth", "mars",
+		"earth", "mars",
 		[ship.id], 1, 1,
 	)
 	assert_true(result["valid"], "valid route creation")
@@ -82,7 +79,7 @@ func test_creation_fails_no_slots_at_origin() -> void:
 
 	var result := RouteValidator.validate_route_creation(
 		carrier, galaxy, catalog,
-		"sol_earth_mars", "earth", "mars",
+		"earth", "mars",
 		[ship.id], 1, 1,
 	)
 	assert_false(result["valid"], "no origin slots")
@@ -96,7 +93,7 @@ func test_creation_fails_no_slots_at_dest() -> void:
 
 	var result := RouteValidator.validate_route_creation(
 		carrier, galaxy, catalog,
-		"sol_earth_mars", "earth", "mars",
+		"earth", "mars",
 		[ship.id], 1, 1,
 	)
 	assert_false(result["valid"], "no dest slots")
@@ -105,13 +102,13 @@ func test_creation_fails_no_slots_at_dest() -> void:
 
 func test_creation_fails_no_lane() -> void:
 	var carrier := _make_carrier()
-	carrier.slots["proxima_b"] = 1
+	carrier.slots["nonexistent"] = 1
 	var ship := _add_ship(carrier)
 
-	# mars <-> proxima_b has no lane
+	# nonexistent planet has no position in the galaxy
 	var result := RouteValidator.validate_route_creation(
 		carrier, galaxy, catalog,
-		"fake_lane", "mars", "proxima_b",
+		"mars", "nonexistent",
 		[ship.id], 1, 1,
 	)
 	assert_false(result["valid"], "no lane")
@@ -126,7 +123,7 @@ func test_creation_fails_insufficient_range() -> void:
 
 	var result := RouteValidator.validate_route_creation(
 		carrier, galaxy, catalog,
-		"inter_earth_proxima", "earth", "proxima_b",
+		"earth", "proxima_b",
 		[ship.id], 1, 1,
 	)
 	assert_false(result["valid"], "range too short")
@@ -144,7 +141,7 @@ func test_creation_fails_ship_already_assigned() -> void:
 	# Try to use same ship on a new route
 	var result := RouteValidator.validate_route_creation(
 		carrier, galaxy, catalog,
-		"sol_earth_mars", "earth", "mars",
+		"earth", "mars",
 		[ship.id], 1, 1,
 	)
 	assert_false(result["valid"], "ship already assigned")
@@ -158,7 +155,7 @@ func test_creation_fails_ship_not_delivered() -> void:
 
 	var result := RouteValidator.validate_route_creation(
 		carrier, galaxy, catalog,
-		"sol_earth_mars", "earth", "mars",
+		"earth", "mars",
 		[ship.id], 1, 1,
 	)
 	assert_false(result["valid"], "ship not yet delivered")
@@ -171,7 +168,7 @@ func test_creation_fails_ship_not_owned() -> void:
 
 	var result := RouteValidator.validate_route_creation(
 		carrier, galaxy, catalog,
-		"sol_earth_mars", "earth", "mars",
+		"earth", "mars",
 		["phantom_ship"], 1, 1,
 	)
 	assert_false(result["valid"], "ship not found")
@@ -189,7 +186,7 @@ func test_frequency_clamped_to_ship_count() -> void:
 	# Request frequency 5 with only 1 ship
 	var result := RouteValidator.validate_route_creation(
 		carrier, galaxy, catalog,
-		"sol_earth_mars", "earth", "mars",
+		"earth", "mars",
 		[ship.id], 5, 1,
 	)
 	assert_true(result["valid"], "valid but clamped")
@@ -204,7 +201,7 @@ func test_frequency_not_clamped_when_enough_ships() -> void:
 
 	var result := RouteValidator.validate_route_creation(
 		carrier, galaxy, catalog,
-		"sol_earth_mars", "earth", "mars",
+		"earth", "mars",
 		[ship1.id, ship2.id, ship3.id], 2, 1,
 	)
 	assert_true(result["valid"], "valid")

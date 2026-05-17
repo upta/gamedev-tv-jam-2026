@@ -43,10 +43,9 @@ func test_add_slot_bid() -> void:
 
 
 func test_add_route_create() -> void:
-	controller.add_route_create("lane_1", "origin_a", "dest_b", ["ship_1"], 10.0, 5.0, 2)
+	controller.add_route_create("origin_a", "dest_b", ["ship_1"], 10.0, 5.0, 2)
 	assert_eq(controller.pending_intent.route_creates.size(), 1)
 	var rc: Dictionary = controller.pending_intent.route_creates[0]
-	assert_eq(rc["lane_id"], "lane_1")
 	assert_eq(rc["origin_id"], "origin_a")
 	assert_eq(rc["dest_id"], "dest_b")
 	assert_eq(rc["ship_ids"], ["ship_1"])
@@ -161,7 +160,7 @@ func test_generate_intent_sets_carrier_id() -> void:
 func test_get_pending_summary() -> void:
 	controller.add_slot_bid("p", 1, 1.0)
 	controller.add_slot_bid("q", 1, 1.0)
-	controller.add_route_create("l", "o", "d", [], 1.0, 1.0)
+	controller.add_route_create("o", "d", [], 1.0, 1.0)
 	controller.cancel_route("r1")
 	var summary: Dictionary = controller.get_pending_summary()
 	assert_eq(summary["slot_bids"], 2)
@@ -188,7 +187,7 @@ func test_intent_changed_signal_emitted() -> void:
 
 func test_multiple_actions_accumulate() -> void:
 	controller.add_slot_bid("planet_a", 1, 10.0)
-	controller.add_route_create("lane_1", "o", "d", ["s1"], 5.0, 3.0)
+	controller.add_route_create("o", "d", ["s1"], 5.0, 3.0)
 	controller.modify_route("route_1", ["s2"], 8.0, 4.0)
 	controller.cancel_route("route_2")
 	controller.add_ship_order("shuttle", 20, 30)

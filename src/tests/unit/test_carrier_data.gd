@@ -102,7 +102,7 @@ func test_get_active_routes_excludes_inactive() -> void:
 
 func test_get_active_routes_empty_when_none_active() -> void:
 	var carrier := _make_carrier()
-	var route := CarrierData.Route.new("r1", "lane1", "a", "b", [], 10.0, 5.0, 1, false)
+	var route := CarrierData.Route.new("r1", "a", "b", [], 10.0, 5.0, 1, false)
 	carrier.routes.append(route)
 	assert_eq(carrier.get_active_routes().size(), 0, "No active routes when all inactive")
 
@@ -135,7 +135,7 @@ func test_get_available_ships_inactive_route_does_not_reserve() -> void:
 	var carrier := _make_carrier()
 	var ship := _make_ship("ship_x", "type_x", "owner")
 	carrier.ships.append(ship)
-	var route := CarrierData.Route.new("r1", "lane1", "a", "b", ["ship_x"], 10.0, 5.0, 1, false)
+	var route := CarrierData.Route.new("r1", "a", "b", ["ship_x"], 10.0, 5.0, 1, false)
 	carrier.routes.append(route)
 	var available := carrier.get_available_ships()
 	var ids: Array[String] = []
@@ -206,9 +206,9 @@ func _make_carrier_with_routes() -> CarrierData:
 	carrier.ships.append(_make_ship("ship_c", "type_c", "test_carrier"))
 
 	# Two active routes, one inactive
-	var r1 := CarrierData.Route.new("r1", "lane1", "a", "b", ["ship_a"], 10.0, 5.0, 1, true)
-	var r2 := CarrierData.Route.new("r2", "lane2", "b", "c", ["ship_b"], 8.0, 4.0, 2, true)
-	var r3 := CarrierData.Route.new("r3", "lane3", "c", "d", ["ship_c"], 6.0, 3.0, 1, false)
+	var r1 := CarrierData.Route.new("r1", "a", "b", ["ship_a"], 10.0, 5.0, 1, true)
+	var r2 := CarrierData.Route.new("r2", "b", "c", ["ship_b"], 8.0, 4.0, 2, true)
+	var r3 := CarrierData.Route.new("r3", "c", "d", ["ship_c"], 6.0, 3.0, 1, false)
 	carrier.routes.append(r1)
 	carrier.routes.append(r2)
 	carrier.routes.append(r3)

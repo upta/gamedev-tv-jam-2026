@@ -36,7 +36,6 @@ func _add_pending_order(carrier: CarrierData, type_id: String = "sd-100", pax: i
 func _add_route(carrier: CarrierData, ship_ids: Array[String], freq: int = 1, pax_price: float = 10.0, cargo_price: float = 5.0, active: bool = true) -> CarrierData.Route:
 	var route := CarrierData.Route.new(
 		"route_%d" % carrier.routes.size(),
-		"lane_0",
 		"earth",
 		"mars",
 		ship_ids,

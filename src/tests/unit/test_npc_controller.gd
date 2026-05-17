@@ -67,7 +67,7 @@ func test_npc_orders_ships_when_all_deployed() -> void:
 		var sid: String = c.ships[0].id
 		var tids: Array[String] = [sid]
 		var r := CarrierData.Route.new(
-			"npc_1-route-0", "ac_proxima_centauri", "proxima_b", "centauri_prime",
+			"npc_1-route-0", "proxima_b", "centauri_prime",
 			tids, 5.0, 4.0, 1, true
 		)
 		c.routes.append(r)

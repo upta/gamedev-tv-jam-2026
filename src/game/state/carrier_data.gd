@@ -18,7 +18,6 @@ class Route:
 
 	func _init(
 		p_id: String = "",
-		p_lane_id: String = "",
 		p_origin_id: String = "",
 		p_dest_id: String = "",
 		p_ship_ids: Array[String] = [],
@@ -28,9 +27,9 @@ class Route:
 		p_active: bool = true
 	) -> void:
 		id = p_id
-		lane_id = p_lane_id
 		origin_id = p_origin_id
 		dest_id = p_dest_id
+		lane_id = GalaxyData.derive_lane_id(p_origin_id, p_dest_id)
 		ship_ids = p_ship_ids
 		passenger_price = p_passenger_price
 		cargo_price = p_cargo_price

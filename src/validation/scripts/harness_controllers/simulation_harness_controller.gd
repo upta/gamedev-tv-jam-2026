@@ -46,7 +46,6 @@ func _build_harness_state() -> Dictionary:
 		"carrier_count": game_state_data.carriers.size(),
 		"galaxy": {
 			"planet_count": game_state_data.galaxy.planets.size(),
-			"lane_count": game_state_data.galaxy.lanes.size(),
 		},
 		"demand_table_initialized": game_state_data.demand_table != null,
 		"carriers": {},

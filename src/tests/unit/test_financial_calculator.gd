@@ -7,7 +7,9 @@ extends GutTest
 
 func _make_galaxy_with_lane(distance: float = 6.0) -> GalaxyData:
 	var g := GalaxyData.new()
-	g.lanes.append(GalaxyData.Lane.new("test_lane", "planet_a", "planet_b", distance))
+	# Position planets so their Euclidean distance equals the desired distance
+	g.planets.append(GalaxyData.Planet.new("planet_a", "Planet A", "sys", 4, Vector2(0.0, 0.0)))
+	g.planets.append(GalaxyData.Planet.new("planet_b", "Planet B", "sys", 4, Vector2(distance, 0.0)))
 	g._build_indices()
 	return g
 
@@ -43,7 +45,7 @@ func _make_route(
 	active: bool = true,
 ) -> CarrierData.Route:
 	return CarrierData.Route.new(
-		id, "test_lane", origin, dest, ship_ids,
+		id, origin, dest, ship_ids,
 		pax_price, cargo_price, 1, active)
 
 

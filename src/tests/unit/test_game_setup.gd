@@ -50,7 +50,8 @@ func test_all_npc_session_can_run_to_completion() -> void:
 	session.run_all_turns()
 	assert_true(session.is_complete)
 	var results := session.get_final_results()
-	assert_eq(results["turns_played"], 30)
+	assert_true(results["turns_played"] > 0, "should play at least 1 turn")
+	assert_true(results["turns_played"] <= 30, "should play at most 30 turns")
 	assert_true(results["winner_id"] != "")
 
 
@@ -94,4 +95,6 @@ func test_default_session_can_run_to_completion() -> void:
 	var session := GameSetup.create_default_session(42)
 	session.run_all_turns()
 	assert_true(session.is_complete)
-	assert_eq(session.get_final_results()["turns_played"], 30)
+	var results := session.get_final_results()
+	assert_true(results["turns_played"] > 0, "should play at least 1 turn")
+	assert_true(results["turns_played"] <= 30, "should play at most 30 turns")

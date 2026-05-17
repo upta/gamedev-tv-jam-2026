@@ -50,23 +50,29 @@ static func generate_events(turn: int, galaxy: GalaxyData, rng: RandomNumberGene
 	var event: GameEvent = null
 
 	match event_type:
-		0:  # Demand Surge — random lane, modifier 1.3–1.5, 2-4 turns
-			var lane: GalaxyData.Lane = galaxy.lanes[rng.randi_range(0, galaxy.lanes.size() - 1)]
+		0:  # Demand Surge — random planet pair, modifier 1.3–1.5, 2-4 turns
+			var pair := _random_planet_pair(galaxy, rng)
+			if pair.is_empty():
+				return []
+			var lane_id: String = pair["lane_id"]
 			var modifier: float = rng.randf_range(1.3, 1.5)
 			var duration: int = rng.randi_range(2, 4)
 			event = GameEvent.new(
 				"event_turn_%d_0" % turn,
-				"Demand Surge on %s" % lane.id,
-				lane.id, "", "both", modifier, duration
+				"Demand Surge on %s" % lane_id,
+				lane_id, "", "both", modifier, duration
 			)
-		1:  # Demand Slump — random lane, modifier 0.6–0.8, 2-3 turns
-			var lane: GalaxyData.Lane = galaxy.lanes[rng.randi_range(0, galaxy.lanes.size() - 1)]
+		1:  # Demand Slump — random planet pair, modifier 0.6–0.8, 2-3 turns
+			var pair := _random_planet_pair(galaxy, rng)
+			if pair.is_empty():
+				return []
+			var lane_id: String = pair["lane_id"]
 			var modifier: float = rng.randf_range(0.6, 0.8)
 			var duration: int = rng.randi_range(2, 3)
 			event = GameEvent.new(
 				"event_turn_%d_0" % turn,
-				"Demand Slump on %s" % lane.id,
-				lane.id, "", "both", modifier, duration
+				"Demand Slump on %s" % lane_id,
+				lane_id, "", "both", modifier, duration
 			)
 		2:  # Gold Rush — random planet, modifier 1.5, 3 turns, cargo only
 			var planet: GalaxyData.Planet = galaxy.planets[rng.randi_range(0, galaxy.planets.size() - 1)]
@@ -88,6 +94,18 @@ static func generate_events(turn: int, galaxy: GalaxyData, rng: RandomNumberGene
 	return []
 
 
+static func _random_planet_pair(galaxy: GalaxyData, rng: RandomNumberGenerator) -> Dictionary:
+	if galaxy.planets.size() < 2:
+		return {}
+	var idx_a := rng.randi_range(0, galaxy.planets.size() - 1)
+	var idx_b := idx_a
+	while idx_b == idx_a:
+		idx_b = rng.randi_range(0, galaxy.planets.size() - 1)
+	var planet_a: GalaxyData.Planet = galaxy.planets[idx_a]
+	var planet_b: GalaxyData.Planet = galaxy.planets[idx_b]
+	return {"lane_id": GalaxyData.derive_lane_id(planet_a.id, planet_b.id)}
+
+
 ## Resets all DemandEntry modifiers to 1.0, then applies active event modifiers.
 ## Pass galaxy to enable planet-targeted event matching.
 static func apply_events(active_events: Array, demand_data: DemandData, galaxy: GalaxyData = null) -> void:
@@ -105,15 +123,11 @@ static func apply_events(active_events: Array, demand_data: DemandData, galaxy: 
 			# Lane-targeted matching
 			if event.target_lane_id != "":
 				matches = entry.lane_id == event.target_lane_id
-			# Planet-targeted matching
-			elif event.target_planet_id != "" and galaxy != null:
-				var lane: GalaxyData.Lane = null
-				for l: GalaxyData.Lane in galaxy.lanes:
-					if l.id == entry.lane_id:
-						lane = l
-						break
-				if lane != null:
-					matches = lane.origin_id == event.target_planet_id or lane.dest_id == event.target_planet_id
+			# Planet-targeted matching — check if lane_id contains the target planet
+			elif event.target_planet_id != "":
+				var parts := entry.lane_id.split("::")
+				if parts.size() == 2:
+					matches = parts[0] == event.target_planet_id or parts[1] == event.target_planet_id
 			# No target — affects all lanes
 			elif event.target_lane_id == "" and event.target_planet_id == "":
 				matches = true
