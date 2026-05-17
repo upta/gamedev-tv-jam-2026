@@ -79,6 +79,9 @@ func _build_active_routes(carrier: CarrierData) -> void:
 		var origin_name: String = origin.name if origin else route.origin_id
 		var dest_name: String = dest.name if dest else route.dest_id
 
+		var route_block := VBoxContainer.new()
+
+		# Line 1: Route config + cancel button
 		var row := HBoxContainer.new()
 		var label := Label.new()
 		label.text = "%s → %s | Ships: %d | Pax: §%d Cargo: §%d | Freq: %d" % [
@@ -92,12 +95,47 @@ func _build_active_routes(carrier: CarrierData) -> void:
 		cancel_btn.text = "Cancel Route"
 		cancel_btn.pressed.connect(_on_cancel_route.bind(route.id))
 		row.add_child(cancel_btn)
+		route_block.add_child(row)
 
-		_content.add_child(row)
+		# Line 2: Performance metrics from last turn
+		var metrics_label := Label.new()
+		var route_fin := _get_route_financials(carrier.id, route.id)
+		if route_fin.is_empty():
+			metrics_label.text = "    No data yet"
+		else:
+			var pax_served: int = route_fin.get("passengers_served", 0)
+			var pax_cap: int = route_fin.get("passenger_capacity", 0)
+			var cargo_served: int = route_fin.get("cargo_served", 0)
+			var cargo_cap: int = route_fin.get("cargo_capacity", 0)
+			var revenue: float = route_fin.get("revenue", {}).get("total_revenue", 0.0)
+			var op_cost: float = route_fin.get("operating_cost", 0.0)
+			var profit: float = revenue - op_cost
+			var profit_sign := "+" if profit >= 0.0 else ""
+			metrics_label.text = "    Pax: %d/%d | Cargo: %d/%d | Profit: §%s%d" % [
+				pax_served, pax_cap, cargo_served, cargo_cap, profit_sign, int(profit),
+			]
+			if profit >= 0.0:
+				metrics_label.add_theme_color_override("font_color", Color.GREEN)
+			else:
+				metrics_label.add_theme_color_override("font_color", Color.RED)
+		route_block.add_child(metrics_label)
+
+		_content.add_child(route_block)
 
 
 func _on_cancel_route(route_id: String) -> void:
 	_player_controller.cancel_route(route_id)
+
+
+func _get_route_financials(carrier_id: String, route_id: String) -> Dictionary:
+	if _game_state.last_turn_financials.is_empty():
+		return {}
+	var carrier_fin: Dictionary = _game_state.last_turn_financials.get(carrier_id, {})
+	var routes: Array = carrier_fin.get("routes", [])
+	for route_fin: Dictionary in routes:
+		if route_fin.get("route_id", "") == route_id:
+			return route_fin
+	return {}
 
 
 # ---------------------------------------------------------------------------

@@ -158,10 +158,23 @@ static func process_financials(
 			var revenue := calculate_route_revenue(route, carrier, catalog, split)
 			var op_cost := calculate_route_operating_cost(route, carrier, catalog, galaxy)
 
+			# Per-route demand served (from carrier-level split)
+			var pax_served := 0
+			var cargo_served := 0
+			if split.has(carrier.id):
+				pax_served = split[carrier.id].get("passengers_served", 0)
+				cargo_served = split[carrier.id].get("cargo_served", 0)
+
+			var capacity := RouteValidator.get_route_capacity(route, carrier, catalog)
+
 			route_summaries.append({
 				"route_id": route.id,
 				"revenue": revenue,
 				"operating_cost": op_cost,
+				"passengers_served": pax_served,
+				"cargo_served": cargo_served,
+				"passenger_capacity": capacity["passenger"],
+				"cargo_capacity": capacity["cargo"],
 			})
 
 			total_revenue += revenue["total_revenue"]

@@ -75,6 +75,22 @@ func _build_harness_state() -> Dictionary:
 			})
 		carrier_state["route_costs"] = route_costs
 
+		# Per-route performance from last turn financials
+		if last_turn_result != null and last_turn_result.financials.has(carrier.id):
+			var fin: Dictionary = last_turn_result.financials[carrier.id]
+			var route_perf: Array = []
+			for rs: Dictionary in fin.get("routes", []):
+				route_perf.append({
+					"route_id": rs.get("route_id", ""),
+					"passengers_served": rs.get("passengers_served", 0),
+					"cargo_served": rs.get("cargo_served", 0),
+					"passenger_capacity": rs.get("passenger_capacity", 0),
+					"cargo_capacity": rs.get("cargo_capacity", 0),
+					"total_revenue": rs.get("revenue", {}).get("total_revenue", 0.0),
+					"operating_cost": rs.get("operating_cost", 0.0),
+				})
+			carrier_state["route_performance"] = route_perf
+
 		state["carriers"][carrier.id] = carrier_state
 
 	if last_turn_result != null:

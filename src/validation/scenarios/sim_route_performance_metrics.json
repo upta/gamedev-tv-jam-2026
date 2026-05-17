@@ -1,0 +1,62 @@
+{
+  "scenario_id": "sim_route_performance_metrics",
+  "version": 3,
+  "description": "Verify per-route performance data (passengers served, cargo served, capacity, revenue) is populated after a turn with an active route",
+  "harness_scene": "res://validation/harnesses/simulation_harness.tscn",
+  "done_contract": {},
+  "artifact_contract": {
+    "required_files": ["summary.json", "event_log.json", "scene_tree.json", "console.log"],
+    "missing_file_is_failure": true
+  },
+  "exit_codes": {
+    "pass": 0,
+    "assertion_failure": 1,
+    "runtime_error": 2,
+    "timeout": 3,
+    "artifact_generation_error": 4
+  },
+  "cli_contract": {
+    "command_template": "godot --path <project> -- --test-mode --scenario <path> --artifacts <dir>"
+  },
+  "steps": [
+    { "op": "load_harness" },
+    { "op": "wait_frames", "frames": 3 },
+    { "op": "checkpoint", "name": "after_turns" },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_turns",
+      "path": "harness_state.carriers.player.route_count",
+      "comparator": "gte",
+      "expected": 1
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_turns",
+      "path": "harness_state.carriers.player.route_performance.0.passenger_capacity",
+      "comparator": "gt",
+      "expected": 0
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_turns",
+      "path": "harness_state.carriers.player.route_performance.0.cargo_capacity",
+      "comparator": "gt",
+      "expected": 0
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_turns",
+      "path": "harness_state.carriers.player.route_performance.0.total_revenue",
+      "comparator": "gt",
+      "expected": 0.0
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_turns",
+      "path": "harness_state.carriers.player.route_performance.0.passengers_served",
+      "comparator": "gt",
+      "expected": 0
+    },
+    { "op": "quit" }
+  ]
+}

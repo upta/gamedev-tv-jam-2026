@@ -15,6 +15,7 @@ var demand_table: DemandData = null
 var events: Array = []
 var rng: RandomNumberGenerator
 
+var last_turn_financials: Dictionary = {}  # carrier_id -> financial summary from last turn
 var _carrier_index: Dictionary = {}  # id -> CarrierData
 
 
@@ -25,6 +26,7 @@ func initialize(p_galaxy: GalaxyData, p_catalog: ShipCatalog, p_carriers: Array,
 	current_turn = 1
 	demand_table = DemandData.create_default_demand(p_galaxy)
 	events = []
+	last_turn_financials = {}
 	rng = RandomNumberGenerator.new()
 	if seed != 0:
 		rng.seed = seed
@@ -56,6 +58,7 @@ func _build_carrier_index() -> void:
 func advance_turn(intents: Array):
 	var pipeline_script = load("res://game/simulation/turn_pipeline.gd")
 	var result = pipeline_script.resolve_turn(self, intents)
+	last_turn_financials = result.financials
 	current_turn += 1
 	turn_resolved.emit(result.turn_number)
 	if result.game_over:
