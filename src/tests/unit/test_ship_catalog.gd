@@ -36,6 +36,7 @@ func test_get_type_returns_null_for_unknown() -> void:
 	var catalog := _make_mini_catalog()
 	var t := catalog.get_type("nonexistent")
 	assert_null(t, "Unknown type should return null")
+	assert_push_error("unknown ship type")
 
 
 # ---------------------------------------------------------------------------
@@ -120,18 +121,21 @@ func test_create_ship_instance_capacity_mismatch_returns_null() -> void:
 	var catalog := _make_mini_catalog()
 	var ship := catalog.create_ship_instance("test-ship", 10, 10, "owner1", 0)
 	assert_null(ship, "Capacity 10+10=20 != max_capacity 50 should fail")
+	assert_push_error("capacity split")
 
 
 func test_create_ship_instance_over_capacity_returns_null() -> void:
 	var catalog := _make_mini_catalog()
 	var ship := catalog.create_ship_instance("test-ship", 30, 30, "owner1", 0)
 	assert_null(ship, "Capacity 30+30=60 > max_capacity 50 should fail")
+	assert_push_error("capacity split")
 
 
 func test_create_ship_instance_unknown_type_returns_null() -> void:
 	var catalog := _make_mini_catalog()
 	var ship := catalog.create_ship_instance("no-such-type", 25, 25, "owner1", 0)
 	assert_null(ship, "Unknown type should return null")
+	assert_push_error("unknown ship type")
 
 
 # ---------------------------------------------------------------------------

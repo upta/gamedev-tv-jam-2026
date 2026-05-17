@@ -24,10 +24,29 @@
 - Expose game state through harness controllers using `get_observed_state()` returning `nodes`, `metrics`, and `signals`
 
 ## Definition of Done
+- **Godot launches clean.** Run `godot --headless --path src --quit` — must exit with no script errors.
+- **GUT unit tests pass.** Run `godot --headless --path src -s res://addons/gut/gut_cmdln.gd -gdir=res://tests/unit -gexit` — all tests green.
 - **Every gameplay code change requires validation scenarios.** If Builder ships code without scenarios, flag it and send it back.
 - **All scenarios must pass — new and existing.** Run the full suite (`run_all_scenarios.ps1`) after every change. New scenarios must be green. Existing scenarios must not regress. If anything fails, the feature is not done.
 - Humans play-test for fun, feel, and game design feedback — never for QA. A human should never find a bug that validation should have caught.
 - `git push origin` at the end of every work batch.
+
+## Running Tests
+The Godot executable is at: `C:\Users\upta\AppData\Roaming\godotenv\godot\bin\godot.exe`
+
+```powershell
+# Headless launch check
+godot --headless --path src --quit
+
+# GUT unit tests
+godot --headless --path src -s res://addons/gut/gut_cmdln.gd -gdir=res://tests/unit -gexit
+
+# Validation scenarios (single)
+./tools/run_scenario.ps1 -Scenario src/validation/scenarios/<name>.json -GodotExe "C:\Users\upta\AppData\Roaming\godotenv\godot\bin\godot.exe"
+
+# Validation scenarios (full suite)
+./tools/run_all_scenarios.ps1 -GodotExe "C:\Users\upta\AppData\Roaming\godotenv\godot\bin\godot.exe"
+```
 
 ## Scenario Contract Reference
 Scenarios are JSON files with these key step operations:

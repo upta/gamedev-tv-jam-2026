@@ -16,8 +16,6 @@ config/features=PackedStringArray("4.6")
 
 [autoload]
 
-GameState="*res://game/state/game_state.gd"
-
 [display]
 
 window/size/viewport_width=1280

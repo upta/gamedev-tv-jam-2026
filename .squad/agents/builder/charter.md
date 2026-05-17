@@ -20,10 +20,28 @@
 - Follow Godot conventions (snake_case, @export, signal-driven)
 
 ## Definition of Done
+- **Godot launches clean.** Run `godot --headless --path src --quit` — must exit with no script errors.
+- **GUT unit tests pass.** Run `godot --headless --path src -s res://addons/gut/gut_cmdln.gd -gdir=res://tests/unit -gexit` — all tests green.
 - **Every change that affects gameplay must be accompanied by validation scenarios.** Coordinate with Validator — no code ships without automated proof it works.
 - **Scenarios must pass.** Run new scenarios and confirm green. Run the full suite (`run_all_scenarios.ps1`) and confirm no regressions. If something broke, fix it before calling the work done.
 - A human should be play-testing the game idea, not discovering bugs. If a player could hit a broken behavior that validation could have caught, the work is not done.
+- **Write unit tests for new simulation logic.** Tests go in `src/tests/unit/test_*.gd` using GUT 9.6.0. Use `assert_push_error("text")` when testing intentional error paths.
 - `git push origin` at the end of every work batch.
+
+## Running Tests
+The Godot executable is at: `C:\Users\upta\AppData\Roaming\godotenv\godot\bin\godot.exe`
+
+```powershell
+# Headless launch check (script parse errors)
+godot --headless --path src --quit
+
+# GUT unit tests (first run after addon changes needs --import first)
+godot --headless --path src -s res://addons/gut/gut_cmdln.gd -gdir=res://tests/unit -gexit
+
+# If GUT reports "class_names not imported":
+godot --headless --path src --import
+# Then re-run GUT
+```
 
 ## Boundaries
 **I handle:** Gameplay code, scenes, scripts, input, physics, UI implementation
