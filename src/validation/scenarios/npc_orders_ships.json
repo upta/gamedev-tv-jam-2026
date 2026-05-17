@@ -1,0 +1,34 @@
+{
+  "scenario_id": "npc_orders_ships",
+  "version": 3,
+  "description": "After 10 turns at least 1 NPC has ordered additional ships",
+  "harness_scene": "res://validation/harnesses/game_session_harness.tscn",
+  "done_contract": {},
+  "artifact_contract": {
+    "required_files": ["summary.json", "event_log.json", "scene_tree.json", "console.log"],
+    "missing_file_is_failure": true
+  },
+  "exit_codes": {
+    "pass": 0,
+    "assertion_failure": 1,
+    "runtime_error": 2,
+    "timeout": 3,
+    "artifact_generation_error": 4
+  },
+  "cli_contract": {
+    "command_template": "godot --path <project> -- --test-mode --scenario <path> --artifacts <dir>"
+  },
+  "steps": [
+    { "op": "load_harness" },
+    { "op": "wait_frames", "frames": 10 },
+    { "op": "checkpoint", "name": "after_10" },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_10",
+      "path": "harness_state.metrics.total_ships_in_play",
+      "comparator": "gt",
+      "expected": 4
+    },
+    { "op": "quit" }
+  ]
+}
