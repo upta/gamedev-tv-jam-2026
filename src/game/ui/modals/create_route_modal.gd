@@ -15,6 +15,7 @@ var _content: VBoxContainer
 # Edit mode
 var _edit_mode: bool = false
 var _editing_route: CarrierData.Route = null
+var _editing_route_overrides: Dictionary = {}
 
 # Form state
 var _origin_id: String = ""
@@ -69,9 +70,25 @@ func open_for_edit(route: CarrierData.Route) -> void:
 	_origin_id = route.origin_id
 	_dest_id = route.dest_id
 	_selected_ship_ids = route.ship_ids.duplicate()
+
+	# If a pending modification exists, use those values instead of committed state
+	var pending_mod := _find_pending_modification(route.id)
+	if pending_mod.size() > 0:
+		_selected_ship_ids = pending_mod["ship_ids"].duplicate() if pending_mod.has("ship_ids") else _selected_ship_ids
+		_editing_route_overrides = pending_mod
+
 	set_title("Edit Route")
 	super.open()
 	_rebuild_form()
+
+
+func _find_pending_modification(route_id: String) -> Dictionary:
+	if _player_controller == null:
+		return {}
+	for mod: Dictionary in _player_controller.pending_intent.route_modifications:
+		if mod.get("route_id", "") == route_id:
+			return mod
+	return {}
 
 
 func close() -> void:
@@ -188,7 +205,12 @@ func _rebuild_route_details(carrier: CarrierData) -> void:
 
 	# Flights per month — max depends on selected ships
 	var max_freq := _compute_max_frequency()
-	var freq_default: int = _editing_route.frequency if _edit_mode and _editing_route else 1
+	var freq_default: int = 1
+	if _edit_mode:
+		if _editing_route_overrides.has("frequency"):
+			freq_default = _editing_route_overrides["frequency"]
+		elif _editing_route:
+			freq_default = _editing_route.frequency
 	var freq_row := _create_label_spinbox("Flights per Month:", 1, maxi(max_freq, 1), 1, mini(freq_default, maxi(max_freq, 1)))
 	_details_section.add_child(freq_row)
 	_freq_spin = freq_row.get_child(1)
@@ -201,9 +223,21 @@ func _rebuild_route_details(carrier: CarrierData) -> void:
 	freq_row.add_child(freq_max_label)
 
 	# Pricing
-	var pax_default := int(roundf(_editing_route.passenger_price)) if _edit_mode and _editing_route else int(roundf(suggested_pax))
+	var pax_default: int
+	if _edit_mode and _editing_route_overrides.has("passenger_price"):
+		pax_default = int(roundf(_editing_route_overrides["passenger_price"]))
+	elif _edit_mode and _editing_route:
+		pax_default = int(roundf(_editing_route.passenger_price))
+	else:
+		pax_default = int(roundf(suggested_pax))
 	var pax_max := int(10 * ceilf(suggested_pax))
-	var cargo_default := int(roundf(_editing_route.cargo_price)) if _edit_mode and _editing_route else int(roundf(suggested_cargo))
+	var cargo_default: int
+	if _edit_mode and _editing_route_overrides.has("cargo_price"):
+		cargo_default = int(roundf(_editing_route_overrides["cargo_price"]))
+	elif _edit_mode and _editing_route:
+		cargo_default = int(roundf(_editing_route.cargo_price))
+	else:
+		cargo_default = int(roundf(suggested_cargo))
 	var cargo_max := int(10 * ceilf(suggested_cargo))
 
 	var pax_row := _create_label_spinbox("Passenger Price:", 1, pax_max, 1, pax_default)
@@ -552,6 +586,7 @@ func _reset_form() -> void:
 	_origin_id = ""
 	_dest_id = ""
 	_selected_ship_ids.clear()
+	_editing_route_overrides = {}
 
 
 func _get_planet_display_name(planet_id: String) -> String:
