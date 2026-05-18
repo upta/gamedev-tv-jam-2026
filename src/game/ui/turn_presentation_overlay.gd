@@ -159,24 +159,35 @@ func _build_player_content(summary: TurnSummaryBuilder.CarrierTurnSummary) -> St
 			# Deltas from previous turn
 			var pax_delta_str := ""
 			var cargo_delta_str := ""
+			var profit_delta_str := ""
 			if _prev_financials.has(_player_id):
 				var prev_routes: Array = _prev_financials[_player_id].get("routes", [])
 				for prev_rs: Dictionary in prev_routes:
 					if prev_rs.get("route_id", "") == rf.get("route_id", ""):
 						var prev_pax: int = prev_rs.get("passengers_served", 0)
 						var prev_cargo: int = prev_rs.get("cargo_served", 0)
+						var prev_rev_dict: Dictionary = prev_rs.get("revenue", {})
+						var prev_revenue: float = prev_rev_dict.get("total_revenue", 0.0)
+						var prev_cost: float = prev_rs.get("operating_cost", 0.0)
+						var prev_profit: float = prev_revenue - prev_cost
 						var pax_diff: int = rf.get("pax_served", 0) - prev_pax
 						var cargo_diff: int = rf.get("cargo_served", 0) - prev_cargo
+						var profit_diff: float = rf.get("profit", 0.0) - prev_profit
 						if pax_diff != 0:
 							pax_delta_str = " (%s%d)" % ["+" if pax_diff > 0 else "", pax_diff]
 						if cargo_diff != 0:
 							cargo_delta_str = " (%s%d)" % ["+" if cargo_diff > 0 else "", cargo_diff]
+						if absf(profit_diff) >= 1.0:
+							var delta_color := "green" if profit_diff > 0 else "red"
+							profit_delta_str = " [color=%s](%s§%.0f)[/color]" % [
+								delta_color, "+" if profit_diff > 0 else "", profit_diff,
+							]
 						break
 
 			var profit: float = rf.get("profit", 0.0)
 			var profit_color := "green" if profit >= 0 else "red"
-			var profit_str := "[color=%s]%s§%.0f[/color]" % [
-				profit_color, "+" if profit >= 0 else "-", absf(profit),
+			var profit_str := "[color=%s]%s§%.0f[/color]%s" % [
+				profit_color, "+" if profit >= 0 else "-", absf(profit), profit_delta_str,
 			]
 
 			lines.append("[indent]%s → %s    %s%s  %s%s  Profit: %s[/indent]" % [
