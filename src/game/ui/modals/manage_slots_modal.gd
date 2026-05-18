@@ -1,7 +1,7 @@
 class_name ManageSlotsModal
 extends ModalDialog
 
-## Modal for bidding on or selling planet slots.
+## Modal showing a flat table of all planets with inline Buy/Sell buttons.
 ## Opened from SlotsModal via "Buy/Sell Slots" button.
 
 signal slot_action_submitted
@@ -11,13 +11,14 @@ var _game_state: GameState
 var _content: VBoxContainer
 var _selected_planet_id: String = ""
 
-# Form controls
-var _planet_selector: OptionButton
-var _bid_section: VBoxContainer
-var _sell_section: VBoxContainer
-var _qty_spin: SpinBox
-var _price_spin: SpinBox
-var _sell_spin: SpinBox
+# Popup controls
+var _popup_overlay: PanelContainer
+var _popup_title: Label
+var _popup_qty_spin: SpinBox
+var _popup_price_row: HBoxContainer
+var _popup_price_spin: SpinBox
+var _popup_mode: String = ""  # "buy" or "sell"
+var _popup_planet_id: String = ""
 
 
 func _ready() -> void:
@@ -37,126 +38,206 @@ func bind(player_controller: PlayerController, game_state: GameState) -> void:
 
 func open() -> void:
 	_selected_planet_id = ""
+	_popup_mode = ""
+	_popup_planet_id = ""
 	super.open()
-	_rebuild_form()
+	_rebuild_table()
 
 
 # ---------------------------------------------------------------------------
-# Form Building
+# Table Building
 # ---------------------------------------------------------------------------
 
-func _rebuild_form() -> void:
+func _rebuild_table() -> void:
 	if _content == null or _game_state == null:
 		return
 	for child: Node in _content.get_children():
 		child.queue_free()
 
-	_build_planet_selector()
-	_bid_section = VBoxContainer.new()
-	_content.add_child(_bid_section)
-	_sell_section = VBoxContainer.new()
-	_content.add_child(_sell_section)
-	_update_action_sections()
+	_build_header()
+	_build_planet_rows()
+	_build_popup()
+	_build_close_button()
 
 
-func _build_planet_selector() -> void:
-	var header := Label.new()
-	header.text = "Select Planet"
+func _build_header() -> void:
+	var header := HBoxContainer.new()
+
+	var h_planet := Label.new()
+	h_planet.text = "Planet"
+	h_planet.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	h_planet.custom_minimum_size.x = 180
+	header.add_child(h_planet)
+
+	var h_avail := Label.new()
+	h_avail.text = "Available / Total"
+	h_avail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	h_avail.custom_minimum_size.x = 130
+	header.add_child(h_avail)
+
+	var h_owned := Label.new()
+	h_owned.text = "You Own"
+	h_owned.custom_minimum_size.x = 70
+	header.add_child(h_owned)
+
+	var h_actions := Label.new()
+	h_actions.text = "Actions"
+	h_actions.custom_minimum_size.x = 120
+	header.add_child(h_actions)
+
 	_content.add_child(header)
 	_content.add_child(HSeparator.new())
 
-	_planet_selector = OptionButton.new()
-	_planet_selector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_planet_selector.add_item("— Select a planet —", 0)
-	_planet_selector.set_item_metadata(0, "")
 
-	var idx := 1
+func _build_planet_rows() -> void:
+	var carrier := _game_state.get_player_carrier()
 	for planet: GalaxyData.Planet in _game_state.galaxy.planets:
 		var available := _calc_available_slots(planet.id)
-		var text := "%s (%s) — %d/%d slots" % [planet.name, planet.system, available, planet.total_slots]
-		_planet_selector.add_item(text, idx)
-		_planet_selector.set_item_metadata(idx, planet.id)
-		idx += 1
+		var owned := carrier.get_slot_count(planet.id)
 
-	_planet_selector.item_selected.connect(_on_planet_selected)
-	_content.add_child(_planet_selector)
+		var row := HBoxContainer.new()
 
-	if _selected_planet_id != "":
-		for i in _planet_selector.item_count:
-			if _planet_selector.get_item_metadata(i) == _selected_planet_id:
-				_planet_selector.select(i)
-				break
+		var name_label := Label.new()
+		name_label.text = "%s (%s)" % [planet.name, planet.system]
+		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_label.custom_minimum_size.x = 180
+		row.add_child(name_label)
 
+		var avail_label := Label.new()
+		avail_label.text = "%d available / %d total" % [available, planet.total_slots]
+		avail_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		avail_label.custom_minimum_size.x = 130
+		row.add_child(avail_label)
 
-func _update_action_sections() -> void:
-	for child in _bid_section.get_children():
-		child.queue_free()
-	for child in _sell_section.get_children():
-		child.queue_free()
+		var owned_label := Label.new()
+		owned_label.text = str(owned)
+		owned_label.custom_minimum_size.x = 70
+		row.add_child(owned_label)
 
-	if _selected_planet_id == "":
-		return
+		var btn_box := HBoxContainer.new()
+		btn_box.custom_minimum_size.x = 120
 
-	var planet: GalaxyData.Planet = _game_state.galaxy.get_planet(_selected_planet_id)
-	if not planet:
-		return
-
-	var available := _calc_available_slots(_selected_planet_id)
-	var carrier := _game_state.get_player_carrier()
-	var owned := carrier.get_slot_count(_selected_planet_id)
-	var used := carrier.get_slots_used_by_routes(_selected_planet_id)
-
-	# --- Bid section ---
-	var bid_header := Label.new()
-	bid_header.text = "— Bid for Slots —"
-	_bid_section.add_child(bid_header)
-
-	var avail_label := Label.new()
-	avail_label.text = "Available on planet: %d slots" % available
-	_bid_section.add_child(avail_label)
-
-	var max_bid := planet.total_slots if available <= 0 else maxi(available, 1)
-	var qty_row := _create_label_spinbox("Quantity:", 1, max_bid, 1, 1)
-	_qty_spin = qty_row.get_child(1) as SpinBox
-	_bid_section.add_child(qty_row)
-
-	var price_row := _create_label_spinbox("Price per slot:", 50, 10000, 1, 50)
-	_price_spin = price_row.get_child(1) as SpinBox
-	_bid_section.add_child(price_row)
-
-	var bid_btn := Button.new()
-	bid_btn.text = "Submit Bid"
-	bid_btn.pressed.connect(_on_submit_bid)
-	_bid_section.add_child(bid_btn)
-
-	# --- Sell section ---
-	if owned > 0:
-		var sell_header := Label.new()
-		sell_header.text = "— Sell Slots —"
-		_sell_section.add_child(sell_header)
-
-		var own_label := Label.new()
-		own_label.text = "You own: %d slots (%d used by routes)" % [owned, used]
-		_sell_section.add_child(own_label)
-
-		var sell_row := _create_label_spinbox("Count:", 1, owned, 1, 1)
-		_sell_spin = sell_row.get_child(1) as SpinBox
-		_sell_section.add_child(sell_row)
+		var buy_btn := Button.new()
+		buy_btn.text = "Buy"
+		buy_btn.pressed.connect(_on_buy_pressed.bind(planet.id))
+		btn_box.add_child(buy_btn)
 
 		var sell_btn := Button.new()
-		sell_btn.text = "Sell Slots"
-		sell_btn.pressed.connect(_on_sell_slots)
-		_sell_section.add_child(sell_btn)
+		sell_btn.text = "Sell"
+		sell_btn.disabled = owned <= 0
+		sell_btn.pressed.connect(_on_sell_pressed.bind(planet.id))
+		btn_box.add_child(sell_btn)
 
-	# --- Bottom buttons ---
+		row.add_child(btn_box)
+		_content.add_child(row)
+
+
+func _build_popup() -> void:
+	_popup_overlay = PanelContainer.new()
+	_popup_overlay.visible = false
+	_popup_overlay.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 8)
+
+	_popup_title = Label.new()
+	vbox.add_child(_popup_title)
+	vbox.add_child(HSeparator.new())
+
+	# Quantity
+	var qty_row := HBoxContainer.new()
+	var qty_label := Label.new()
+	qty_label.text = "Quantity:"
+	qty_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	qty_row.add_child(qty_label)
+	_popup_qty_spin = SpinBox.new()
+	_popup_qty_spin.min_value = 1
+	_popup_qty_spin.max_value = 1
+	_popup_qty_spin.step = 1
+	_popup_qty_spin.value = 1
+	_popup_qty_spin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	qty_row.add_child(_popup_qty_spin)
+	vbox.add_child(qty_row)
+
+	# Price (buy only)
+	_popup_price_row = HBoxContainer.new()
+	var price_label := Label.new()
+	price_label.text = "Price per slot:"
+	price_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_popup_price_row.add_child(price_label)
+	_popup_price_spin = SpinBox.new()
+	_popup_price_spin.min_value = 50
+	_popup_price_spin.max_value = 10000
+	_popup_price_spin.step = 1
+	_popup_price_spin.value = 50
+	_popup_price_spin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_popup_price_row.add_child(_popup_price_spin)
+	vbox.add_child(_popup_price_row)
+
+	# Confirm / Cancel
+	var btn_row := HBoxContainer.new()
+	btn_row.alignment = BoxContainer.ALIGNMENT_END
+	var confirm_btn := Button.new()
+	confirm_btn.text = "Confirm"
+	confirm_btn.pressed.connect(_on_popup_confirm)
+	btn_row.add_child(confirm_btn)
+	var cancel_btn := Button.new()
+	cancel_btn.text = "Cancel"
+	cancel_btn.pressed.connect(_on_popup_cancel)
+	btn_row.add_child(cancel_btn)
+	vbox.add_child(btn_row)
+
+	_popup_overlay.add_child(vbox)
+	_content.add_child(_popup_overlay)
+
+
+func _build_close_button() -> void:
 	_content.add_child(HSeparator.new())
 	var btn_row := HBoxContainer.new()
 	btn_row.alignment = BoxContainer.ALIGNMENT_END
-	var cancel_btn := Button.new()
-	cancel_btn.text = "Close"
-	cancel_btn.pressed.connect(close)
-	btn_row.add_child(cancel_btn)
+	var close_btn := Button.new()
+	close_btn.text = "Close"
+	close_btn.pressed.connect(close)
+	btn_row.add_child(close_btn)
 	_content.add_child(btn_row)
+
+
+# ---------------------------------------------------------------------------
+# Popup Logic
+# ---------------------------------------------------------------------------
+
+func _show_buy_popup(planet_id: String) -> void:
+	var planet := _game_state.galaxy.get_planet(planet_id)
+	if not planet:
+		return
+	_popup_mode = "buy"
+	_popup_planet_id = planet_id
+	var available := _calc_available_slots(planet_id)
+
+	_popup_title.text = "Buy Slots — %s" % planet.name
+	_popup_qty_spin.max_value = maxi(available, 1)
+	_popup_qty_spin.value = 1
+	_popup_price_row.visible = true
+	_popup_price_spin.value = 50
+	_popup_overlay.visible = true
+
+
+func _show_sell_popup(planet_id: String) -> void:
+	var carrier := _game_state.get_player_carrier()
+	var owned := carrier.get_slot_count(planet_id)
+	if owned <= 0:
+		return
+	var planet := _game_state.galaxy.get_planet(planet_id)
+	if not planet:
+		return
+	_popup_mode = "sell"
+	_popup_planet_id = planet_id
+
+	_popup_title.text = "Sell Slots — %s" % planet.name
+	_popup_qty_spin.max_value = owned
+	_popup_qty_spin.value = 1
+	_popup_price_row.visible = false
+	_popup_overlay.visible = true
 
 
 # ---------------------------------------------------------------------------
@@ -173,45 +254,36 @@ func _calc_available_slots(planet_id: String) -> int:
 	return planet.total_slots - used
 
 
-func _create_label_spinbox(label_text: String, min_val: float, max_val: float, step: float, default_val: float) -> HBoxContainer:
-	var row := HBoxContainer.new()
-	var label := Label.new()
-	label.text = label_text
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(label)
-	var spin := SpinBox.new()
-	spin.min_value = min_val
-	spin.max_value = max_val
-	spin.step = step
-	spin.value = default_val
-	spin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(spin)
-	return row
-
-
 # ---------------------------------------------------------------------------
 # Callbacks
 # ---------------------------------------------------------------------------
 
-func _on_planet_selected(index: int) -> void:
-	_selected_planet_id = _planet_selector.get_item_metadata(index)
-	_rebuild_form()
+func _on_buy_pressed(planet_id: String) -> void:
+	_selected_planet_id = planet_id
+	_show_buy_popup(planet_id)
 
 
-func _on_submit_bid() -> void:
-	if _selected_planet_id == "" or not _qty_spin or not _price_spin:
-		return
-	_player_controller.add_slot_bid(_selected_planet_id, int(_qty_spin.value), _price_spin.value)
+func _on_sell_pressed(planet_id: String) -> void:
+	_selected_planet_id = planet_id
+	_show_sell_popup(planet_id)
+
+
+func _on_popup_confirm() -> void:
+	if _popup_mode == "buy":
+		_player_controller.add_slot_bid(
+			_popup_planet_id, int(_popup_qty_spin.value), _popup_price_spin.value
+		)
+	elif _popup_mode == "sell":
+		_player_controller.add_slot_sale(_popup_planet_id, int(_popup_qty_spin.value))
+	_popup_overlay.visible = false
+	_popup_mode = ""
 	slot_action_submitted.emit()
 	close()
 
 
-func _on_sell_slots() -> void:
-	if _selected_planet_id == "" or not _sell_spin:
-		return
-	_player_controller.add_slot_sale(_selected_planet_id, int(_sell_spin.value))
-	slot_action_submitted.emit()
-	close()
+func _on_popup_cancel() -> void:
+	_popup_overlay.visible = false
+	_popup_mode = ""
 
 
 # ---------------------------------------------------------------------------
@@ -219,24 +291,35 @@ func _on_sell_slots() -> void:
 # ---------------------------------------------------------------------------
 
 func get_form_state() -> Dictionary:
+	var planet_count := _game_state.galaxy.planets.size() if _game_state else 0
 	return {
 		"selected_planet_id": _selected_planet_id,
-		"bid_quantity": int(_qty_spin.value) if _qty_spin else 0,
-		"bid_price": _price_spin.value if _price_spin else 0.0,
-		"sell_count": int(_sell_spin.value) if _sell_spin else 0,
-		"planet_count": _planet_selector.item_count - 1 if _planet_selector else 0,
+		"popup_mode": _popup_mode,
+		"popup_planet_id": _popup_planet_id,
+		"bid_quantity": int(_popup_qty_spin.value) if _popup_qty_spin and _popup_mode == "buy" else 0,
+		"bid_price": _popup_price_spin.value if _popup_price_spin and _popup_mode == "buy" else 0.0,
+		"sell_count": int(_popup_qty_spin.value) if _popup_qty_spin and _popup_mode == "sell" else 0,
+		"planet_count": planet_count,
 	}
 
 
 func select_planet(index: int) -> void:
-	if _planet_selector and index >= 0 and index < _planet_selector.item_count - 1:
-		_planet_selector.select(index + 1)  # +1 because index 0 is placeholder
-		_on_planet_selected(index + 1)
+	if _game_state == null:
+		return
+	var planets := _game_state.galaxy.planets
+	if index >= 0 and index < planets.size():
+		_selected_planet_id = planets[index].id
 
 
 func confirm_bid() -> void:
-	_on_submit_bid()
+	if _selected_planet_id == "":
+		return
+	_show_buy_popup(_selected_planet_id)
+	_on_popup_confirm()
 
 
 func confirm_sell() -> void:
-	_on_sell_slots()
+	if _selected_planet_id == "":
+		return
+	_show_sell_popup(_selected_planet_id)
+	_on_popup_confirm()
