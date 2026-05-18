@@ -6,8 +6,8 @@ extends CanvasLayer
 
 signal presentation_complete
 
-const LINE_REVEAL_DELAY: float = 1.0
-const POST_REVEAL_DELAY: float = 1.5
+const LINE_REVEAL_DELAY: float = 0.75
+const POST_REVEAL_DELAY: float = 1.2
 
 var _summaries: Dictionary = {}
 var _player_id: String = ""
@@ -74,6 +74,22 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			if _showing_player_summary:
 				_finish()
+
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		get_viewport().set_input_as_handled()
+		if _showing_player_summary:
+			_finish()
+		elif _pending_lines.size() > 0:
+			# Reveal next line immediately on click
+			_revealed_lines.append(_pending_lines.pop_front())
+			_content.text = "\n".join(_revealed_lines)
+			_line_timer = LINE_REVEAL_DELAY
+		elif not _all_lines_revealed:
+			# Skip post-reveal wait
+			_all_lines_revealed = true
+			_line_timer = 0.0
+		else:
+			_advance_npc()
 
 
 func present_turn(summaries: Dictionary, player_id: String, game_state: GameState = null, prev_financials: Dictionary = {}) -> void:
