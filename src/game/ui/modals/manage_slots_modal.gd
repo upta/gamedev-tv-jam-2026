@@ -8,7 +8,8 @@ signal slot_action_submitted
 
 var _player_controller: PlayerController
 var _game_state: GameState
-var _content: VBoxContainer
+var _outer_vbox: VBoxContainer
+var _scroll_content: VBoxContainer
 var _selected_planet_id: String = ""
 
 # Popup controls
@@ -24,11 +25,22 @@ var _popup_planet_id: String = ""
 func _ready() -> void:
 	super._ready()
 	set_title("Buy / Sell Slots")
+
 	var scroll: ScrollContainer = _content_container.get_child(0)
-	_content = VBoxContainer.new()
-	_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.add_child(_content)
+	_content_container.remove_child(scroll)
+
+	_outer_vbox = VBoxContainer.new()
+	_outer_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_outer_vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_content_container.add_child(_outer_vbox)
+
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_outer_vbox.add_child(scroll)
+
+	_scroll_content = VBoxContainer.new()
+	_scroll_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_scroll_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.add_child(_scroll_content)
 
 
 func bind(player_controller: PlayerController, game_state: GameState) -> void:
@@ -49,10 +61,13 @@ func open() -> void:
 # ---------------------------------------------------------------------------
 
 func _rebuild_table() -> void:
-	if _content == null or _game_state == null:
+	if _scroll_content == null or _game_state == null:
 		return
-	for child: Node in _content.get_children():
+	for child: Node in _scroll_content.get_children():
 		child.queue_free()
+	# Remove popup and close button from outer_vbox (keep scroll at index 0)
+	for i in range(_outer_vbox.get_child_count() - 1, 0, -1):
+		_outer_vbox.get_child(i).queue_free()
 
 	_build_header()
 	_build_planet_rows()
@@ -85,8 +100,8 @@ func _build_header() -> void:
 	h_actions.custom_minimum_size.x = 120
 	header.add_child(h_actions)
 
-	_content.add_child(header)
-	_content.add_child(HSeparator.new())
+	_scroll_content.add_child(header)
+	_scroll_content.add_child(HSeparator.new())
 
 
 func _build_planet_rows() -> void:
@@ -129,7 +144,7 @@ func _build_planet_rows() -> void:
 		btn_box.add_child(sell_btn)
 
 		row.add_child(btn_box)
-		_content.add_child(row)
+		_scroll_content.add_child(row)
 
 
 func _build_popup() -> void:
@@ -188,18 +203,18 @@ func _build_popup() -> void:
 	vbox.add_child(btn_row)
 
 	_popup_overlay.add_child(vbox)
-	_content.add_child(_popup_overlay)
+	_outer_vbox.add_child(_popup_overlay)
 
 
 func _build_close_button() -> void:
-	_content.add_child(HSeparator.new())
+	_outer_vbox.add_child(HSeparator.new())
 	var btn_row := HBoxContainer.new()
 	btn_row.alignment = BoxContainer.ALIGNMENT_END
 	var close_btn := Button.new()
 	close_btn.text = "Close"
 	close_btn.pressed.connect(close)
 	btn_row.add_child(close_btn)
-	_content.add_child(btn_row)
+	_outer_vbox.add_child(btn_row)
 
 
 # ---------------------------------------------------------------------------
