@@ -4,7 +4,6 @@ extends Control
 ## Visual galaxy map showing planets and active carrier routes.
 
 signal planet_selected(planet_id: String)
-signal lane_selected(lane_id: String, origin_id: String, dest_id: String)
 
 const CARRIER_COLORS := {
 	"player": Color(0.2, 0.6, 1.0),
@@ -25,8 +24,10 @@ var _planet_nodes: Dictionary = {}   # { planet_id: Area2D (PlanetNode) }
 var _route_lines: Array = []         # drawn route overlay Line2Ds
 var _selected_planet_id: String = ""
 var _planet_positions: Dictionary = {}  # { planet_id: Vector2 } in pixel space
+var _planet_radii: Dictionary = {}     # { planet_id: float } for hit detection
 var _hover_panel: PanelContainer = null
 var _hover_label: RichTextLabel = null
+var _hovered_planet_id: String = ""
 
 @onready var _map_content: Node2D = $MapContent
 
@@ -86,6 +87,9 @@ func _build_map() -> void:
 	for planet: GalaxyData.Planet in galaxy.planets:
 		_planet_positions[planet.id] = planet.position * map_scale + map_offset
 
+	# Separation pass: push overlapping planets apart within each system
+	_resolve_planet_overlap(galaxy, viewport_size)
+
 	# Planets
 	for planet: GalaxyData.Planet in galaxy.planets:
 		var planet_node: Area2D = _PlanetNodeScene.instantiate()
@@ -93,14 +97,51 @@ func _build_map() -> void:
 		planet_node.position = pos
 		_map_content.add_child(planet_node)
 		planet_node.setup(planet)
-		planet_node.clicked.connect(_on_planet_clicked)
-		planet_node.hovered.connect(_on_planet_hovered)
-		planet_node.unhovered.connect(_on_planet_unhovered)
+		_planet_radii[planet.id] = planet_node.get_radius()
 		_planet_nodes[planet.id] = planet_node
 
 	# Initial data pass
 	_update_slot_indicators()
 	_update_route_overlays()
+
+
+func _resolve_planet_overlap(galaxy: GalaxyData, viewport_size: Vector2) -> void:
+	# Group planets by system
+	var systems: Dictionary = {}
+	for planet: GalaxyData.Planet in galaxy.planets:
+		if not systems.has(planet.system):
+			systems[planet.system] = []
+		systems[planet.system].append(planet.id)
+
+	var min_separation := 55.0  # Minimum pixels between planet centers (radius + label clearance)
+
+	# Iterative repulsion within each system
+	for _iteration: int in range(8):
+		for system_id: String in systems:
+			var planet_ids: Array = systems[system_id]
+			for i: int in range(planet_ids.size()):
+				for j: int in range(i + 1, planet_ids.size()):
+					var id_a: String = planet_ids[i]
+					var id_b: String = planet_ids[j]
+					var pos_a: Vector2 = _planet_positions[id_a]
+					var pos_b: Vector2 = _planet_positions[id_b]
+					var dist: float = pos_a.distance_to(pos_b)
+					if dist < min_separation:
+						var direction: Vector2
+						if dist < 0.1:
+							direction = Vector2(1, 0)  # arbitrary push if perfectly overlapping
+						else:
+							direction = (pos_b - pos_a).normalized()
+						var push: float = (min_separation - dist) * 0.5
+						_planet_positions[id_a] = pos_a - direction * push
+						_planet_positions[id_b] = pos_b + direction * push
+
+	# Clamp all positions within viewport bounds
+	for planet_id: String in _planet_positions:
+		var pos: Vector2 = _planet_positions[planet_id]
+		pos.x = clampf(pos.x, MAP_PADDING * 0.5, viewport_size.x - MAP_PADDING * 0.5)
+		pos.y = clampf(pos.y, MAP_PADDING * 0.5, viewport_size.y - MAP_PADDING * 0.5)
+		_planet_positions[planet_id] = pos
 
 
 func _update_route_overlays() -> void:
@@ -161,6 +202,55 @@ func _update_slot_indicators() -> void:
 		planet_node.update_slots(slot_owners)
 
 
+func _gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
+			var planet_id := _get_planet_at(mb.position)
+			if planet_id != "":
+				_on_planet_clicked(planet_id)
+				accept_event()
+	elif event is InputEventMouseMotion:
+		var motion := event as InputEventMouseMotion
+		var planet_id := _get_planet_at(motion.position)
+		_update_hover(planet_id, motion.position)
+
+
+func _get_planet_at(pos: Vector2) -> String:
+	# Check which planet circle contains the position (closest if overlapping)
+	var best_id := ""
+	var best_dist := INF
+	for planet_id: String in _planet_positions:
+		var planet_pos: Vector2 = _planet_positions[planet_id]
+		var radius: float = _planet_radii.get(planet_id, 12.0)
+		var dist: float = pos.distance_to(planet_pos)
+		if dist <= radius + 4.0 and dist < best_dist:  # small tolerance for easier targeting
+			best_dist = dist
+			best_id = planet_id
+	return best_id
+
+
+func _update_hover(planet_id: String, mouse_pos: Vector2) -> void:
+	if planet_id == _hovered_planet_id:
+		# Same planet — just reposition panel
+		if planet_id != "" and _hover_panel and _hover_panel.visible:
+			_position_hover_panel(mouse_pos)
+		return
+	# Changed planets
+	if _hovered_planet_id != "":
+		_on_planet_unhovered()
+	_hovered_planet_id = planet_id
+	if planet_id != "":
+		_on_planet_hovered(planet_id, mouse_pos)
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_MOUSE_EXIT:
+		if _hovered_planet_id != "":
+			_hovered_planet_id = ""
+			_on_planet_unhovered()
+
+
 func _on_planet_clicked(planet_id: String) -> void:
 	# Deselect previous planet
 	if _selected_planet_id != "" and _selected_planet_id != planet_id:
@@ -210,7 +300,7 @@ func _build_hover_panel() -> void:
 	add_child(_hover_panel)
 
 
-func _on_planet_hovered(planet_id: String) -> void:
+func _on_planet_hovered(planet_id: String, mouse_pos: Vector2) -> void:
 	if _hover_panel == null or _game_state == null:
 		return
 
@@ -283,38 +373,35 @@ func _on_planet_hovered(planet_id: String) -> void:
 
 	_hover_label.text = text
 	_hover_panel.visible = true
-
-	# Position near the planet, clamped to viewport
-	var planet_pos: Vector2 = _planet_positions.get(planet_id, Vector2.ZERO)
-	await get_tree().process_frame
-	_position_hover_panel(planet_pos)
+	_hover_panel.size = Vector2.ZERO  # Force panel to resize to content
+	_position_hover_panel(mouse_pos)
 
 
-func _position_hover_panel(planet_pos: Vector2) -> void:
+func _position_hover_panel(anchor_pos: Vector2) -> void:
 	if _hover_panel == null or not _hover_panel.visible:
 		return
 	var panel_size: Vector2 = _hover_panel.size
 	var viewport_size: Vector2 = size if size.x > 0 and size.y > 0 else MAP_DEFAULT_SIZE
 
-	# Default: offset to the right and slightly above
-	var pos := planet_pos + Vector2(16, -panel_size.y * 0.5)
+	# Default: offset to the right and slightly above the mouse
+	var pos := anchor_pos + Vector2(16, -panel_size.y - 8)
 
 	# Clamp right edge
 	if pos.x + panel_size.x > viewport_size.x:
-		pos.x = planet_pos.x - panel_size.x - 16
+		pos.x = anchor_pos.x - panel_size.x - 16
 	# Clamp left edge
 	if pos.x < 0:
 		pos.x = 0
+	# Clamp top edge
+	if pos.y < 0:
+		pos.y = anchor_pos.y + 16
 	# Clamp bottom edge
 	if pos.y + panel_size.y > viewport_size.y:
 		pos.y = viewport_size.y - panel_size.y
-	# Clamp top edge
-	if pos.y < 0:
-		pos.y = 0
 
 	_hover_panel.position = pos
 
 
-func _on_planet_unhovered(_planet_id: String) -> void:
+func _on_planet_unhovered() -> void:
 	if _hover_panel:
 		_hover_panel.visible = false

@@ -3,10 +3,6 @@ extends Area2D
 
 ## Interactive planet marker on the star map.
 
-signal clicked(planet_id: String)
-signal hovered(planet_id: String)
-signal unhovered(planet_id: String)
-
 const SYSTEM_COLORS := {
 	"sol": Color(0.3, 0.5, 1.0),
 	"alpha_centauri": Color(0.3, 0.9, 0.4),
@@ -44,10 +40,9 @@ func setup(planet: GalaxyData.Planet) -> void:
 
 	_label.text = planet_name
 	_label.position = Vector2(-_label.size.x * 0.5, _get_radius() + 2.0)
+	_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-	input_pickable = true
-	mouse_entered.connect(_on_mouse_entered)
-	mouse_exited.connect(_on_mouse_exited)
+	input_pickable = false
 	queue_redraw()
 
 
@@ -90,21 +85,9 @@ func _draw() -> void:
 			draw_circle(dot_pos, SLOT_DOT_RADIUS, _slot_indicators[i]["color"])
 
 
-func _input_event(_viewport: Viewport, event: InputEvent, _shape_idx: int) -> void:
-	if event is InputEventMouseButton:
-		var mb := event as InputEventMouseButton
-		if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
-			clicked.emit(planet_id)
-			get_viewport().set_input_as_handled()
+func get_radius() -> float:
+	return _get_radius()
 
 
 func _get_radius() -> float:
 	return 8.0 + total_slots * 1.2
-
-
-func _on_mouse_entered() -> void:
-	hovered.emit(planet_id)
-
-
-func _on_mouse_exited() -> void:
-	unhovered.emit(planet_id)
