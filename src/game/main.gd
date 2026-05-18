@@ -27,6 +27,10 @@ var _skip_presentation: bool = false
 func _ready() -> void:
 	_player_controller = PlayerController.new()
 	_session = GameSetup.create_player_session(_player_controller)
+	_player_controller.bind_carrier(
+		_session.game_state.get_carrier(_carrier_id),
+		_session.game_state.catalog
+	)
 	_modals = {
 		"dashboard": _dashboard_modal,
 		"routes": _routes_modal,
@@ -61,6 +65,7 @@ func _connect_signals() -> void:
 	_top_bar.toolbar_button_pressed.connect(_on_toolbar_pressed)
 	_top_bar.debug_save_pressed.connect(_save_debug_state)
 	_game_over_screen.play_again_requested.connect(_on_play_again)
+	_player_controller.intent_changed.connect(_on_intent_changed_refresh_top_bar)
 	for modal_name: String in _modals:
 		_modals[modal_name].closed.connect(_on_modal_closed)
 	_routes_modal.create_route_requested.connect(_on_create_route_requested)
@@ -184,8 +189,14 @@ func _on_play_again() -> void:
 	_turn_log_modal.clear_log()
 	_game_over_screen.hide_screen()
 	_toast_manager.clear_all()
+	_player_controller.intent_changed.disconnect(_on_intent_changed_refresh_top_bar)
 	_player_controller = PlayerController.new()
 	_session = GameSetup.create_player_session(_player_controller)
+	_player_controller.bind_carrier(
+		_session.game_state.get_carrier(_carrier_id),
+		_session.game_state.catalog
+	)
+	_player_controller.intent_changed.connect(_on_intent_changed_refresh_top_bar)
 	_bind_all()
 	_top_bar.set_turn_in_progress(false)
 
@@ -252,3 +263,7 @@ func _on_manage_slots_modal_closed() -> void:
 func _on_slot_action_submitted() -> void:
 	# Slot action submitted — slots modal will refresh via intent_changed signal
 	pass
+
+
+func _on_intent_changed_refresh_top_bar(_intent: TurnPipeline.CarrierIntent) -> void:
+	_top_bar.refresh()

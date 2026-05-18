@@ -4,15 +4,19 @@ extends GutTest
 
 var controller: PlayerController
 var game_state: GameState
+var carrier: CarrierData
+var catalog: ShipCatalog
 
 
 func before_each() -> void:
 	controller = PlayerController.new()
 	game_state = GameState.new()
 	var galaxy := GalaxyData.create_default_galaxy()
-	var catalog := ShipCatalog.create_default_catalog()
+	catalog = ShipCatalog.create_default_catalog()
 	var carriers := CarrierData.create_default_carriers(catalog)
 	game_state.initialize(galaxy, catalog, carriers)
+	carrier = game_state.get_carrier("player")
+	controller.bind_carrier(carrier, catalog)
 
 
 # ---------------------------------------------------------------------------
@@ -72,12 +76,12 @@ func test_cancel_route() -> void:
 
 
 func test_add_ship_order() -> void:
-	controller.add_ship_order("freighter", 100, 200)
+	controller.add_ship_order("sd-100", 20, 20)
 	assert_eq(controller.pending_intent.ship_orders.size(), 1)
 	var order: Dictionary = controller.pending_intent.ship_orders[0]
-	assert_eq(order["type_id"], "freighter")
-	assert_eq(order["passenger_capacity"], 100)
-	assert_eq(order["cargo_capacity"], 200)
+	assert_eq(order["type_id"], "sd-100")
+	assert_eq(order["passenger_capacity"], 20)
+	assert_eq(order["cargo_capacity"], 20)
 
 
 func test_add_slot_sale() -> void:
@@ -94,7 +98,7 @@ func test_add_slot_sale() -> void:
 
 func test_clear_intent() -> void:
 	controller.add_slot_bid("planet_a", 1, 10.0)
-	controller.add_ship_order("freighter", 50, 100)
+	controller.add_ship_order("sd-100", 20, 20)
 	controller.cancel_route("route_1")
 	controller.clear_intent()
 	assert_eq(controller.pending_intent.slot_bids.size(), 0)
@@ -134,7 +138,7 @@ func test_remove_out_of_bounds_does_not_crash() -> void:
 
 func test_generate_intent_returns_accumulated() -> void:
 	controller.add_slot_bid("planet_a", 1, 10.0)
-	controller.add_ship_order("shuttle", 20, 30)
+	controller.add_ship_order("sd-100", 20, 20)
 	var intent: TurnPipeline.CarrierIntent = controller.generate_intent(game_state, "player")
 	assert_eq(intent.slot_bids.size(), 1)
 	assert_eq(intent.ship_orders.size(), 1)
@@ -190,7 +194,7 @@ func test_multiple_actions_accumulate() -> void:
 	controller.add_route_create("o", "d", ["s1"], 5.0, 3.0)
 	controller.modify_route("route_1", ["s2"], 8.0, 4.0)
 	controller.cancel_route("route_2")
-	controller.add_ship_order("shuttle", 20, 30)
+	controller.add_ship_order("sd-100", 20, 20)
 	controller.add_slot_sale("planet_b", 2)
 	assert_eq(controller.pending_intent.slot_bids.size(), 1)
 	assert_eq(controller.pending_intent.route_creates.size(), 1)
@@ -198,3 +202,79 @@ func test_multiple_actions_accumulate() -> void:
 	assert_eq(controller.pending_intent.route_cancellations.size(), 1)
 	assert_eq(controller.pending_intent.ship_orders.size(), 1)
 	assert_eq(controller.pending_intent.slot_sales.size(), 1)
+
+
+# ---------------------------------------------------------------------------
+# Escrow
+# ---------------------------------------------------------------------------
+
+func test_slot_bid_escrows_cash() -> void:
+	var initial_cash := carrier.cash
+	controller.add_slot_bid("sol_a", 2, 50.0)
+	assert_almost_eq(carrier.cash, initial_cash - 100.0, 0.01)
+
+
+func test_remove_slot_bid_refunds_cash() -> void:
+	var initial_cash := carrier.cash
+	controller.add_slot_bid("sol_a", 2, 50.0)
+	controller.remove_slot_bid(0)
+	assert_almost_eq(carrier.cash, initial_cash, 0.01)
+
+
+func test_replace_slot_bid_swaps_escrow() -> void:
+	var initial_cash := carrier.cash
+	controller.add_slot_bid("sol_a", 2, 50.0)  # cost 100
+	controller.add_slot_bid("sol_a", 3, 40.0)  # cost 120, replaces old
+	assert_almost_eq(carrier.cash, initial_cash - 120.0, 0.01)
+
+
+func test_ship_order_escrows_cash() -> void:
+	var initial_cash := carrier.cash
+	var ship_type := catalog.get_type("sd-100")
+	controller.add_ship_order("sd-100", 20, 20)
+	assert_almost_eq(carrier.cash, initial_cash - float(ship_type.cost), 0.01)
+
+
+func test_remove_ship_order_refunds_cash() -> void:
+	var initial_cash := carrier.cash
+	controller.add_ship_order("sd-100", 20, 20)
+	controller.remove_ship_order(0)
+	assert_almost_eq(carrier.cash, initial_cash, 0.01)
+
+
+func test_generate_intent_refunds_all_escrow() -> void:
+	var initial_cash := carrier.cash
+	controller.add_slot_bid("sol_a", 2, 50.0)
+	controller.add_ship_order("sd-100", 20, 20)
+	controller.generate_intent(game_state, "player")
+	assert_almost_eq(carrier.cash, initial_cash, 0.01)
+
+
+func test_clear_intent_refunds_all_escrow() -> void:
+	var initial_cash := carrier.cash
+	controller.add_slot_bid("sol_a", 2, 50.0)
+	controller.add_ship_order("sd-100", 20, 20)
+	controller.clear_intent()
+	assert_almost_eq(carrier.cash, initial_cash, 0.01)
+
+
+func test_multiple_bids_and_orders_accumulate_escrow() -> void:
+	var initial_cash := carrier.cash
+	var ship_cost := float(catalog.get_type("sd-100").cost)
+	controller.add_slot_bid("sol_a", 2, 50.0)  # 100
+	controller.add_slot_bid("sol_b", 1, 75.0)  # 75
+	controller.add_ship_order("sd-100", 20, 20)  # ship_cost
+	var expected := initial_cash - 100.0 - 75.0 - ship_cost
+	assert_almost_eq(carrier.cash, expected, 0.01)
+	assert_almost_eq(controller._escrowed, 100.0 + 75.0 + ship_cost, 0.01)
+
+
+func test_escrow_without_carrier_bound_does_not_crash() -> void:
+	var unbound_ctrl := PlayerController.new()
+	unbound_ctrl.add_slot_bid("sol_a", 2, 50.0)
+	unbound_ctrl.add_ship_order("sd-100", 20, 20)
+	unbound_ctrl.remove_slot_bid(0)
+	unbound_ctrl.remove_ship_order(0)
+	unbound_ctrl.clear_intent()
+	# If we reach here without error the test passes
+	assert_true(true)
