@@ -113,10 +113,11 @@ func _resolve_planet_overlap(galaxy: GalaxyData, viewport_size: Vector2) -> void
 			systems[planet.system] = []
 		systems[planet.system].append(planet.id)
 
-	var min_separation := 55.0  # Minimum pixels between planet centers (radius + label clearance)
+	var min_separation_h := 70.0  # Horizontal minimum (planet circles + some label width)
+	var min_separation_v := 90.0  # Vertical minimum (radius + label height + gap)
 
 	# Iterative repulsion within each system
-	for _iteration: int in range(8):
+	for _iteration: int in range(12):
 		for system_id: String in systems:
 			var planet_ids: Array = systems[system_id]
 			for i: int in range(planet_ids.size()):
@@ -125,16 +126,23 @@ func _resolve_planet_overlap(galaxy: GalaxyData, viewport_size: Vector2) -> void
 					var id_b: String = planet_ids[j]
 					var pos_a: Vector2 = _planet_positions[id_a]
 					var pos_b: Vector2 = _planet_positions[id_b]
-					var dist: float = pos_a.distance_to(pos_b)
-					if dist < min_separation:
+					var delta: Vector2 = pos_b - pos_a
+					# Use elliptical separation (more vertical clearance for labels)
+					var overlap_x: float = min_separation_h - absf(delta.x)
+					var overlap_y: float = min_separation_v - absf(delta.y)
+					if overlap_x > 0 and overlap_y > 0:
+						# Push apart along the axis with less overlap
 						var direction: Vector2
-						if dist < 0.1:
-							direction = Vector2(1, 0)  # arbitrary push if perfectly overlapping
+						if overlap_x < overlap_y:
+							direction = Vector2(signf(delta.x) if delta.x != 0 else 1.0, 0)
+							var push: float = overlap_x * 0.5
+							_planet_positions[id_a] = pos_a - direction * push
+							_planet_positions[id_b] = pos_b + direction * push
 						else:
-							direction = (pos_b - pos_a).normalized()
-						var push: float = (min_separation - dist) * 0.5
-						_planet_positions[id_a] = pos_a - direction * push
-						_planet_positions[id_b] = pos_b + direction * push
+							direction = Vector2(0, signf(delta.y) if delta.y != 0 else 1.0)
+							var push: float = overlap_y * 0.5
+							_planet_positions[id_a] = pos_a - direction * push
+							_planet_positions[id_b] = pos_b + direction * push
 
 	# Clamp all positions within viewport bounds
 	for planet_id: String in _planet_positions:
