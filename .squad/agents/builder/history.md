@@ -126,6 +126,21 @@ All processed in carrier_order (index-based tie-breaking, D004).
 ### Route Performance Metrics (2026-05-19)
 
 - `financial_calculator.gd` `process_financials()` already computes demand splits per (lane, direction) and per-carrier. Adding per-route served/capacity data was straightforward — the demand split result keyed by carrier_id is already available at the route iteration level.
+
+### UI Polish: Route Gating, Planet Sizing, Hover Panel (2026-05-19)
+
+- `_rebuild_route_details()` already rebuilds the entire details section — gating on `_selected_ship_ids.is_empty()` was trivial. The key insight: ship selection callback must call `_rebuild_route_details(carrier)` (not just `_update_frequency_max()`) so the section appears/disappears dynamically.
+- Planet radius formula `8.0 + total_slots * 1.2` still differentiates planets (4-slot = 12.8px, 10-slot = 20px) without crowding. Paired with MAP_PADDING 100 to prevent label cutoff at edges.
+- Hover panel uses `await get_tree().process_frame` before positioning to let the RichTextLabel compute its size. Without this, `_hover_panel.size` returns zero on first show.
+- `DemandCalculator.get_demand_tier()` works on raw base_demand int. Averaging all entries touching a planet gives a meaningful "High/Medium/Low" tier for the tooltip.
+- Panel position clamping checks all 4 edges. Default placement is to the right of the planet; falls back left if right edge overflows.
+
+### Money Escrow System (2026-05-18)
+
+- Escrow pattern: deduct on add, refund on remove, refund-all before pipeline runs. Keeps turn pipeline untouched while giving players accurate cash display during planning.
+- `bind_carrier()` approach cleanly separates the escrow lifecycle from controller construction — tests can optionally skip binding to test non-escrow behavior.
+- GUT catches `push_error()` as unexpected errors — any test using fake type IDs that hit catalog lookups will fail. Solution: use real catalog type IDs in tests when the controller is bound to a catalog.
+- The TopBar doesn't inherently listen to `intent_changed` — main.gd bridges the signal to `_top_bar.refresh()`. This keeps TopBar decoupled from the controller.
 - `GameState.last_turn_financials` is a simple pattern for exposing turn results to UI without changing signal signatures. Set it in `advance_turn()` before incrementing the turn counter.
 - The simulation harness controller's `get_observed_state()` can expose nested arrays (e.g., `route_performance.0.passengers_served`) and the validation framework resolves dot-separated array indices correctly.
 - Indentation matters critically in GDScript — an extra tab level causes parse errors that cascade through the entire class resolution chain, breaking unrelated scripts that reference the class.
