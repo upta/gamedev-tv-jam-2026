@@ -367,7 +367,7 @@ func _on_planet_hovered(planet_id: String, mouse_pos: Vector2) -> void:
 
 	# Build panel text
 	var text := "[b]%s[/b] (%s)\n" % [planet.name, system_display]
-	text += "Slots: %d owned / %d total (%d available)\n" % [player_owned, planet.total_slots, available]
+	text += "Slots: %d total (%d yours, %d NPC, %d available)\n" % [planet.total_slots, player_owned, other_owned, available]
 	text += "Routes: %d active (%d yours)\n" % [total_routes, player_routes]
 	text += "Demand: %s pax / %s cargo" % [pax_tier, cargo_tier]
 
