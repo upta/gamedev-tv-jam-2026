@@ -19,6 +19,15 @@ func _init() -> void:
 # ---------------------------------------------------------------------------
 
 func add_slot_bid(planet_id: String, quantity: int, price_per_slot: float) -> void:
+	for i in pending_intent.slot_bids.size():
+		if pending_intent.slot_bids[i]["planet_id"] == planet_id:
+			pending_intent.slot_bids[i] = {
+				"planet_id": planet_id,
+				"quantity": quantity,
+				"price_per_slot": price_per_slot,
+			}
+			intent_changed.emit(pending_intent)
+			return
 	pending_intent.slot_bids.append({
 		"planet_id": planet_id,
 		"quantity": quantity,
@@ -90,6 +99,14 @@ func add_ship_order(type_id: String, passenger_capacity: int, cargo_capacity: in
 
 
 func add_slot_sale(planet_id: String, count: int) -> void:
+	for i in pending_intent.slot_sales.size():
+		if pending_intent.slot_sales[i]["planet_id"] == planet_id:
+			pending_intent.slot_sales[i] = {
+				"planet_id": planet_id,
+				"count": count,
+			}
+			intent_changed.emit(pending_intent)
+			return
 	pending_intent.slot_sales.append({
 		"planet_id": planet_id,
 		"count": count,
