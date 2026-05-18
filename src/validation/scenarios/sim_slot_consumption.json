@@ -1,0 +1,91 @@
+{
+  "scenario_id": "sim_slot_consumption",
+  "version": 3,
+  "description": "Verify routes consume slots: creating a route reduces available slots; creating a route when all slots are consumed fails",
+  "harness_scene": "res://validation/harnesses/sim_slot_consumption_harness.tscn",
+  "done_contract": {},
+  "artifact_contract": {
+    "required_files": ["summary.json", "event_log.json", "scene_tree.json", "console.log"],
+    "missing_file_is_failure": true
+  },
+  "exit_codes": {
+    "pass": 0,
+    "assertion_failure": 1,
+    "runtime_error": 2,
+    "timeout": 3,
+    "artifact_generation_error": 4
+  },
+  "cli_contract": {
+    "command_template": "godot --path <project> -- --test-mode --scenario <path> --artifacts <dir>"
+  },
+  "steps": [
+    { "op": "load_harness" },
+    { "op": "wait_frames", "frames": 2 },
+    { "op": "checkpoint", "name": "after_turn_1" },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_turn_1",
+      "path": "harness_state.current_turn",
+      "comparator": "gte",
+      "expected": 2
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_turn_1",
+      "path": "harness_state.active_routes",
+      "comparator": "eq",
+      "expected": 1,
+      "description": "One route created on turn 1"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_turn_1",
+      "path": "harness_state.earth_used",
+      "comparator": "eq",
+      "expected": 1,
+      "description": "Earth has 1 slot consumed by route"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_turn_1",
+      "path": "harness_state.mars_used",
+      "comparator": "eq",
+      "expected": 1,
+      "description": "Mars has 1 slot consumed by route"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_turn_1",
+      "path": "harness_state.mars_available",
+      "comparator": "eq",
+      "expected": 0,
+      "description": "Mars has 0 available slots (1 owned, 1 used)"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_turn_1",
+      "path": "harness_state.earth_available",
+      "comparator": "eq",
+      "expected": 0,
+      "description": "Earth has 0 available slots (1 owned, 1 used)"
+    },
+    { "op": "wait_frames", "frames": 4 },
+    { "op": "checkpoint", "name": "after_turn_4" },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_turn_4",
+      "path": "harness_state.current_turn",
+      "comparator": "gte",
+      "expected": 5
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_turn_4",
+      "path": "harness_state.active_routes",
+      "comparator": "eq",
+      "expected": 1,
+      "description": "Still only 1 route — second creation blocked by slot consumption"
+    },
+    { "op": "quit" }
+  ]
+}

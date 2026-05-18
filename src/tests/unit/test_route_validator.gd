@@ -132,6 +132,7 @@ func test_creation_fails_insufficient_range() -> void:
 
 func test_creation_fails_ship_already_assigned() -> void:
 	var carrier := _make_carrier()
+	carrier.slots["mars"] = 2  # Need 2 mars slots for 2 routes
 	var ship := _add_ship(carrier)
 
 	# Assign ship to existing route first
@@ -363,3 +364,121 @@ func test_route_capacity_empty_ships() -> void:
 	var cap := RouteValidator.get_route_capacity(route, carrier, catalog)
 	assert_eq(cap["passenger"], 0, "no ships → 0 pax")
 	assert_eq(cap["cargo"], 0, "no ships → 0 cargo")
+
+
+# ---------------------------------------------------------------------------
+# Slot consumption by routes
+# ---------------------------------------------------------------------------
+
+func test_creation_fails_when_all_origin_slots_consumed() -> void:
+	var carrier := _make_carrier()  # earth=2, mars=1
+	var ship1 := _add_ship(carrier)
+	var ship2 := _add_ship(carrier)
+	var ship3 := _add_ship(carrier)
+
+	# Create 2 routes with earth as origin → consumes both earth slots
+	var ids1: Array[String] = [ship1.id]
+	_add_active_route(carrier, ids1, "earth", "mars")
+	var ids2: Array[String] = [ship2.id]
+	# Need a second destination — add a slot for it
+	carrier.slots["proxima_b"] = 1
+	_add_active_route(carrier, ids2, "earth", "proxima_b")
+
+	# Third route from earth should fail — no available slots
+	var result := RouteValidator.validate_route_creation(
+		carrier, galaxy, catalog,
+		"earth", "mars",
+		[ship3.id], 1, 1,
+	)
+	assert_false(result["valid"], "no available origin slots")
+	assert_true(result["reason"].contains("available slots") or result["reason"].contains("consumed"), "reason mentions consumption")
+
+
+func test_creation_fails_when_all_dest_slots_consumed() -> void:
+	var carrier := _make_carrier()  # earth=2, mars=1
+	var ship1 := _add_ship(carrier)
+	var ship2 := _add_ship(carrier)
+
+	# Create 1 route to mars → consumes the only mars slot
+	var ids1: Array[String] = [ship1.id]
+	_add_active_route(carrier, ids1, "earth", "mars")
+
+	# Second route to mars should fail — no available dest slots
+	var result := RouteValidator.validate_route_creation(
+		carrier, galaxy, catalog,
+		"earth", "mars",
+		[ship2.id], 1, 1,
+	)
+	assert_false(result["valid"], "no available dest slots")
+	assert_true(result["reason"].contains("destination"), "reason mentions destination")
+
+
+func test_creation_succeeds_with_available_slots() -> void:
+	var carrier := _make_carrier()  # earth=2, mars=1
+	var ship1 := _add_ship(carrier)
+	var ship2 := _add_ship(carrier, "fw-10", 10, 10)  # FW-10 has range 15.0 for proxima_b
+
+	# 1 route earth→mars: uses 1 of 2 earth slots, 1 of 1 mars slots
+	var ids1: Array[String] = [ship1.id]
+	_add_active_route(carrier, ids1, "earth", "mars")
+
+	# Need a new dest with slots
+	carrier.slots["proxima_b"] = 1
+
+	# Second route from earth to proxima_b should work — earth has 1 available
+	var result := RouteValidator.validate_route_creation(
+		carrier, galaxy, catalog,
+		"earth", "proxima_b",
+		[ship2.id], 1, 1,
+	)
+	assert_true(result["valid"], "still has available origin slots")
+
+
+func test_inactive_routes_dont_consume_slots() -> void:
+	var carrier := _make_carrier()  # earth=2, mars=1
+	var ship1 := _add_ship(carrier)
+	var ship2 := _add_ship(carrier)
+
+	# Create a route and deactivate it
+	var ids1: Array[String] = [ship1.id]
+	var route := _add_active_route(carrier, ids1, "earth", "mars")
+	route.active = false
+
+	# Mars should still have its slot available
+	var result := RouteValidator.validate_route_creation(
+		carrier, galaxy, catalog,
+		"earth", "mars",
+		[ship2.id], 1, 1,
+	)
+	assert_true(result["valid"], "inactive route doesn't consume slot")
+
+
+func test_modification_doesnt_count_own_route_slots() -> void:
+	var carrier := _make_carrier()  # earth=2, mars=1
+	var ship1 := _add_ship(carrier)
+	var ship2 := _add_ship(carrier)
+
+	# Create route earth→mars — uses 1 mars slot (the only one)
+	var ids1: Array[String] = [ship1.id]
+	var route := _add_active_route(carrier, ids1, "earth", "mars")
+
+	# Modify that route — should succeed because it doesn't count against itself
+	var result := RouteValidator.validate_route_modification(
+		carrier, galaxy, catalog,
+		route, [ship2.id], 1, 10.0, 5.0, 1,
+	)
+	assert_true(result["valid"], "modifying own route doesn't block on slots")
+
+
+func test_route_consumes_slot_at_both_endpoints() -> void:
+	var carrier := _make_carrier()  # earth=2, mars=1
+	var ship1 := _add_ship(carrier)
+
+	var ids1: Array[String] = [ship1.id]
+	_add_active_route(carrier, ids1, "earth", "mars")
+
+	# Verify slot counts
+	assert_eq(carrier.get_slots_used_by_routes("earth"), 1, "1 route uses 1 earth slot")
+	assert_eq(carrier.get_slots_used_by_routes("mars"), 1, "1 route uses 1 mars slot")
+	assert_eq(carrier.get_available_slots_at("earth"), 1, "earth: 2 owned - 1 used = 1 available")
+	assert_eq(carrier.get_available_slots_at("mars"), 0, "mars: 1 owned - 1 used = 0 available")

@@ -57,6 +57,19 @@ func has_slots_at(planet_id: String) -> bool:
 	return get_slot_count(planet_id) > 0
 
 
+func get_slots_used_by_routes(planet_id: String) -> int:
+	var count := 0
+	for route: Route in routes:
+		if route.active:
+			if route.origin_id == planet_id or route.dest_id == planet_id:
+				count += 1
+	return count
+
+
+func get_available_slots_at(planet_id: String) -> int:
+	return get_slot_count(planet_id) - get_slots_used_by_routes(planet_id)
+
+
 func get_routes() -> Array:
 	return routes
 

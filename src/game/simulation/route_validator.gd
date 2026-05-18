@@ -15,11 +15,13 @@ static func validate_route_creation(
 	frequency: int,
 	current_turn: int,
 ) -> Dictionary:
-	if not carrier.has_slots_at(origin_id):
-		return _fail("Carrier has no slots at origin planet '%s'" % origin_id)
+	var origin_available := carrier.get_slot_count(origin_id) - _count_routes_at_planet(carrier, origin_id)
+	if origin_available < 1:
+		return _fail("No available slots at origin planet '%s' (all %d consumed by routes)" % [origin_id, carrier.get_slot_count(origin_id)])
 
-	if not carrier.has_slots_at(dest_id):
-		return _fail("Carrier has no slots at destination planet '%s'" % dest_id)
+	var dest_available := carrier.get_slot_count(dest_id) - _count_routes_at_planet(carrier, dest_id)
+	if dest_available < 1:
+		return _fail("No available slots at destination planet '%s' (all %d consumed by routes)" % [dest_id, carrier.get_slot_count(dest_id)])
 
 	var lane := galaxy.get_lane(origin_id, dest_id)
 	if lane == null:
@@ -47,11 +49,14 @@ static func validate_route_modification(
 	_new_cargo_price: float,
 	current_turn: int,
 ) -> Dictionary:
-	if not carrier.has_slots_at(route.origin_id):
-		return _fail("Carrier has no slots at origin planet '%s'" % route.origin_id)
+	# Exclude the route being modified from slot consumption count
+	var origin_available := carrier.get_slot_count(route.origin_id) - _count_routes_at_planet(carrier, route.origin_id, route.id)
+	if origin_available < 1:
+		return _fail("No available slots at origin planet '%s'" % route.origin_id)
 
-	if not carrier.has_slots_at(route.dest_id):
-		return _fail("Carrier has no slots at destination planet '%s'" % route.dest_id)
+	var dest_available := carrier.get_slot_count(route.dest_id) - _count_routes_at_planet(carrier, route.dest_id, route.id)
+	if dest_available < 1:
+		return _fail("No available slots at destination planet '%s'" % route.dest_id)
 
 	var lane := galaxy.get_lane(route.origin_id, route.dest_id)
 	if lane == null:
@@ -114,6 +119,18 @@ static func get_route_capacity(
 
 static func _fail(reason: String) -> Dictionary:
 	return { "valid": false, "reason": reason, "clamped_frequency": 0 }
+
+
+static func _count_routes_at_planet(carrier: CarrierData, planet_id: String, exclude_route_id: String = "") -> int:
+	var count := 0
+	for route: CarrierData.Route in carrier.routes:
+		if not route.active:
+			continue
+		if route.id == exclude_route_id:
+			continue
+		if route.origin_id == planet_id or route.dest_id == planet_id:
+			count += 1
+	return count
 
 
 static func _find_ship(carrier: CarrierData, ship_id: String) -> ShipCatalog.ShipInstance:

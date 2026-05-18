@@ -19,6 +19,7 @@ var _active_modal: String = ""
 @onready var _routes_modal: RoutesModal = %RoutesModal
 @onready var _create_route_modal: CreateRouteModal = %CreateRouteModal
 @onready var _order_ship_modal: OrderShipModal = %OrderShipModal
+@onready var _manage_slots_modal: ManageSlotsModal = %ManageSlotsModal
 
 
 func _ready() -> void:
@@ -50,6 +51,7 @@ func _bind_all() -> void:
 	_routes_modal.bind(_player_controller, _session.game_state)
 	_create_route_modal.bind(_player_controller, _session.game_state)
 	_order_ship_modal.bind(_player_controller, _session.game_state)
+	_manage_slots_modal.bind(_player_controller, _session.game_state)
 
 
 func _connect_signals() -> void:
@@ -67,6 +69,9 @@ func _connect_signals() -> void:
 	_ships_modal.order_ship_requested.connect(_on_order_ship_requested)
 	_order_ship_modal.closed.connect(_on_order_ship_modal_closed)
 	_order_ship_modal.ship_ordered.connect(_on_ship_ordered)
+	_slots_modal.manage_slots_requested.connect(_on_manage_slots_requested)
+	_manage_slots_modal.closed.connect(_on_manage_slots_modal_closed)
+	_manage_slots_modal.slot_action_submitted.connect(_on_slot_action_submitted)
 
 
 func _on_next_turn() -> void:
@@ -123,6 +128,12 @@ func _on_toolbar_pressed(modal_name: String) -> void:
 		_order_ship_modal.closed.disconnect(_on_order_ship_modal_closed)
 		_order_ship_modal.close()
 		_order_ship_modal.closed.connect(_on_order_ship_modal_closed)
+
+	# Close manage slots modal if open
+	if _manage_slots_modal.visible:
+		_manage_slots_modal.closed.disconnect(_on_manage_slots_modal_closed)
+		_manage_slots_modal.close()
+		_manage_slots_modal.closed.connect(_on_manage_slots_modal_closed)
 
 	if _active_modal == modal_name:
 		_modals[modal_name].close()
@@ -200,4 +211,20 @@ func _on_order_ship_modal_closed() -> void:
 
 func _on_ship_ordered() -> void:
 	# Ship was ordered — ships modal will refresh via intent_changed signal
+	pass
+
+
+func _on_manage_slots_requested() -> void:
+	_slots_modal.close()
+	_manage_slots_modal.open()
+
+
+func _on_manage_slots_modal_closed() -> void:
+	_slots_modal.open()
+	_active_modal = "slots"
+	_top_bar.set_active_toolbar("slots")
+
+
+func _on_slot_action_submitted() -> void:
+	# Slot action submitted — slots modal will refresh via intent_changed signal
 	pass

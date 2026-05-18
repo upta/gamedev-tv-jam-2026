@@ -192,10 +192,12 @@ func _rebuild_route_details(carrier: CarrierData) -> void:
 	# Distance and slot info
 	var origin_slots: int = carrier.get_slot_count(_origin_id)
 	var dest_slots: int = carrier.get_slot_count(_dest_id)
+	var origin_avail: int = carrier.get_available_slots_at(_origin_id) - _count_pending_routes_at(_origin_id)
+	var dest_avail: int = carrier.get_available_slots_at(_dest_id) - _count_pending_routes_at(_dest_id)
 	_info_label = Label.new()
-	_info_label.text = "Distance: %.1f ly | Slots: %d at %s, %d at %s" % [
-		lane.distance, origin_slots, _get_planet_display_name(_origin_id),
-		dest_slots, _get_planet_display_name(_dest_id),
+	_info_label.text = "Distance: %.1f ly | %s: %d/%d avail | %s: %d/%d avail" % [
+		lane.distance, _get_planet_display_name(_origin_id), origin_avail, origin_slots,
+		_get_planet_display_name(_dest_id), dest_avail, dest_slots,
 	]
 	_details_section.add_child(_info_label)
 
@@ -299,10 +301,11 @@ func _open_planet_selector(target: String) -> void:
 			continue
 		var slot_count: int = carrier.get_slot_count(planet.id)
 		if slot_count > 0:
+			var available_count: int = carrier.get_available_slots_at(planet.id) - _count_pending_routes_at(planet.id)
 			items_with_slots.append({
 				"id": planet.id,
-				"label": "%s — %d slot(s)" % [planet.name, slot_count],
-				"selectable": true,
+				"label": "%s — %d available (%d owned)" % [planet.name, available_count, slot_count],
+				"selectable": available_count >= 1,
 			})
 		else:
 			items_no_slots.append({
@@ -568,7 +571,9 @@ func _update_create_button_state() -> void:
 	if not _origin_id.is_empty() and not _dest_id.is_empty():
 		var carrier := _game_state.get_player_carrier()
 		if carrier:
-			has_slots = carrier.has_slots_at(_origin_id) and carrier.has_slots_at(_dest_id)
+			var origin_avail := carrier.get_available_slots_at(_origin_id) - _count_pending_routes_at(_origin_id)
+			var dest_avail := carrier.get_available_slots_at(_dest_id) - _count_pending_routes_at(_dest_id)
+			has_slots = origin_avail >= 1 and dest_avail >= 1
 
 	_create_btn.disabled = not any_ships or not has_slots
 
@@ -594,6 +599,16 @@ func _get_planet_display_name(planet_id: String) -> String:
 		return "None"
 	var planet := _game_state.galaxy.get_planet(planet_id)
 	return planet.name if planet else planet_id
+
+
+func _count_pending_routes_at(planet_id: String) -> int:
+	if _player_controller == null:
+		return 0
+	var count := 0
+	for rc: Dictionary in _player_controller.pending_intent.route_creates:
+		if rc["origin_id"] == planet_id or rc["dest_id"] == planet_id:
+			count += 1
+	return count
 
 
 func _compute_max_frequency() -> int:

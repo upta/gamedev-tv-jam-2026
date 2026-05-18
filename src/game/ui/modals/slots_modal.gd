@@ -1,17 +1,15 @@
 class_name SlotsModal
 extends ModalDialog
 
+## Modal showing slot holdings and pending slot actions.
+## Slot bidding/selling is handled by ManageSlotsModal, opened via "Buy/Sell Slots" button.
+
+signal manage_slots_requested
+
 var _player_controller: PlayerController
 var _game_state: GameState
-var _selected_planet_id: String = ""
 
 var _content_vbox: VBoxContainer
-var _planet_selector: OptionButton
-var _bid_section: VBoxContainer
-var _sell_section: VBoxContainer
-var _qty_spin: SpinBox
-var _price_spin: SpinBox
-var _sell_spin: SpinBox
 
 
 func _ready() -> void:
@@ -32,7 +30,6 @@ func open() -> void:
 
 func refresh() -> void:
 	var scroll: ScrollContainer = get_content_container().get_child(0) as ScrollContainer
-	# Clear existing content
 	for child in scroll.get_children():
 		child.queue_free()
 
@@ -42,10 +39,7 @@ func refresh() -> void:
 
 	_build_holdings_section()
 	_build_pending_section()
-	_build_planet_selector()
-	_build_bid_section()
-	_build_sell_section()
-	_update_action_sections()
+	_build_manage_button()
 
 
 # ---------------------------------------------------------------------------
@@ -68,8 +62,9 @@ func _build_holdings_section() -> void:
 			continue
 		var planet: GalaxyData.Planet = _game_state.galaxy.get_planet(planet_id)
 		var planet_name := planet.name if planet else planet_id
+		var available: int = carrier.get_available_slots_at(planet_id)
 		var lbl := Label.new()
-		lbl.text = "%s: %d slots" % [planet_name, count]
+		lbl.text = "%s: %d owned, %d available" % [planet_name, count, available]
 		_content_vbox.add_child(lbl)
 
 
@@ -119,133 +114,24 @@ func _build_pending_section() -> void:
 		_content_vbox.add_child(lbl)
 
 
-func _build_planet_selector() -> void:
-	_add_section_header("Planet Selector")
+# ---------------------------------------------------------------------------
+# Buy/Sell Button
+# ---------------------------------------------------------------------------
 
-	_planet_selector = OptionButton.new()
-	_planet_selector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_planet_selector.add_item("— Select a planet —", 0)
-	_planet_selector.set_item_metadata(0, "")
-
-	var idx := 1
-	for planet: GalaxyData.Planet in _game_state.galaxy.planets:
-		var available := _calc_available_slots(planet.id)
-		var text := "%s (%s) — %d/%d slots" % [planet.name, planet.system, available, planet.total_slots]
-		_planet_selector.add_item(text, idx)
-		_planet_selector.set_item_metadata(idx, planet.id)
-		idx += 1
-
-	_planet_selector.item_selected.connect(_on_planet_selected)
-	_content_vbox.add_child(_planet_selector)
-
-	# Restore selection if possible
-	if _selected_planet_id != "":
-		for i in _planet_selector.item_count:
-			if _planet_selector.get_item_metadata(i) == _selected_planet_id:
-				_planet_selector.select(i)
-				break
-
-
-func _build_bid_section() -> void:
-	_bid_section = VBoxContainer.new()
-	_content_vbox.add_child(_bid_section)
-
-
-func _build_sell_section() -> void:
-	_sell_section = VBoxContainer.new()
-	_content_vbox.add_child(_sell_section)
-
-
-func _update_action_sections() -> void:
-	# Clear existing
-	for child in _bid_section.get_children():
-		child.queue_free()
-	for child in _sell_section.get_children():
-		child.queue_free()
-
-	if _selected_planet_id == "":
-		return
-
-	var planet: GalaxyData.Planet = _game_state.galaxy.get_planet(_selected_planet_id)
-	if not planet:
-		return
-
-	var available := _calc_available_slots(_selected_planet_id)
-	var carrier := _game_state.get_player_carrier()
-	var owned := carrier.get_slot_count(_selected_planet_id)
-
-	# --- Bid section ---
-	var bid_header := Label.new()
-	bid_header.text = "— Bid for Slots —"
-	_bid_section.add_child(bid_header)
-
-	var avail_label := Label.new()
-	avail_label.text = "Available: %d slots" % available
-	_bid_section.add_child(avail_label)
-
-	var max_bid := planet.total_slots if available <= 0 else maxi(available, 1)
-	var qty_row := _create_label_spinbox("Quantity:", 1, max_bid, 1, 1)
-	_qty_spin = qty_row.get_child(1) as SpinBox
-	_bid_section.add_child(qty_row)
-
-	var price_row := _create_label_spinbox("Price per slot:", 50, 10000, 1, 50)
-	_price_spin = price_row.get_child(1) as SpinBox
-	_bid_section.add_child(price_row)
-
-	var bid_btn := Button.new()
-	bid_btn.text = "Submit Bid"
-	bid_btn.pressed.connect(_on_submit_bid)
-	_bid_section.add_child(bid_btn)
-
-	# --- Sell section ---
-	if owned > 0:
-		var sell_header := Label.new()
-		sell_header.text = "— Sell Slots —"
-		_sell_section.add_child(sell_header)
-
-		var own_label := Label.new()
-		own_label.text = "You own: %d slots" % owned
-		_sell_section.add_child(own_label)
-
-		var sell_row := _create_label_spinbox("Count:", 1, owned, 1, 1)
-		_sell_spin = sell_row.get_child(1) as SpinBox
-		_sell_section.add_child(sell_row)
-
-		var sell_btn := Button.new()
-		sell_btn.text = "Sell Slots"
-		sell_btn.pressed.connect(_on_sell_slots)
-		_sell_section.add_child(sell_btn)
+func _build_manage_button() -> void:
+	_content_vbox.add_child(HSeparator.new())
+	var btn_row := HBoxContainer.new()
+	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	var manage_btn := Button.new()
+	manage_btn.text = "Buy / Sell Slots"
+	manage_btn.pressed.connect(func() -> void: manage_slots_requested.emit())
+	btn_row.add_child(manage_btn)
+	_content_vbox.add_child(btn_row)
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-func _calc_available_slots(planet_id: String) -> int:
-	var planet: GalaxyData.Planet = _game_state.galaxy.get_planet(planet_id)
-	if not planet:
-		return 0
-	var used := 0
-	for carrier: CarrierData in _game_state.carriers:
-		used += carrier.get_slot_count(planet_id)
-	return planet.total_slots - used
-
-
-func _create_label_spinbox(label_text: String, min_val: float, max_val: float, step: float, default_val: float) -> HBoxContainer:
-	var row := HBoxContainer.new()
-	var label := Label.new()
-	label.text = label_text
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(label)
-	var spin := SpinBox.new()
-	spin.min_value = min_val
-	spin.max_value = max_val
-	spin.step = step
-	spin.value = default_val
-	spin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(spin)
-	return row
-
 
 func _add_section_header(text: String) -> void:
 	var sep := HSeparator.new()
@@ -258,23 +144,6 @@ func _add_section_header(text: String) -> void:
 # ---------------------------------------------------------------------------
 # Callbacks
 # ---------------------------------------------------------------------------
-
-func _on_planet_selected(index: int) -> void:
-	_selected_planet_id = _planet_selector.get_item_metadata(index)
-	_update_action_sections()
-
-
-func _on_submit_bid() -> void:
-	if _selected_planet_id == "" or not _qty_spin or not _price_spin:
-		return
-	_player_controller.add_slot_bid(_selected_planet_id, int(_qty_spin.value), _price_spin.value)
-
-
-func _on_sell_slots() -> void:
-	if _selected_planet_id == "" or not _sell_spin:
-		return
-	_player_controller.add_slot_sale(_selected_planet_id, int(_sell_spin.value))
-
 
 func _on_intent_changed(_intent: TurnPipeline.CarrierIntent) -> void:
 	if visible:

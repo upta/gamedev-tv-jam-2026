@@ -1,0 +1,96 @@
+{
+  "scenario_id": "ui_manage_slots_flow",
+  "version": 3,
+  "description": "Verify the manage slots flow: open slots modal, open manage slots modal, select planet, place a bid, verify pending bid exists and modal returns to slots",
+  "harness_scene": "res://validation/harnesses/ui_manage_slots_harness.tscn",
+  "done_contract": {},
+  "artifact_contract": {
+    "required_files": ["summary.json", "event_log.json", "scene_tree.json", "console.log"],
+    "missing_file_is_failure": true
+  },
+  "exit_codes": {
+    "pass": 0,
+    "assertion_failure": 1,
+    "runtime_error": 2,
+    "timeout": 3,
+    "artifact_generation_error": 4
+  },
+  "cli_contract": {
+    "command_template": "godot --path <project> -- --test-mode --scenario <path> --artifacts <dir>"
+  },
+  "steps": [
+    { "op": "load_harness" },
+    { "op": "wait_frames", "frames": 25 },
+    { "op": "checkpoint", "name": "slots_modal_open" },
+    {
+      "op": "assert_value",
+      "checkpoint": "slots_modal_open",
+      "path": "harness_state.slots_modal_open",
+      "comparator": "eq",
+      "expected": true
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "slots_modal_open",
+      "path": "harness_state.active_modal",
+      "comparator": "eq",
+      "expected": "slots"
+    },
+    { "op": "wait_frames", "frames": 10 },
+    { "op": "checkpoint", "name": "manage_modal_open" },
+    {
+      "op": "assert_value",
+      "checkpoint": "manage_modal_open",
+      "path": "harness_state.manage_slots_modal_open",
+      "comparator": "eq",
+      "expected": true
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "manage_modal_open",
+      "path": "harness_state.slots_modal_open",
+      "comparator": "eq",
+      "expected": false
+    },
+    { "op": "wait_frames", "frames": 15 },
+    { "op": "checkpoint", "name": "planet_selected" },
+    {
+      "op": "assert_value",
+      "checkpoint": "planet_selected",
+      "path": "harness_state.form_state.selected_planet_id",
+      "comparator": "neq",
+      "expected": ""
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "planet_selected",
+      "path": "harness_state.manage_slots_modal_open",
+      "comparator": "eq",
+      "expected": true
+    },
+    { "op": "wait_frames", "frames": 25 },
+    { "op": "checkpoint", "name": "after_bid" },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_bid",
+      "path": "harness_state.pending_slot_bids",
+      "comparator": "gt",
+      "expected": 0
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_bid",
+      "path": "harness_state.manage_slots_modal_open",
+      "comparator": "eq",
+      "expected": false
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_bid",
+      "path": "harness_state.slots_modal_open",
+      "comparator": "eq",
+      "expected": true
+    },
+    { "op": "quit" }
+  ]
+}
