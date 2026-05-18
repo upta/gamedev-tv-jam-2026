@@ -2,21 +2,27 @@ class_name TurnPresentationOverlay
 extends CanvasLayer
 
 ## Full-screen turn presentation sequence.
-## Shows NPC actions one at a time, then a detailed player summary.
+## Reveals NPC actions line-by-line, then shows a detailed player summary.
 
 signal presentation_complete
 
-const NPC_DISPLAY_DURATION: float = 5.0
+const LINE_REVEAL_DELAY: float = 1.0
+const POST_REVEAL_DELAY: float = 1.5
 
 var _summaries: Dictionary = {}
 var _player_id: String = ""
 var _npc_queue: Array = []
 var _current_npc_index: int = -1
-var _timer: float = 0.0
 var _showing_player_summary: bool = false
 var _active: bool = false
 var _game_state: GameState
 var _prev_financials: Dictionary = {}
+
+# Line-by-line reveal state
+var _pending_lines: Array[String] = []
+var _revealed_lines: Array[String] = []
+var _line_timer: float = 0.0
+var _all_lines_revealed: bool = false
 
 @onready var _overlay: ColorRect = %Overlay
 @onready var _title_label: Label = %TitleLabel
@@ -35,10 +41,21 @@ func _process(delta: float) -> void:
 	if not _active or _showing_player_summary:
 		return
 
-	_timer -= delta
-	_progress_bar.value = maxf(0.0, _timer / NPC_DISPLAY_DURATION * 100.0)
+	_line_timer -= delta
+	if _line_timer > 0.0:
+		return
 
-	if _timer <= 0.0:
+	if _pending_lines.size() > 0:
+		# Reveal next line
+		_revealed_lines.append(_pending_lines.pop_front())
+		_content.text = "\n".join(_revealed_lines)
+		_line_timer = LINE_REVEAL_DELAY
+	elif not _all_lines_revealed:
+		# All lines shown — start post-reveal pause
+		_all_lines_revealed = true
+		_line_timer = POST_REVEAL_DELAY
+	else:
+		# Post-reveal pause done — advance
 		_advance_npc()
 
 
@@ -79,7 +96,7 @@ func present_turn(summaries: Dictionary, player_id: String, game_state: GameStat
 
 	_overlay.visible = true
 	_continue_button.visible = false
-	_progress_bar.visible = true
+	_progress_bar.visible = false
 	_skip_hint.text = "Press Escape to skip to your summary"
 	_skip_hint.visible = true
 
@@ -99,15 +116,19 @@ func _advance_npc() -> void:
 	var summary: TurnSummaryBuilder.CarrierTurnSummary = _summaries[carrier_id]
 
 	_title_label.text = summary.carrier_name
-	_content.text = _build_npc_content(summary)
-	_timer = NPC_DISPLAY_DURATION
-	_progress_bar.value = 100.0
-	_progress_bar.visible = true
+	_content.text = ""
 	_continue_button.visible = false
+
+	# Set up line-by-line reveal
+	_pending_lines = _build_npc_lines(summary)
+	_revealed_lines = []
+	_all_lines_revealed = false
+	_line_timer = 0.3  # Brief initial delay before first line
 
 
 func _show_player_summary() -> void:
 	_showing_player_summary = true
+	_pending_lines = []
 	_progress_bar.visible = false
 	_continue_button.visible = true
 	_skip_hint.text = "Press Enter or Escape to continue"
@@ -125,7 +146,7 @@ func _show_player_summary() -> void:
 	_content.text = _build_player_content(summary)
 
 
-func _build_npc_content(summary: TurnSummaryBuilder.CarrierTurnSummary) -> String:
+func _build_npc_lines(summary: TurnSummaryBuilder.CarrierTurnSummary) -> Array[String]:
 	var lines: Array[String] = []
 
 	for action: String in summary.actions:
@@ -141,7 +162,7 @@ func _build_npc_content(summary: TurnSummaryBuilder.CarrierTurnSummary) -> Strin
 	])
 	lines.append("Cash: §%.0f → §%.0f" % [summary.cash_before, summary.cash_after])
 
-	return "\n".join(lines)
+	return lines
 
 
 func _build_player_content(summary: TurnSummaryBuilder.CarrierTurnSummary) -> String:
