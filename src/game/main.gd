@@ -7,6 +7,7 @@ var _carrier_id: String = "player"
 
 var _modals: Dictionary = {}
 var _active_modal: String = ""
+var _skip_presentation: bool = false
 
 @onready var _top_bar: TopBar = %TopBar
 @onready var _star_map = %StarMap
@@ -20,6 +21,7 @@ var _active_modal: String = ""
 @onready var _create_route_modal: CreateRouteModal = %CreateRouteModal
 @onready var _order_ship_modal: OrderShipModal = %OrderShipModal
 @onready var _manage_slots_modal: ManageSlotsModal = %ManageSlotsModal
+@onready var _turn_presentation: TurnPresentationOverlay = %TurnPresentationOverlay
 
 
 func _ready() -> void:
@@ -76,12 +78,34 @@ func _connect_signals() -> void:
 
 func _on_next_turn() -> void:
 	_top_bar.set_turn_in_progress(true)
+
+	# Capture pre-turn state
+	var cash_before: Dictionary = {}
+	for carrier: CarrierData in _session.game_state.carriers:
+		cash_before[carrier.id] = carrier.cash
+	var prev_financials := _session.game_state.last_turn_financials.duplicate(true)
+
+	# Run the turn
 	var result := _session.run_next_turn()
+
+	# Build summaries
+	var summaries := TurnSummaryBuilder.build_summaries(
+		result, _session.game_state, cash_before, prev_financials
+	)
+
+	# Start presentation (skip in headless/validation mode)
+	if _skip_presentation or OS.has_feature("headless") or OS.get_cmdline_user_args().has("--test-mode"):
+		pass  # No presentation — go straight to refresh
+	else:
+		_turn_presentation.present_turn(summaries, _carrier_id, _session.game_state, prev_financials)
+		await _turn_presentation.presentation_complete
+
+	# Refresh UI
 	_star_map.refresh(_session.game_state)
 	_top_bar.refresh()
-	_show_turn_notifications(result)
 	_top_bar.set_turn_in_progress(false)
 	_turn_log_modal.add_turn_result(result.turn_number, result, _carrier_id)
+
 	if not _active_modal.is_empty():
 		var modal = _modals[_active_modal]
 		if modal.has_method("refresh"):

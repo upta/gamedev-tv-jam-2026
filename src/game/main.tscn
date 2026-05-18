@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://game/main.gd" id="1"]
 [ext_resource type="PackedScene" path="res://game/ui/top_bar.tscn" id="2"]
@@ -13,6 +13,7 @@
 [ext_resource type="PackedScene" path="res://game/ui/modals/create_route_modal.tscn" id="14"]
 [ext_resource type="PackedScene" path="res://game/ui/modals/order_ship_modal.tscn" id="15"]
 [ext_resource type="PackedScene" path="res://game/ui/modals/manage_slots_modal.tscn" id="16"]
+[ext_resource type="PackedScene" path="res://game/ui/turn_presentation_overlay.tscn" id="17"]
 
 [node name="GameScene" type="Control"]
 layout_mode = 3
@@ -70,3 +71,6 @@ unique_name_in_owner = true
 [node name="GameOverScreen" parent="." instance=ExtResource("8")]
 unique_name_in_owner = true
 visible = false
+
+[node name="TurnPresentationOverlay" parent="." instance=ExtResource("17")]
+unique_name_in_owner = true
