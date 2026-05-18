@@ -46,10 +46,14 @@ func _process(delta: float) -> void:
 		return
 
 	if _pending_lines.size() > 0:
-		# Reveal next line
-		_revealed_lines.append(_pending_lines.pop_front())
+		# Reveal next line — skip delay for blank lines
+		var next_line := _pending_lines.pop_front()
+		_revealed_lines.append(next_line)
 		_content.text = "\n".join(_revealed_lines)
-		_line_timer = LINE_REVEAL_DELAY
+		if next_line.strip_edges() == "":
+			_line_timer = 0.0
+		else:
+			_line_timer = LINE_REVEAL_DELAY
 	elif not _all_lines_revealed:
 		# All lines shown — start post-reveal pause
 		_all_lines_revealed = true
