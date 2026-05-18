@@ -130,6 +130,15 @@ All processed in carrier_order (index-based tie-breaking, D004).
 - The simulation harness controller's `get_observed_state()` can expose nested arrays (e.g., `route_performance.0.passengers_served`) and the validation framework resolves dot-separated array indices correctly.
 - Indentation matters critically in GDScript — an extra tab level causes parse errors that cascade through the entire class resolution chain, breaking unrelated scripts that reference the class.
 
+### Turn Presentation System (2026-05-18)
+
+- **TurnSummaryBuilder** (`src/game/simulation/turn_summary_builder.gd`): Pure data extraction from TurnResult. Uses `CarrierTurnSummary` inner class. Key pattern: capture `cash_before` dict BEFORE calling `advance_turn()`, pass `prev_financials` for delta display.
+- **TurnPresentationOverlay** (`src/game/ui/turn_presentation_overlay.gd` + `.tscn`): CanvasLayer at layer 100, semi-transparent background, RichTextLabel with BBCode for content. Uses `_process()` for NPC auto-advance timer (5s per card). Emits `presentation_complete` signal.
+- **Validation compatibility**: `_on_next_turn()` now uses `await` on the presentation. Skips presentation entirely when `--test-mode` user arg is present or headless feature detected. This keeps all 31+ validation scenarios passing without modification.
+- **Integration pattern**: `main.gd` captures pre-turn state → runs turn → builds summaries → presents → refreshes UI. The `await` means UI doesn't update until player dismisses.
+- Planet display names: `game_state.galaxy.get_planet(id).name` (GalaxyData.Planet has `name` field, not `planet_name`).
+- Carrier display names: `carrier.carrier_name` (not `.name` which shadows Object.name).
+
 ### Route Editing Modal (2026-05-17)
 
 - Adding edit mode to an existing create modal is clean: `_edit_mode` bool + `_editing_route` reference controls form behavior. The `open()` method resets to create mode, `open_for_edit()` sets edit mode — no state leakage between modes.
