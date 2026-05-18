@@ -22,6 +22,7 @@ var _skip_presentation: bool = false
 @onready var _order_ship_modal: OrderShipModal = %OrderShipModal
 @onready var _manage_slots_modal: ManageSlotsModal = %ManageSlotsModal
 @onready var _turn_presentation: TurnPresentationOverlay = %TurnPresentationOverlay
+@onready var _welcome_overlay: WelcomeOverlay = %WelcomeOverlay
 
 
 func _ready() -> void:
@@ -40,6 +41,13 @@ func _ready() -> void:
 	}
 	_bind_all()
 	_connect_signals()
+	_show_welcome()
+
+
+func _show_welcome() -> void:
+	if _skip_presentation or OS.has_feature("headless") or OS.get_cmdline_user_args().has("--test-mode"):
+		return
+	_welcome_overlay.show_tutorial()
 
 
 func _unhandled_input(event: InputEvent) -> void:

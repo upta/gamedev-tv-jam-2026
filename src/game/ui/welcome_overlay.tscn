@@ -1,0 +1,79 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://game/ui/welcome_overlay.gd" id="1"]
+
+[node name="WelcomeOverlay" type="CanvasLayer"]
+layer = 101
+script = ExtResource("1")
+
+[node name="Overlay" type="ColorRect" parent="."]
+unique_name_in_owner = true
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.05, 0.05, 0.1, 0.95)
+visible = false
+
+[node name="MarginContainer" type="MarginContainer" parent="Overlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 250
+theme_override_constants/margin_top = 100
+theme_override_constants/margin_right = 250
+theme_override_constants/margin_bottom = 100
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Overlay/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="TitleLabel" type="Label" parent="Overlay/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+horizontal_alignment = 1
+text = "Welcome to Astrobiz"
+
+[node name="Content" type="RichTextLabel" parent="Overlay/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+theme_override_font_sizes/normal_font_size = 18
+text = ""
+scroll_active = false
+fit_content = false
+
+[node name="BottomRow" type="HBoxContainer" parent="Overlay/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="PageIndicator" type="Label" parent="Overlay/MarginContainer/VBoxContainer/BottomRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.5, 0.5, 0.5, 1)
+text = "1 / 5"
+
+[node name="ContinueHint" type="Label" parent="Overlay/MarginContainer/VBoxContainer/BottomRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+horizontal_alignment = 2
+text = "Click or press Space to continue"
+
+[node name="StartButton" type="Button" parent="Overlay/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(200, 45)
+theme_override_font_sizes/font_size = 18
+text = "Start Playing"
+visible = false

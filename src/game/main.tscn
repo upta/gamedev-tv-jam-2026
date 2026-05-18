@@ -14,6 +14,7 @@
 [ext_resource type="PackedScene" path="res://game/ui/modals/order_ship_modal.tscn" id="15"]
 [ext_resource type="PackedScene" path="res://game/ui/modals/manage_slots_modal.tscn" id="16"]
 [ext_resource type="PackedScene" path="res://game/ui/turn_presentation_overlay.tscn" id="17"]
+[ext_resource type="PackedScene" path="res://game/ui/welcome_overlay.tscn" id="18"]
 
 [node name="GameScene" type="Control"]
 layout_mode = 3
@@ -73,4 +74,7 @@ unique_name_in_owner = true
 visible = false
 
 [node name="TurnPresentationOverlay" parent="." instance=ExtResource("17")]
+unique_name_in_owner = true
+
+[node name="WelcomeOverlay" parent="." instance=ExtResource("18")]
 unique_name_in_owner = true
