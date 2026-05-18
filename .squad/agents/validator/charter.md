@@ -24,29 +24,40 @@
 - Expose game state through harness controllers using `get_observed_state()` returning `nodes`, `metrics`, and `signals`
 
 ## Definition of Done
-- **Godot launches clean.** Run `godot --headless --path src --quit` — must exit with no script errors.
-- **GUT unit tests pass.** Run `godot --headless --path src -s res://addons/gut/gut_cmdln.gd -gdir=res://tests/unit -gexit` — all tests green.
+- **Godot launches clean.** Run the headless launch check from Running Tests — must exit with no script errors.
+- **GUT unit tests pass.** Run GUT from Running Tests — all tests green.
 - **Every gameplay code change requires validation scenarios.** If Builder ships code without scenarios, flag it and send it back.
 - **All scenarios must pass — new and existing.** Run the full suite (`run_all_scenarios.ps1`) after every change. New scenarios must be green. Existing scenarios must not regress. If anything fails, the feature is not done.
 - Humans play-test for fun, feel, and game design feedback — never for QA. A human should never find a bug that validation should have caught.
 - `git push origin` at the end of every work batch.
 
 ## Running Tests
-The Godot executable is at: `C:\Users\upta\AppData\Roaming\godotenv\godot\bin\godot.exe`
+
+**⚠️ CRITICAL: Always `cd` to the repo root first, then use these EXACT commands with absolute paths. If Godot can't find the project, it opens a GUI project manager on the user's screen — never let this happen.**
 
 ```powershell
+# ALWAYS change to repo root first
+cd C:\Code\Github\upta\gamedev-tv-jam-2026
+
 # Headless launch check
-godot --headless --path src --quit
+& "C:\Users\upta\AppData\Roaming\godotenv\godot\bin\godot.exe" --headless --path src --quit
 
 # GUT unit tests
-godot --headless --path src -s res://addons/gut/gut_cmdln.gd -gdir=res://tests/unit -gexit
+& "C:\Users\upta\AppData\Roaming\godotenv\godot\bin\godot.exe" --headless --path src -s res://addons/gut/gut_cmdln.gd -gdir=res://tests/unit -gexit
 
 # Validation scenarios (single)
-./tools/run_scenario.ps1 -Scenario src/validation/scenarios/<name>.json -GodotExe "C:\Users\upta\AppData\Roaming\godotenv\godot\bin\godot.exe"
+.\tools\run_scenario.ps1 -Scenario src/validation/scenarios/<name>.json -GodotExe "C:\Users\upta\AppData\Roaming\godotenv\godot\bin\godot.exe" -Screen 1
 
 # Validation scenarios (full suite)
-./tools/run_all_scenarios.ps1 -GodotExe "C:\Users\upta\AppData\Roaming\godotenv\godot\bin\godot.exe"
+.\tools\run_all_scenarios.ps1 -ProjectPath src -GodotExe "C:\Users\upta\AppData\Roaming\godotenv\godot\bin\godot.exe" -WindowMode 2
 ```
+
+**Rules:**
+- NEVER call `godot` without the full absolute path — it's not on PATH
+- NEVER run Godot without `--path src` — omitting it opens the project manager GUI
+- ALWAYS use `--headless` for non-visual checks (launch check, GUT tests)
+- ALWAYS use `run_all_scenarios.ps1` / `run_scenario.ps1` for validation — never invoke Godot directly for scenarios
+- Use `-WindowMode 2` for scenario runs to keep them on the second monitor
 
 ## Scenario Contract Reference
 Scenarios are JSON files with these key step operations:
