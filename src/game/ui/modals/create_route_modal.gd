@@ -182,6 +182,13 @@ func _rebuild_route_details(carrier: CarrierData) -> void:
 	if _origin_id.is_empty() or _dest_id.is_empty() or _origin_id == _dest_id:
 		return
 
+	if _selected_ship_ids.is_empty():
+		var hint := Label.new()
+		hint.text = "Select ships to configure route"
+		hint.modulate = Color(0.6, 0.6, 0.6)
+		_details_section.add_child(hint)
+		return
+
 	var lane := _game_state.galaxy.get_lane(_origin_id, _dest_id)
 	if lane == null:
 		var no_lane := Label.new()
@@ -400,7 +407,7 @@ func _open_ship_selector() -> void:
 		else:
 			_selected_ship_ids.append(selected_id)
 		_update_ship_display()
-		_update_frequency_max()
+		_rebuild_route_details(_game_state.get_player_carrier())
 		_update_create_button_state()
 
 	_show_selection_popup("Select Ship", in_range, out_range, callback, false)
@@ -659,7 +666,9 @@ func set_destination(planet_id: String) -> void:
 func select_ships(ship_ids: Array) -> void:
 	_selected_ship_ids = ship_ids.duplicate()
 	_update_ship_display()
-	_update_frequency_max()
+	var carrier := _game_state.get_player_carrier()
+	if carrier:
+		_rebuild_route_details(carrier)
 	_update_create_button_state()
 
 

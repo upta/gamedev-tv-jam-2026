@@ -15,7 +15,7 @@ const CARRIER_COLORS := {
 const PLAYER_ROUTE_WIDTH := 4.0
 const NPC_ROUTE_WIDTH := 2.0
 
-const MAP_PADDING := 60.0
+const MAP_PADDING := 100.0
 const MAP_DEFAULT_SIZE := Vector2(1200, 700)
 
 const _PlanetNodeScene := preload("res://game/ui/star_map/planet_node.tscn")
@@ -25,6 +25,8 @@ var _planet_nodes: Dictionary = {}   # { planet_id: Area2D (PlanetNode) }
 var _route_lines: Array = []         # drawn route overlay Line2Ds
 var _selected_planet_id: String = ""
 var _planet_positions: Dictionary = {}  # { planet_id: Vector2 } in pixel space
+var _hover_panel: PanelContainer = null
+var _hover_label: RichTextLabel = null
 
 @onready var _map_content: Node2D = $MapContent
 
@@ -32,6 +34,7 @@ var _planet_positions: Dictionary = {}  # { planet_id: Vector2 } in pixel space
 func bind(game_state: GameState) -> void:
 	_game_state = game_state
 	_build_map()
+	_build_hover_panel()
 
 
 func refresh(game_state: GameState) -> void:
@@ -91,6 +94,8 @@ func _build_map() -> void:
 		_map_content.add_child(planet_node)
 		planet_node.setup(planet)
 		planet_node.clicked.connect(_on_planet_clicked)
+		planet_node.hovered.connect(_on_planet_hovered)
+		planet_node.unhovered.connect(_on_planet_unhovered)
 		_planet_nodes[planet.id] = planet_node
 
 	# Initial data pass
@@ -175,3 +180,141 @@ func _on_planet_clicked(planet_id: String) -> void:
 		if node:
 			node.set_selected(true)
 		planet_selected.emit(planet_id)
+
+
+# ---------------------------------------------------------------------------
+# Hover Info Panel
+# ---------------------------------------------------------------------------
+
+func _build_hover_panel() -> void:
+	_hover_panel = PanelContainer.new()
+	_hover_panel.visible = false
+	_hover_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.1, 0.1, 0.15, 0.92)
+	style.border_color = Color(0.4, 0.4, 0.5, 0.6)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(4)
+	style.set_content_margin_all(8)
+	_hover_panel.add_theme_stylebox_override("panel", style)
+
+	_hover_label = RichTextLabel.new()
+	_hover_label.bbcode_enabled = true
+	_hover_label.fit_content = true
+	_hover_label.scroll_active = false
+	_hover_label.custom_minimum_size = Vector2(220, 0)
+	_hover_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hover_panel.add_child(_hover_label)
+
+	add_child(_hover_panel)
+
+
+func _on_planet_hovered(planet_id: String) -> void:
+	if _hover_panel == null or _game_state == null:
+		return
+
+	var planet := _game_state.galaxy.get_planet(planet_id)
+	if planet == null:
+		return
+
+	# Gather ownership data
+	var player_owned := 0
+	var other_owned := 0
+	var carriers := _game_state.get_all_carriers()
+	for carrier: CarrierData in carriers:
+		var count: int = carrier.get_slot_count(planet_id)
+		if carrier.id == "player":
+			player_owned += count
+		else:
+			other_owned += count
+	var available: int = planet.total_slots - player_owned - other_owned
+
+	# Count routes touching this planet
+	var total_routes := 0
+	var player_routes := 0
+	for carrier: CarrierData in carriers:
+		for route: CarrierData.Route in carrier.get_active_routes():
+			if route.origin_id == planet_id or route.dest_id == planet_id:
+				total_routes += 1
+				if carrier.id == "player":
+					player_routes += 1
+
+	# Aggregate demand for lanes touching this planet
+	var pax_demands: Array = []
+	var cargo_demands: Array = []
+	for other_planet: GalaxyData.Planet in _game_state.galaxy.planets:
+		if other_planet.id == planet_id:
+			continue
+		var lane_id := GalaxyData.derive_lane_id(planet_id, other_planet.id)
+		var fwd := _game_state.demand_table.get_entry(lane_id, "forward")
+		var rev := _game_state.demand_table.get_entry(lane_id, "reverse")
+		if fwd:
+			pax_demands.append(fwd.base_demand_passenger)
+			cargo_demands.append(fwd.base_demand_cargo)
+		if rev:
+			pax_demands.append(rev.base_demand_passenger)
+			cargo_demands.append(rev.base_demand_cargo)
+
+	var avg_pax := 0
+	var avg_cargo := 0
+	if pax_demands.size() > 0:
+		var total := 0
+		for d: int in pax_demands:
+			total += d
+		avg_pax = total / pax_demands.size()
+	if cargo_demands.size() > 0:
+		var total := 0
+		for d: int in cargo_demands:
+			total += d
+		avg_cargo = total / cargo_demands.size()
+
+	var pax_tier := DemandCalculator.get_demand_tier(avg_pax)
+	var cargo_tier := DemandCalculator.get_demand_tier(avg_cargo)
+
+	# Format system name
+	var system_display := planet.system.replace("_", " ").capitalize()
+
+	# Build panel text
+	var text := "[b]%s[/b] (%s)\n" % [planet.name, system_display]
+	text += "Slots: %d owned / %d total (%d available)\n" % [player_owned, planet.total_slots, available]
+	text += "Routes: %d active (%d yours)\n" % [total_routes, player_routes]
+	text += "Demand: %s pax / %s cargo" % [pax_tier, cargo_tier]
+
+	_hover_label.text = text
+	_hover_panel.visible = true
+
+	# Position near the planet, clamped to viewport
+	var planet_pos: Vector2 = _planet_positions.get(planet_id, Vector2.ZERO)
+	await get_tree().process_frame
+	_position_hover_panel(planet_pos)
+
+
+func _position_hover_panel(planet_pos: Vector2) -> void:
+	if _hover_panel == null or not _hover_panel.visible:
+		return
+	var panel_size: Vector2 = _hover_panel.size
+	var viewport_size: Vector2 = size if size.x > 0 and size.y > 0 else MAP_DEFAULT_SIZE
+
+	# Default: offset to the right and slightly above
+	var pos := planet_pos + Vector2(16, -panel_size.y * 0.5)
+
+	# Clamp right edge
+	if pos.x + panel_size.x > viewport_size.x:
+		pos.x = planet_pos.x - panel_size.x - 16
+	# Clamp left edge
+	if pos.x < 0:
+		pos.x = 0
+	# Clamp bottom edge
+	if pos.y + panel_size.y > viewport_size.y:
+		pos.y = viewport_size.y - panel_size.y
+	# Clamp top edge
+	if pos.y < 0:
+		pos.y = 0
+
+	_hover_panel.position = pos
+
+
+func _on_planet_unhovered(_planet_id: String) -> void:
+	if _hover_panel:
+		_hover_panel.visible = false

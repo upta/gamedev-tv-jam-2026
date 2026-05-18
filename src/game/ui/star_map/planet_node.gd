@@ -4,6 +4,8 @@ extends Area2D
 ## Interactive planet marker on the star map.
 
 signal clicked(planet_id: String)
+signal hovered(planet_id: String)
+signal unhovered(planet_id: String)
 
 const SYSTEM_COLORS := {
 	"sol": Color(0.3, 0.5, 1.0),
@@ -17,7 +19,7 @@ const CARRIER_COLORS := {
 	"npc_2": Color(0.3, 0.9, 0.3),
 	"npc_3": Color(0.9, 0.7, 0.2),
 }
-const SLOT_DOT_RADIUS := 4.0
+const SLOT_DOT_RADIUS := 3.0
 
 var planet_id: String
 var planet_name: String
@@ -41,9 +43,11 @@ func setup(planet: GalaxyData.Planet) -> void:
 	$CollisionShape2D.shape = shape
 
 	_label.text = planet_name
-	_label.position = Vector2(-_label.size.x * 0.5, _get_radius() + 4.0)
+	_label.position = Vector2(-_label.size.x * 0.5, _get_radius() + 2.0)
 
 	input_pickable = true
+	mouse_entered.connect(_on_mouse_entered)
+	mouse_exited.connect(_on_mouse_exited)
 	queue_redraw()
 
 
@@ -95,4 +99,12 @@ func _input_event(_viewport: Viewport, event: InputEvent, _shape_idx: int) -> vo
 
 
 func _get_radius() -> float:
-	return 12.0 + total_slots * 2.0
+	return 8.0 + total_slots * 1.2
+
+
+func _on_mouse_entered() -> void:
+	hovered.emit(planet_id)
+
+
+func _on_mouse_exited() -> void:
+	unhovered.emit(planet_id)
