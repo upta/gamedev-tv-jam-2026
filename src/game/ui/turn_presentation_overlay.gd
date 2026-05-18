@@ -47,7 +47,7 @@ func _process(delta: float) -> void:
 
 	if _pending_lines.size() > 0:
 		# Reveal next line — skip delay for blank lines
-		var next_line := _pending_lines.pop_front()
+		var next_line: String = _pending_lines.pop_front()
 		_revealed_lines.append(next_line)
 		_content.text = "\n".join(_revealed_lines)
 		if next_line.strip_edges() == "":
