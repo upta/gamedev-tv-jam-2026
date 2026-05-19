@@ -187,7 +187,7 @@ static func _build_actions(summary: CarrierTurnSummary, game_state: GameState) -
 		var origin_name := _get_planet_name(game_state, route.get("origin_id", ""))
 		var dest_name := _get_planet_name(game_state, route.get("dest_id", ""))
 		var ship_count: int = route.get("ship_count", 0)
-		actions.append("Opened route %s → %s (%d ship%s)" % [
+		actions.append("Opened route %s -> %s (%d ship%s)" % [
 			origin_name, dest_name, ship_count,
 			"s" if ship_count != 1 else "",
 		])
@@ -195,7 +195,7 @@ static func _build_actions(summary: CarrierTurnSummary, game_state: GameState) -
 	for route: Dictionary in summary.routes_cancelled:
 		var origin_name := _get_planet_name(game_state, route.get("origin_id", ""))
 		var dest_name := _get_planet_name(game_state, route.get("dest_id", ""))
-		actions.append("Cancelled route %s → %s" % [origin_name, dest_name])
+		actions.append("Cancelled route %s -> %s" % [origin_name, dest_name])
 
 	for route: Dictionary in summary.routes_modified:
 		var origin_name := _get_planet_name(game_state, route.get("origin_id", ""))
@@ -226,14 +226,14 @@ static func _build_actions(summary: CarrierTurnSummary, game_state: GameState) -
 		var new_freq: int = route.get("new_frequency", 0)
 		if old_freq != new_freq:
 			if new_freq > old_freq:
-				details.append("increased frequency %d→%d" % [old_freq, new_freq])
+				details.append("increased frequency %d->%d" % [old_freq, new_freq])
 			else:
-				details.append("decreased frequency %d→%d" % [old_freq, new_freq])
+				details.append("decreased frequency %d->%d" % [old_freq, new_freq])
 
 		if details.is_empty():
-			actions.append("Adjusted route %s → %s" % [origin_name, dest_name])
+			actions.append("Adjusted route %s -> %s" % [origin_name, dest_name])
 		else:
-			actions.append("Modified %s → %s: %s" % [origin_name, dest_name, ", ".join(details)])
+			actions.append("Modified %s -> %s: %s" % [origin_name, dest_name, ", ".join(details)])
 
 	for order: Dictionary in summary.ships_ordered:
 		actions.append("Ordered 1 %s" % order.get("type_id", "ship"))
