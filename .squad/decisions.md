@@ -187,6 +187,137 @@ Price factor floor lowered from 0.2 to 0.05. At 2x+ suggested price, only 5% of 
 
 ---
 
+## D017: Per-Turn Game Telemetry
+
+**Decision:** GameTelemetry is a RefCounted instance owned by GameSession (not static/autoload). Records every turn's intents, results, and post-turn state snapshot. Saves to `user://game_telemetry.json` on demand (F12 / debug save button).
+
+**Rationale:** Point-in-time debug snapshots (DebugStateSaver) don't capture turn history. Telemetry enables NPC behavior analysis over time. Instance-based design avoids global state and naturally resets with new sessions.
+
+**Key design choices:**
+- Untyped `result` parameter to avoid circular dependency with TurnPipeline (same pattern as `GameState.advance_turn()`)
+- Serialized inline (not deferred) so the snapshot reflects exact post-turn state
+- Saved alongside debug state — single F12 press captures both
+
+**Impact:** No changes to game logic or existing validation scenarios. Additive only.
+
+---
+
+## D018: Star Map UI Fixes
+
+**Decision:** 
+1. **Planet radius formula:** Reduced from `12 + slots*2` to `8 + slots*1.2`. Slot dot radius from 4px to 3px. Map padding from 60 to 100.
+2. **Route details section gating:** Route creation details (pricing/frequency/create button) now require ships to be selected, not just origin+dest.
+3. **Hover panel:** Added floating info panel on planet hover showing name, system, slot ownership, route count, and demand tier. Positioned near planet and clamped to viewport edges.
+
+**Rationale:**
+- Large planets were crowding map and obscuring labels. New formula keeps proportional differentiation while giving breathing room.
+- Showing pricing controls before ship selection was confusing — frequency depends on ships. Hint now guides selection order.
+- Players needed at-a-glance planet info without clicking.
+
+**Impact:** Visual-only. No gameplay logic affected. Programmatic API `select_ships()` triggers `_rebuild_route_details()`. All existing validation scenarios pass unchanged.
+
+---
+
+## D019: Turn Presentation System Architecture
+
+**Decision:** Turn results now shown via full-screen presentation overlay (`TurnPresentationOverlay`) driven by pure data from `TurnSummaryBuilder`. The overlay:
+- Shows each NPC's turn actions one at a time (5s auto-advance, skippable with Escape)
+- Then shows detailed player summary (routes with pax/cargo served, financials, events)
+- Stays until player clicks Continue or presses Enter/Escape
+
+**Key design choices:**
+1. **TurnSummaryBuilder is pure data** — no UI, no scene references. Receives TurnResult + GameState + pre-turn snapshots, returns Dictionary of CarrierTurnSummary objects. Unit-testable.
+2. **Presentation skipped in test-mode** — `_on_next_turn()` checks `OS.get_cmdline_user_args().has("--test-mode")` and skips the await. This keeps all validation scenarios working without modification.
+3. **Toast notifications removed from turn flow** — The `_show_turn_notifications()` call is no longer invoked during `_on_next_turn()`. The presentation overlay covers all information toasts used to show.
+4. **Pre-turn snapshot pattern** — `cash_before` dict and `prev_financials` (from `game_state.last_turn_financials`) captured BEFORE `run_next_turn()` so summary can show before/after deltas.
+
+**Impact:**
+- `main.gd` `_on_next_turn()` is now async (uses `await`)
+- New files: `turn_summary_builder.gd`, `turn_presentation_overlay.gd/.tscn`
+- `main.tscn` has new CanvasLayer node for the overlay
+- All 258 GUT tests pass, all 31+ validation scenarios pass
+
+---
+
+## D020: Money Escrow for Player Actions
+
+**Decision:** PlayerController immediately deducts `carrier.cash` when the player adds slot bids or ship orders (escrow), and refunds all escrowed amounts in `generate_intent()` / `clear_intent()` before the turn pipeline processes the intent.
+
+**Rationale:**
+- Players see accurate available cash during the planning phase — no "phantom money" confusion
+- Turn pipeline remains untouched: it still deducts for successful awards/orders as before
+- Replacing a bid for the same planet correctly swaps escrow amounts (refund old, deduct new)
+- Slot sales are NOT escrowed (income arrives when pipeline processes them)
+- Route creates/modifications are NOT escrowed (routes are free to create; the cost is operational)
+
+**Impact:**
+- `PlayerController` gains `bind_carrier()`, `_escrowed` state, and helper methods
+- `main.gd` must call `bind_carrier()` after session creation
+- TopBar refreshes on `intent_changed` signal to show updated cash
+- 10 new GUT tests covering escrow add/remove/replace/generate/clear flows
+
+---
+
+## D021: Route Editing via Dual-Mode Modal
+
+**Decision:** The CreateRouteModal serves double duty as create and edit modal rather than building a separate EditRouteModal. Edit mode is controlled by `_edit_mode` flag and `_editing_route` reference.
+
+**Key constraints in edit mode:**
+- Origin and destination are displayed but NOT editable (changing endpoints = cancel + create new)
+- Ships, frequency, and pricing ARE editable
+- Ships currently assigned to the route are included in the available ship pool
+- "Cancel Route" action moves inside the edit modal (bottom, red-styled)
+
+**Rationale:** Reusing the same modal avoids UI duplication and keeps the form-building logic in one place. The mode flag cleanly separates behavior without complex inheritance. Route endpoint changes are intentionally blocked because changing origin/dest fundamentally creates a different route (different lane, different demand market).
+
+**Impact:** RoutesModal "Cancel Route" button replaced with "Edit" button. Cancel route is now a secondary action inside the edit view. Pending route modifications displayed in RoutesModal pending actions section.
+
+---
+
+## D022: Ship Order Modal Extraction
+
+**Decision:** Extracted the "Order New Ship" form from ShipsModal into a dedicated OrderShipModal, following the same parent→child modal pattern used by RoutesModal→CreateRouteModal.
+
+**Pattern:**
+- ShipsModal shows fleet overview + pending orders + "Order Ship" button
+- OrderShipModal contains the full order form (type dropdown, capacity spinboxes, stats, order button)
+- main.gd wires: `order_ship_requested` → close ships modal, open order modal; `closed` → reopen ships modal
+
+**Rationale:** Consistent modal architecture across the UI. All "create/order" flows use the same pattern: overview modal with action button → dedicated form modal. Keeps overview modals focused on display, form modals focused on input.
+
+**Impact:**
+- New files: `order_ship_modal.gd`, `order_ship_modal.tscn`
+- ShipsModal reduced from 263 to ~147 lines
+- New validation: `ui_order_ship_flow.json` scenario + `ui_order_ship_harness_controller.gd`
+- main.gd updated with signal wiring (matches create route pattern exactly)
+
+---
+
+## D023: Routes Consume Slots at Both Endpoints
+
+**Decision:** Each active route consumes 1 slot at its origin and 1 slot at its destination. "Available slots" = owned - used_by_routes. Route creation and modification now check available slots, not just owned slots.
+
+**Rationale:** Previously `has_slots_at()` only checked ownership (count > 0). A carrier with 1 slot at Mars could create unlimited routes through Mars. This broke the economic constraint that slots are meant to represent — limited port capacity. Now slots are a real bottleneck: you need available (unconsumed) slots to create new routes.
+
+**Impact:**
+- `CarrierData` gained `get_slots_used_by_routes()` and `get_available_slots_at()`
+- `RouteValidator` checks available slots via `_count_routes_at_planet()` helper
+- `CreateRouteModal` accounts for pending route creates when showing available slots
+- UI shows "X owned, Y available" instead of just "X slots"
+- NPC route creation is also constrained (same RouteValidator path)
+
+---
+
+## D024: ManageSlotsModal Extraction
+
+**Decision:** Separated slot bidding/selling into a dedicated ManageSlotsModal. SlotsModal is now a read-only overview (holdings + pending actions + "Buy/Sell Slots" button).
+
+**Rationale:** Follows the same pattern as RoutesModal→CreateRouteModal and ShipsModal→OrderShipModal. Overview modals show status; form modals handle input. Consistency across all three resource types.
+
+**Impact:** New files: `manage_slots_modal.gd`, `manage_slots_modal.tscn`. Main.gd wires with close→open→close→reopen pattern.
+
+---
+
 ## User Directives
 
 ### 2026-05-17T03-30-23Z: Testing Responsibility

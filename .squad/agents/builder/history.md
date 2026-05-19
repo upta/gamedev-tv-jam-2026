@@ -123,6 +123,15 @@ All processed in carrier_order (index-based tie-breaking, D004).
 
 ## Learnings
 
+### Per-Turn Game Telemetry (2026-05-19)
+
+- `GameTelemetry` (`src/game/utils/game_telemetry.gd`): RefCounted instance on `GameSession`, not static. Accumulates per-turn snapshots of intents, results, and post-turn carrier state. Saves to `user://game_telemetry.json`.
+- Avoids type annotations on `result` parameter (TurnResult) to prevent circular dependency — `GameState.advance_turn()` already returns untyped for the same reason.
+- Reuses `DebugStateSaver` serialization patterns (ships, routes, events) but keeps its own copies since telemetry is instance-based (not static).
+- `record_turn()` called in `GameSession.run_next_turn()` right after `advance_turn()` returns — captures post-turn state including updated cash and scores.
+- `save_to_file()` called from `GameScene._save_debug_state()` alongside `DebugStateSaver.save()`.
+- Tests in `src/tests/unit/test_game_telemetry.gd` — 5 tests covering record/clear/save/intents/state_after.
+
 ### Route Performance Metrics (2026-05-19)
 
 - `financial_calculator.gd` `process_financials()` already computes demand splits per (lane, direction) and per-carrier. Adding per-route served/capacity data was straightforward — the demand split result keyed by carrier_id is already available at the route iteration level.
