@@ -1,7 +1,7 @@
 extends Node
 
 const PRODUCTION_SCENE := preload("res://game/main.tscn")
-const TEST_SCENE := preload("res://addons/agentic_godot_validation/runtime/scenes/test_bootstrap.tscn")
+const TEST_SCENE_PATH := "res://addons/agentic_godot_validation/runtime/scenes/test_bootstrap.tscn"
 const ACTION_KEYS := {
 	"move_up": KEY_W,
 	"move_down": KEY_S,
@@ -13,7 +13,11 @@ const ACTION_KEYS := {
 
 func _ready() -> void:
 	_ensure_input_actions()
-	var next_scene: PackedScene = TEST_SCENE if _is_test_mode() else PRODUCTION_SCENE
+	var next_scene: PackedScene
+	if _is_test_mode():
+		next_scene = load(TEST_SCENE_PATH)
+	else:
+		next_scene = PRODUCTION_SCENE
 	add_child(next_scene.instantiate())
 
 func _is_test_mode() -> bool:
