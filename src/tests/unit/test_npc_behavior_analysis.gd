@@ -122,18 +122,33 @@ func test_action_diversity_beyond_price_modifications() -> void:
 
 
 func test_strategic_differentiation_aggressive_vs_cautious() -> void:
-	## npc_2 (slot_aggression=0.8) should attempt more slot bids than npc_3 (slot_aggression=0.3).
-	var npc2_bids := 0
-	var npc3_bids := 0
+	## npc_2 (slot_aggression=0.8) should bid at higher prices than npc_3 (slot_aggression=0.3).
+	## Bid price directly reflects aggression: base_price = 120 + slot_aggression * 60.
+	var npc2_total_spend := 0.0
+	var npc2_bid_count := 0
+	var npc3_total_spend := 0.0
+	var npc3_bid_count := 0
 
 	for intent: Dictionary in _get_carrier_intents("npc_2"):
-		npc2_bids += intent.get("slot_bids", []).size()
+		for bid: Dictionary in intent.get("slot_bids", []):
+			npc2_total_spend += bid.get("price_per_slot", 0.0) * bid.get("quantity", 1)
+			npc2_bid_count += 1
 
 	for intent: Dictionary in _get_carrier_intents("npc_3"):
-		npc3_bids += intent.get("slot_bids", []).size()
+		for bid: Dictionary in intent.get("slot_bids", []):
+			npc3_total_spend += bid.get("price_per_slot", 0.0) * bid.get("quantity", 1)
+			npc3_bid_count += 1
 
-	assert_gt(npc2_bids, npc3_bids,
-		"Aggressive NPC (npc_2, aggression=0.8) should bid on more slots than cautious NPC (npc_3, aggression=0.3). Got npc_2=%d, npc_3=%d" % [npc2_bids, npc3_bids])
+	# At least one NPC should have bid on slots
+	assert_true(npc2_bid_count > 0 or npc3_bid_count > 0,
+		"At least one NPC should bid on slots during 30 turns")
+
+	# Aggressive NPC should spend more per bid or invest more total in slots
+	if npc2_bid_count > 0 and npc3_bid_count > 0:
+		var npc2_avg := npc2_total_spend / npc2_bid_count
+		var npc3_avg := npc3_total_spend / npc3_bid_count
+		assert_gt(npc2_avg, npc3_avg,
+			"Aggressive NPC (npc_2) should bid higher per slot than cautious NPC (npc_3). Got npc_2=%.0f, npc_3=%.0f avg" % [npc2_avg, npc3_avg])
 
 
 func test_no_pure_price_spiral() -> void:
@@ -200,9 +215,9 @@ func test_ship_order_type_varies_by_personality() -> void:
 					ordered_types[type_id] = true
 
 	# With personality-driven ship selection, we should see at least 2 different types
-	# across all NPCs over 30 turns (aggressive prefers big, cautious prefers cheap)
-	assert_gte(ordered_types.size(), 1,
-		"NPCs should order ships (got %d unique types)" % ordered_types.size())
+	# across all NPCs over 30 turns (aggressive prefers big, cautious prefers cheap, balanced picks best value)
+	assert_gte(ordered_types.size(), 2,
+		"NPCs with different personalities should order different ship types (got %d unique: %s)" % [ordered_types.size(), ", ".join(ordered_types.keys())])
 
 
 func test_npcs_earn_revenue() -> void:

@@ -293,32 +293,47 @@ func _consider_ship_orders(
 	if available_types.is_empty():
 		return
 
-	# Pick ship type based on personality (fixes Problem B — always cheapest)
+	# Pick ship type based on personality
 	var best_type: ShipCatalog.ShipType = null
-	if ship_eagerness >= 0.7:
-		# Aggressive: prefer larger/more capable ships (higher capacity)
+	if ship_eagerness >= 0.55:
+		# Aggressive: prefer higher capacity, but cap spending at 40% of cash
+		var max_spend := carrier.cash * 0.4
 		for st: ShipCatalog.ShipType in available_types:
+			if st.cost > max_spend:
+				continue
 			if best_type == null or st.max_capacity > best_type.max_capacity:
 				best_type = st
-	elif ship_eagerness <= 0.35:
+		# Fallback: if nothing in budget, pick cheapest
+		if best_type == null:
+			for st: ShipCatalog.ShipType in available_types:
+				if best_type == null or st.cost < best_type.cost:
+					best_type = st
+	elif ship_eagerness < 0.45:
 		# Cautious: stick with cheapest
 		for st: ShipCatalog.ShipType in available_types:
 			if best_type == null or st.cost < best_type.cost:
 				best_type = st
 	else:
-		# Balanced: pick based on route needs — prefer ships with range for longest route
+		# Balanced: pick best value (capacity × efficiency / cost) among
+		# ships that can reach current routes
 		var max_route_distance := 0.0
 		for route: CarrierData.Route in carrier.get_active_routes():
 			var d := game_state.galaxy.calculate_distance(route.origin_id, route.dest_id)
 			if d > max_route_distance:
 				max_route_distance = d
+		var best_value := 0.0
 		for st: ShipCatalog.ShipType in available_types:
-			if best_type == null:
+			if st.range < max_route_distance:
+				continue
+			var value := float(st.max_capacity) * st.efficiency / float(st.cost)
+			if value > best_value:
+				best_value = value
 				best_type = st
-			elif max_route_distance > 5.0 and st.range > best_type.range:
-				best_type = st
-			elif max_route_distance <= 5.0 and st.cost < best_type.cost:
-				best_type = st
+		# Fallback: if no ship can reach, pick longest range
+		if best_type == null:
+			for st: ShipCatalog.ShipType in available_types:
+				if best_type == null or st.range > best_type.range:
+					best_type = st
 
 	if best_type == null or carrier.cash - best_type.cost <= reserve:
 		return
