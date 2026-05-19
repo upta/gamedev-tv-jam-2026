@@ -340,3 +340,24 @@ Add a button/shortcut to save the current game state to a well-known file locati
 **Phase 4:** Full-screen star map + modal dialogs — Proposed
 
 See lead-implementation-plan.md (Phase 1), lead-phase2-plan.md (Phase 2), and lead-ui-overhaul-plan.md (Phase 4) for full specifications.
+
+---
+
+## D025: NPC AI Behavioral Diversity
+
+**Decision:** Implemented four behavioral diversity fixes to NPC route selection and strategy:
+
+1. **Competition-aware route scoring**: Route candidates scored by `demand - competition_penalty × (1 - slot_aggression)` + distance + jitter. Crowded lanes penalized for cautious NPCs, ignored by aggressive ones.
+2. **Personality-driven ship selection**: Aggressive NPCs prefer large ships, cautious prefer cheap, balanced match route needs.
+3. **Route modifications beyond price**: Overloaded routes gain ships or frequency increases (high `route_preference`). Underloaded routes reduce frequency alongside price.
+4. **Per-NPC scoring jitter**: ±15% RNG variance breaks ties between equally-weighted candidates.
+
+**Rationale:** Playtesting showed all NPCs behaved identically despite personality weights existing. These fixes create visible strategic differences — aggressive NPCs take risky high-demand routes and large ships, cautious NPCs avoid competition and prefer cheap ships, balanced NPCs adapt to route characteristics.
+
+**Impact:**
+- `npc_controller.gd` expanded from ~460 to ~530 lines
+- New helper: `_count_competitors_on_lane()`
+- `GameTelemetry.get_turns()` accessor added for test analysis
+- New test file: `test_npc_behavior_analysis.gd` (6 tests, full 30-turn simulation)
+- All 293 GUT tests pass, all validation scenarios pass
+- Personality weights in `game_setup.gd` unchanged — only decision logic improved
