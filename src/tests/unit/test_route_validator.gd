@@ -295,7 +295,7 @@ func test_max_frequency_speed_based() -> void:
 func test_max_frequency_varies_by_ship_type() -> void:
 	var carrier := _make_carrier()
 	carrier.slots["proxima_b"] = 1
-	# FW-10 Scout: eff=1.0, speed=5.0, max_capacity=20
+	# FW-10 Scout: eff=0.6, range=10.0, max_capacity=20
 	var scout := _add_ship(carrier, "fw-10", 10, 10)
 	# SD-300 Freighter: eff=0.5, speed=2.5, max_capacity=80
 	var freighter := _add_ship(carrier, "sd-300", 40, 40)
@@ -308,8 +308,8 @@ func test_max_frequency_varies_by_ship_type() -> void:
 	var freq_freighter_short := RouteValidator.calculate_max_frequency(
 		[freighter.id], carrier, catalog, short_lane.distance
 	)
-	# Scout: int(5.0/1.44)=3; Freighter: int(2.5/1.44)=1
-	assert_eq(freq_scout_short, 3, "Scout on short lane → 3 trips")
+	# Scout: int(3.0/1.44)=2; Freighter: int(2.5/1.44)=1
+	assert_eq(freq_scout_short, 2, "Scout on short lane → 2 trips")
 	assert_eq(freq_freighter_short, 1, "Freighter on short lane → 1 trip")
 	assert_true(freq_scout_short > freq_freighter_short, "faster ship = more trips")
 

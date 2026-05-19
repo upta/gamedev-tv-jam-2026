@@ -129,7 +129,7 @@ static func create_default_catalog() -> ShipCatalog:
 	catalog.add_type(ShipType.new("sd-900", "Titan SD-900", "Sol Dynamics", 15.0, 200, 0.4, 4000, 5, 20))
 
 	# Frontier Works — specialized, extreme stats
-	catalog.add_type(ShipType.new("fw-10", "Scout FW-10", "Frontier Works", 15.0, 20, 1.0, 300, 2, 0))
+	catalog.add_type(ShipType.new("fw-10", "Scout FW-10", "Frontier Works", 10.0, 20, 0.6, 250, 2, 0))
 	catalog.add_type(ShipType.new("fw-50", "Hauler FW-50", "Frontier Works", 6.0, 150, 0.3, 1800, 4, 12))
 	catalog.add_type(ShipType.new("fw-70", "Express FW-70", "Frontier Works", 10.0, 60, 1.2, 1500, 3, 16))
 
