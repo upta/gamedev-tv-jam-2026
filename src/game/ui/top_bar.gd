@@ -29,7 +29,8 @@ var _toolbar_buttons: Dictionary = {}
 func _ready() -> void:
 	_next_turn_button.pressed.connect(_on_next_turn_pressed)
 	_create_toolbar_buttons()
-	_create_debug_button()
+	if not OS.has_feature("web"):
+		_create_debug_button()
 
 
 func _create_toolbar_buttons() -> void:
