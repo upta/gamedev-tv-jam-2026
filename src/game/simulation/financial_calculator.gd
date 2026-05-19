@@ -127,6 +127,9 @@ static func process_financials(
 		var suggested_pax := DemandCalculator.calculate_suggested_price(lane, "passenger")
 		var suggested_cargo := DemandCalculator.calculate_suggested_price(lane, "cargo")
 
+		# Use canonical origin (alphabetically first planet) for direction matching
+		var canonical_origin: String = lane.id.split("::")[0]
+
 		demand_splits[key] = DemandCalculator.calculate_demand_split(
 			routes_on_lane,
 			direction,
@@ -135,7 +138,7 @@ static func process_financials(
 			catalog,
 			suggested_pax,
 			suggested_cargo,
-			lane.origin_id,
+			canonical_origin,
 		)
 
 	# Build per-carrier financial summaries
@@ -151,8 +154,11 @@ static func process_financials(
 			if lane == null:
 				continue
 
-			var direction := "forward" if route.origin_id == lane.origin_id else "reverse"
-			var key := lane.id + "::" + direction
+			# Must use canonical direction (alphabetical) to match the grouping key
+			var canonical_lane_id := GalaxyData.derive_lane_id(route.origin_id, route.dest_id)
+			var parts := canonical_lane_id.split("::")
+			var direction := "forward" if route.origin_id == parts[0] else "reverse"
+			var key := canonical_lane_id + "::" + direction
 
 			var split: Dictionary = demand_splits.get(key, {})
 			var revenue := calculate_route_revenue(route, carrier, catalog, split)

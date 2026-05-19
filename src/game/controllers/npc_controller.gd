@@ -131,9 +131,9 @@ func _consider_route_creation(
 	if available_ships.is_empty():
 		return
 
-	# Find planet pairs where carrier has slots at both ends and no active route
+	# Find planet pairs where carrier has AVAILABLE slots (not consumed by routes)
 	var slot_planets: Array = carrier.slots.keys().filter(
-		func(pid: String) -> bool: return carrier.get_slot_count(pid) > 0
+		func(pid: String) -> bool: return carrier.get_available_slots_at(pid) > 0
 	)
 
 	# Score all candidate routes instead of picking first valid one (fixes Problem D)
@@ -150,11 +150,14 @@ func _consider_route_creation(
 			if distance < 0.0:
 				continue
 
-			# Score the candidate (fixes Problem C — competition awareness)
-			var demand_entry := game_state.demand_table.get_entry(lane_id, "forward")
+			# Score the candidate — check both directions and use total demand
+			var fwd_entry := game_state.demand_table.get_entry(lane_id, "forward")
+			var rev_entry := game_state.demand_table.get_entry(lane_id, "reverse")
 			var demand_score := 0.0
-			if demand_entry != null:
-				demand_score = float(demand_entry.base_demand_passenger + demand_entry.base_demand_cargo)
+			if fwd_entry != null:
+				demand_score += float(fwd_entry.base_demand_passenger + fwd_entry.base_demand_cargo)
+			if rev_entry != null:
+				demand_score += float(rev_entry.base_demand_passenger + rev_entry.base_demand_cargo)
 
 			var competition_count := _count_competitors_on_lane(lane_id, carrier.id, game_state)
 			# Aggressive NPCs barely penalize competition, cautious NPCs heavily penalize
@@ -214,8 +217,10 @@ func _consider_route_creation(
 			if carrier.cash <= new_reserve:
 				continue
 
-		# Price based on demand
-		var demand_entry := game_state.demand_table.get_entry(candidate["lane_id"], "forward")
+		# Price based on demand — use the direction matching origin->dest
+		var lane_parts: PackedStringArray = candidate["lane_id"].split("::")
+		var price_direction := "forward" if origin_id == lane_parts[0] else "reverse"
+		var demand_entry := game_state.demand_table.get_entry(candidate["lane_id"], price_direction)
 		var passenger_price := 5.0
 		var cargo_price := 4.0
 		if demand_entry != null:

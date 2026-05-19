@@ -203,3 +203,39 @@ func test_ship_order_type_varies_by_personality() -> void:
 	# across all NPCs over 30 turns (aggressive prefers big, cautious prefers cheap)
 	assert_gte(ordered_types.size(), 1,
 		"NPCs should order ships (got %d unique types)" % ordered_types.size())
+
+
+func test_npcs_earn_revenue() -> void:
+	## After the first few turns (ships need time to arrive), NPCs must earn revenue.
+	## Revenue = 0 across many turns means a fundamental economic failure.
+	var carrier_ids := ["npc_1", "npc_2", "npc_3"]
+	var turns := telemetry.get_turns()
+
+	for cid: String in carrier_ids:
+		var total_revenue := 0.0
+		# Only check turns 5+ (ships need 3 turns to build, routes need to exist)
+		for i in range(4, turns.size()):
+			var financials: Dictionary = turns[i].get("results", {}).get("financials", {})
+			var carrier_fin: Dictionary = financials.get(cid, {})
+			total_revenue += carrier_fin.get("total_revenue", 0.0)
+
+		assert_gt(total_revenue, 0.0,
+			"NPC '%s' should earn some revenue after turn 5 (got %.1f across turns 5-%d)" % [cid, total_revenue, turns.size()])
+
+
+func test_at_least_one_npc_profitable_by_end() -> void:
+	## At least one NPC should have more cash at the end than a pure-losses trajectory.
+	## This validates the full economic loop: routes -> demand -> revenue > costs.
+	var turns := telemetry.get_turns()
+	var last_turn: Dictionary = turns[turns.size() - 1]
+
+	var profitable_npcs := 0
+	for cid in ["npc_1", "npc_2", "npc_3"]:
+		var final_state: Dictionary = last_turn.get("state_after", {}).get(cid, {})
+		var final_cash: float = final_state.get("cash", 0.0)
+		# Starting cash is 3000. If cash > 2500 after 30 turns, NPC at least broke close to even.
+		if final_cash > 2500.0:
+			profitable_npcs += 1
+
+	assert_gte(profitable_npcs, 1,
+		"At least one NPC should be near break-even or profitable by turn 30")
