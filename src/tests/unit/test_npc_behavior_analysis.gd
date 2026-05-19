@@ -239,3 +239,30 @@ func test_at_least_one_npc_profitable_by_end() -> void:
 
 	assert_gte(profitable_npcs, 1,
 		"At least one NPC should be near break-even or profitable by turn 30")
+
+
+func test_no_npc_idles_for_5_consecutive_turns() -> void:
+	## No NPC should go completely idle (zero actions) for 5+ turns in a row.
+	## Idle means the AI has no strategy left — it should always be bidding, expanding, or optimizing.
+	var turns := telemetry.get_turns()
+	var carrier_ids := ["npc_1", "npc_2", "npc_3"]
+
+	for cid: String in carrier_ids:
+		var consecutive_idle := 0
+		var max_idle := 0
+		for turn: Dictionary in turns:
+			var intent: Dictionary = turn.get("intents", {}).get(cid, {})
+			var has_action := false
+			for key in ["slot_bids", "route_creates", "route_modifications", "ship_orders", "route_cancellations", "slot_sales"]:
+				if not intent.get(key, []).is_empty():
+					has_action = true
+					break
+			if has_action:
+				consecutive_idle = 0
+			else:
+				consecutive_idle += 1
+				if consecutive_idle > max_idle:
+					max_idle = consecutive_idle
+
+		assert_lt(max_idle, 5,
+			"NPC '%s' was idle for %d consecutive turns — should always have strategic options" % [cid, max_idle])

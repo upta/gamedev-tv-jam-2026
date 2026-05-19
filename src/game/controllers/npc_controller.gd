@@ -70,8 +70,12 @@ func _consider_slot_bids(
 	)
 
 	# Max planets scales with aggression: low=3, mid=4, high=6
+	# But count planets with AVAILABLE slots — consumed slots don't count toward the cap
 	var max_planets := 3 + int(slot_aggression * 3.0)
-	if planets_with_slots.size() >= max_planets:
+	var available_slot_planets := carrier.slots.keys().filter(
+		func(pid: String) -> bool: return carrier.get_available_slots_at(pid) > 0
+	)
+	if planets_with_slots.size() >= max_planets and available_slot_planets.size() >= 2:
 		return
 
 	# Find reachable planets where we don't already have slots
@@ -263,12 +267,9 @@ func _consider_ship_orders(
 	var util_threshold := 1.0 - ship_eagerness * 0.6
 	var utilization := 1.0 if total_ships == 0 else float(assigned_count) / float(total_ships)
 
-	if utilization < util_threshold:
-		return
-
-	# Also check: are there unserved planet pairs that could use a ship?
+	# Check if there are unserved planet pairs that could use a ship
 	var slot_planets: Array = carrier.slots.keys().filter(
-		func(pid: String) -> bool: return carrier.get_slot_count(pid) > 0
+		func(pid: String) -> bool: return carrier.get_available_slots_at(pid) > 0
 	)
 	var has_unrouted_pair := false
 	for i in range(slot_planets.size()):
@@ -280,8 +281,12 @@ func _consider_ship_orders(
 		if has_unrouted_pair:
 			break
 
-	# Don't order if utilization is below threshold AND no unrouted pairs exist
+	# Don't order if utilization is below threshold AND no actionable route pairs exist
 	if utilization < util_threshold and not has_unrouted_pair:
+		return
+
+	# Don't order if we already have 2+ idle ships (use what you have first)
+	if available_ships.size() >= 2:
 		return
 
 	var available_types := game_state.catalog.get_available_types(game_state.current_turn)
@@ -441,25 +446,22 @@ func _consider_route_modifications(
 		var modified := false
 
 		if avg_load > 0.85:
-			# Overloaded — personality determines response
-			if route_preference >= 0.5:
-				# High route_preference: prefer adding ships to expand capacity
-				var available_ships: Array = carrier.get_available_ships()
-				var distance := game_state.galaxy.calculate_distance(route.origin_id, route.dest_id)
-				for ship: ShipCatalog.ShipInstance in available_ships:
-					var ship_type := game_state.catalog.get_type(ship.type_id)
-					if ship_type != null and ship_type.range >= distance:
-						new_ship_ids.append(ship.id)
-						new_frequency = _choose_frequency(new_ship_ids, carrier, game_state, distance)
-						modified = true
-						break
+			# Overloaded — add ships to expand capacity (any personality)
+			var available_ships: Array = carrier.get_available_ships()
+			var distance := game_state.galaxy.calculate_distance(route.origin_id, route.dest_id)
+			for ship: ShipCatalog.ShipInstance in available_ships:
+				var ship_type := game_state.catalog.get_type(ship.type_id)
+				if ship_type != null and ship_type.range >= distance:
+					new_ship_ids.append(ship.id)
+					new_frequency = _choose_frequency(new_ship_ids, carrier, game_state, distance)
+					modified = true
+					break
 			if not modified:
-				# Low route_preference or no ships available: raise prices
+				# No ships available: raise prices
 				new_pax_price *= 1.10
 				new_cargo_price *= 1.10
 				modified = true
 			# Also try increasing frequency if ships support it
-			var distance := game_state.galaxy.calculate_distance(route.origin_id, route.dest_id)
 			var max_freq := RouteValidator.calculate_max_frequency(
 				new_ship_ids, carrier, game_state.catalog, distance
 			)
@@ -475,6 +477,20 @@ func _consider_route_modifications(
 			if new_frequency > 1:
 				new_frequency -= 1
 				modified = true
+
+		# Assign idle ships to routes even at moderate load — sitting idle is wasteful
+		if not modified:
+			var idle_ships: Array = carrier.get_available_ships()
+			if not idle_ships.is_empty():
+				var distance := game_state.galaxy.calculate_distance(route.origin_id, route.dest_id)
+				for ship: ShipCatalog.ShipInstance in idle_ships:
+					var ship_type := game_state.catalog.get_type(ship.type_id)
+					if ship_type != null and ship_type.range >= distance:
+						new_ship_ids.append(ship.id)
+						modified = true
+						break
+				if modified:
+					new_frequency = _choose_frequency(new_ship_ids, carrier, game_state, distance)
 
 		if modified:
 			intent.route_modifications.append({
