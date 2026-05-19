@@ -132,7 +132,7 @@ func test_route_creation_appears_in_summary() -> void:
 	assert_eq(player_summary.routes_created[0]["origin_id"], "earth")
 	assert_eq(player_summary.routes_created[0]["dest_id"], "mars")
 	assert_true(player_summary.actions.size() > 0)
-	assert_string_contains(player_summary.actions[0], "Created route Earth")
+	assert_string_contains(player_summary.actions[0], "Opened route Earth")
 
 
 func test_ship_orders_appear_in_summary() -> void:
@@ -245,3 +245,92 @@ func test_slot_sales_appear_in_summary() -> void:
 	assert_eq(player_summary.slots_sold.size(), 1)
 	assert_eq(player_summary.slots_sold[0]["planet_id"], "earth")
 	assert_string_contains(player_summary.actions[0], "Sold 1 slot at Earth")
+
+
+func test_route_cancelled_shows_planet_names() -> void:
+	var gs := _make_game_state()
+	var ship_ids: Array[String] = ["player-ship-0001"]
+	var route := CarrierData.Route.new("player-route-0", "earth", "mars", ship_ids, 10.0, 8.0, 1, false)
+	gs.get_carrier("player").routes.append(route)
+
+	var result := _make_empty_turn_result()
+	result.route_changes = [{
+		"type": "cancelled",
+		"carrier_id": "player",
+		"route_id": "player-route-0",
+		"origin_id": "earth",
+		"dest_id": "mars",
+	}]
+	var cash_before := {"player": 3000.0, "npc_1": 3000.0}
+
+	var summaries := TurnSummaryBuilder.build_summaries(result, gs, cash_before, {})
+	var player_summary: TurnSummaryBuilder.CarrierTurnSummary = summaries["player"]
+
+	assert_eq(player_summary.routes_cancelled.size(), 1)
+	assert_string_contains(player_summary.actions[0], "Cancelled route Earth")
+	assert_string_contains(player_summary.actions[0], "Mars")
+
+
+func test_route_modified_shows_price_changes() -> void:
+	var gs := _make_game_state()
+	var ship_ids: Array[String] = ["player-ship-0001"]
+	var route := CarrierData.Route.new("player-route-0", "earth", "mars", ship_ids, 9.2, 7.4, 1, true)
+	gs.get_carrier("player").routes.append(route)
+
+	var result := _make_empty_turn_result()
+	result.route_changes = [{
+		"type": "modified",
+		"carrier_id": "player",
+		"route_id": "player-route-0",
+		"origin_id": "earth",
+		"dest_id": "mars",
+		"old_passenger_price": 10.0,
+		"new_passenger_price": 9.2,
+		"old_cargo_price": 8.0,
+		"new_cargo_price": 7.4,
+		"old_ship_count": 1,
+		"new_ship_count": 1,
+		"old_frequency": 1,
+		"new_frequency": 1,
+	}]
+	var cash_before := {"player": 3000.0, "npc_1": 3000.0}
+
+	var summaries := TurnSummaryBuilder.build_summaries(result, gs, cash_before, {})
+	var player_summary: TurnSummaryBuilder.CarrierTurnSummary = summaries["player"]
+
+	assert_eq(player_summary.routes_modified.size(), 1)
+	assert_string_contains(player_summary.actions[0], "Modified Earth")
+	assert_string_contains(player_summary.actions[0], "Mars")
+	assert_string_contains(player_summary.actions[0], "lowered prices")
+
+
+func test_route_modified_shows_ship_and_frequency_changes() -> void:
+	var gs := _make_game_state()
+	var ship_ids: Array[String] = ["player-ship-0001"]
+	var route := CarrierData.Route.new("player-route-0", "earth", "mars", ship_ids, 10.0, 8.0, 2, true)
+	gs.get_carrier("player").routes.append(route)
+
+	var result := _make_empty_turn_result()
+	result.route_changes = [{
+		"type": "modified",
+		"carrier_id": "player",
+		"route_id": "player-route-0",
+		"origin_id": "earth",
+		"dest_id": "mars",
+		"old_passenger_price": 10.0,
+		"new_passenger_price": 11.0,
+		"old_cargo_price": 8.0,
+		"new_cargo_price": 8.8,
+		"old_ship_count": 1,
+		"new_ship_count": 2,
+		"old_frequency": 1,
+		"new_frequency": 2,
+	}]
+	var cash_before := {"player": 3000.0, "npc_1": 3000.0}
+
+	var summaries := TurnSummaryBuilder.build_summaries(result, gs, cash_before, {})
+	var player_summary: TurnSummaryBuilder.CarrierTurnSummary = summaries["player"]
+
+	assert_string_contains(player_summary.actions[0], "raised prices")
+	assert_string_contains(player_summary.actions[0], "added 1 ship")
+	assert_string_contains(player_summary.actions[0], "increased frequency")

@@ -156,11 +156,15 @@ static func _resolve_routes(
 			if route == null:
 				push_warning("TurnPipeline: route '%s' not found for cancellation" % route_id)
 				continue
+			var origin_id := route.origin_id
+			var dest_id := route.dest_id
 			route.active = false
 			result.route_changes.append({
 				"type": "cancelled",
 				"carrier_id": carrier.id,
 				"route_id": route_id,
+				"origin_id": origin_id,
+				"dest_id": dest_id,
 			})
 
 		# Modifications
@@ -178,6 +182,10 @@ static func _resolve_routes(
 			if not validation["valid"]:
 				push_warning("TurnPipeline: route modification rejected — %s" % validation["reason"])
 				continue
+			var old_pax_price := route.passenger_price
+			var old_cargo_price := route.cargo_price
+			var old_ship_ids := route.ship_ids.duplicate()
+			var old_frequency := route.frequency
 			route.ship_ids.assign(mod["ship_ids"])
 			route.passenger_price = mod["passenger_price"]
 			route.cargo_price = mod["cargo_price"]
@@ -186,6 +194,16 @@ static func _resolve_routes(
 				"type": "modified",
 				"carrier_id": carrier.id,
 				"route_id": route.id,
+				"origin_id": route.origin_id,
+				"dest_id": route.dest_id,
+				"old_passenger_price": old_pax_price,
+				"new_passenger_price": route.passenger_price,
+				"old_cargo_price": old_cargo_price,
+				"new_cargo_price": route.cargo_price,
+				"old_ship_count": old_ship_ids.size(),
+				"new_ship_count": route.ship_ids.size(),
+				"old_frequency": old_frequency,
+				"new_frequency": route.frequency,
 			})
 
 		# Creations

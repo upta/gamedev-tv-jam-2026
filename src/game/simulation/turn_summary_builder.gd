@@ -90,10 +90,22 @@ static func build_summaries(
 				"cancelled":
 					summary.routes_cancelled.append({
 						"route_id": change.get("route_id", ""),
+						"origin_id": change.get("origin_id", ""),
+						"dest_id": change.get("dest_id", ""),
 					})
 				"modified":
 					summary.routes_modified.append({
 						"route_id": change.get("route_id", ""),
+						"origin_id": change.get("origin_id", ""),
+						"dest_id": change.get("dest_id", ""),
+						"old_passenger_price": change.get("old_passenger_price", 0.0),
+						"new_passenger_price": change.get("new_passenger_price", 0.0),
+						"old_cargo_price": change.get("old_cargo_price", 0.0),
+						"new_cargo_price": change.get("new_cargo_price", 0.0),
+						"old_ship_count": change.get("old_ship_count", 0),
+						"new_ship_count": change.get("new_ship_count", 0),
+						"old_frequency": change.get("old_frequency", 0),
+						"new_frequency": change.get("new_frequency", 0),
 					})
 
 		# Ship orders
@@ -175,16 +187,53 @@ static func _build_actions(summary: CarrierTurnSummary, game_state: GameState) -
 		var origin_name := _get_planet_name(game_state, route.get("origin_id", ""))
 		var dest_name := _get_planet_name(game_state, route.get("dest_id", ""))
 		var ship_count: int = route.get("ship_count", 0)
-		actions.append("Created route %s -> %s (%d ship%s)" % [
+		actions.append("Opened route %s → %s (%d ship%s)" % [
 			origin_name, dest_name, ship_count,
 			"s" if ship_count != 1 else "",
 		])
 
 	for route: Dictionary in summary.routes_cancelled:
-		actions.append("Cancelled a route")
+		var origin_name := _get_planet_name(game_state, route.get("origin_id", ""))
+		var dest_name := _get_planet_name(game_state, route.get("dest_id", ""))
+		actions.append("Cancelled route %s → %s" % [origin_name, dest_name])
 
 	for route: Dictionary in summary.routes_modified:
-		actions.append("Modified a route")
+		var origin_name := _get_planet_name(game_state, route.get("origin_id", ""))
+		var dest_name := _get_planet_name(game_state, route.get("dest_id", ""))
+		var details: Array[String] = []
+
+		var old_pax: float = route.get("old_passenger_price", 0.0)
+		var new_pax: float = route.get("new_passenger_price", 0.0)
+		var old_cargo: float = route.get("old_cargo_price", 0.0)
+		var new_cargo: float = route.get("new_cargo_price", 0.0)
+		if not is_equal_approx(old_pax, new_pax) or not is_equal_approx(old_cargo, new_cargo):
+			var avg_old := (old_pax + old_cargo) / 2.0
+			var avg_new := (new_pax + new_cargo) / 2.0
+			if avg_new < avg_old:
+				details.append("lowered prices")
+			else:
+				details.append("raised prices")
+
+		var old_ships: int = route.get("old_ship_count", 0)
+		var new_ships: int = route.get("new_ship_count", 0)
+		if old_ships != new_ships:
+			if new_ships > old_ships:
+				details.append("added %d ship%s" % [new_ships - old_ships, "s" if (new_ships - old_ships) != 1 else ""])
+			else:
+				details.append("removed %d ship%s" % [old_ships - new_ships, "s" if (old_ships - new_ships) != 1 else ""])
+
+		var old_freq: int = route.get("old_frequency", 0)
+		var new_freq: int = route.get("new_frequency", 0)
+		if old_freq != new_freq:
+			if new_freq > old_freq:
+				details.append("increased frequency %d→%d" % [old_freq, new_freq])
+			else:
+				details.append("decreased frequency %d→%d" % [old_freq, new_freq])
+
+		if details.is_empty():
+			actions.append("Adjusted route %s → %s" % [origin_name, dest_name])
+		else:
+			actions.append("Modified %s → %s: %s" % [origin_name, dest_name, ", ".join(details)])
 
 	for order: Dictionary in summary.ships_ordered:
 		actions.append("Ordered 1 %s" % order.get("type_id", "ship"))
