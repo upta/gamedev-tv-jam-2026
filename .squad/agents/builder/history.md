@@ -186,3 +186,12 @@ All processed in carrier_order (index-based tie-breaking, D004).
 - Sell button is disabled (`sell_btn.disabled = owned <= 0`) when player owns 0 slots at that planet.
 - Programmatic API (`select_planet`, `confirm_bid`, `confirm_sell`) simplified: `select_planet(index)` just stores the planet ID from `galaxy.planets[index]`. `confirm_bid()` programmatically opens the buy popup and immediately confirms — no need for separate select + confirm steps in the harness.
 - The existing harness controller and validation scenario (`ui_manage_slots_flow`) required zero changes — the programmatic API contract was preserved.
+
+### NPC AI Behavioral Diversity (2026-05-19)
+
+- **Competition-aware routing**: `_count_competitors_on_lane()` checks all carriers' active routes. Score = `demand - competition * penalty * (1 - slot_aggression)`. Aggressive NPCs tolerate crowded lanes; cautious NPCs avoid them.
+- **Candidate scoring replaces fixed iteration**: Route candidates are scored by demand, competition, distance, and personality jitter (±15% from `game_state.rng`). Sorted descending, top N picked. Eliminates deterministic same-pick problem.
+- **Personality-driven ship selection**: `ship_eagerness >= 0.7` → sort by capacity desc (bigger ships). `<= 0.35` → sort by cost asc (cheapest). Middle → match to route needs (range for long routes, cost for short).
+- **Route modifications beyond price**: Overloaded routes (avg_load > 0.85) now trigger ship additions (if `route_preference >= 0.5` and available ships exist) and frequency increases. Underloaded routes reduce both price and frequency.
+- **Diagnostic testing pattern**: `GameSetup.create_all_npc_session(seed)` + `session.run_all_turns()` + `telemetry.get_turns()` provides full 30-turn intent/state history for behavioral assertions without needing scene tree.
+- Added `get_turns() -> Array` to `GameTelemetry` to expose `_turns` for test analysis.
