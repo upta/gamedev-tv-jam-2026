@@ -44,7 +44,7 @@ text = "Dialog"
 
 [node name="CloseButton" type="Button" parent="Panel/VBoxContainer/TitleBar"]
 layout_mode = 2
-text = "X"
+text = "✕"
 
 [node name="ContentContainer" type="MarginContainer" parent="Panel/VBoxContainer"]
 layout_mode = 2
