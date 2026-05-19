@@ -136,17 +136,10 @@ func _consider_route_creation(
 		func(pid: String) -> bool: return carrier.get_slot_count(pid) > 0
 	)
 
-	# Allow up to 3 routes per turn (limited by available ships)
-	var max_routes := 3
-	var routes_created := 0
-	var used_ship_ids: Dictionary = {}
-
+	# Score all candidate routes instead of picking first valid one (fixes Problem D)
+	var candidates: Array = []
 	for i in range(slot_planets.size()):
-		if routes_created >= max_routes:
-			break
 		for j in range(i + 1, slot_planets.size()):
-			if routes_created >= max_routes:
-				break
 			var origin_id: String = slot_planets[i]
 			var dest_id: String = slot_planets[j]
 			var lane_id := GalaxyData.derive_lane_id(origin_id, dest_id)
@@ -157,52 +150,94 @@ func _consider_route_creation(
 			if distance < 0.0:
 				continue
 
-			# Find an available ship with enough range (skip already-used this turn)
-			var chosen_ship: ShipCatalog.ShipInstance = null
-			for ship: ShipCatalog.ShipInstance in available_ships:
-				if used_ship_ids.has(ship.id):
-					continue
-				var ship_type := game_state.catalog.get_type(ship.type_id)
-				if ship_type != null and ship_type.range >= distance:
-					chosen_ship = ship
-					break
-
-			if chosen_ship == null:
-				continue
-
-			# Check if NPC can sustain the new route's operating costs
-			var ship_type := game_state.catalog.get_type(chosen_ship.type_id)
-			if ship_type != null:
-				var npc_freq := _choose_frequency([chosen_ship.id], carrier, game_state, distance)
-				var new_route_cost: float = (distance / ship_type.efficiency) * npc_freq
-				var new_reserve := reserve + new_route_cost * RESERVE_BUFFER_TURNS
-				if carrier.cash <= new_reserve:
-					continue
-
-			# Price based on demand
+			# Score the candidate (fixes Problem C — competition awareness)
 			var demand_entry := game_state.demand_table.get_entry(lane_id, "forward")
-			var passenger_price := 5.0
-			var cargo_price := 4.0
+			var demand_score := 0.0
 			if demand_entry != null:
-				passenger_price = demand_entry.base_demand_passenger * 0.08
-				cargo_price = demand_entry.base_demand_cargo * 0.06
-			# ±20% variance
-			passenger_price *= 1.0 + game_state.rng.randf_range(-0.2, 0.2)
-			cargo_price *= 1.0 + game_state.rng.randf_range(-0.2, 0.2)
+				demand_score = float(demand_entry.base_demand_passenger + demand_entry.base_demand_cargo)
 
-			intent.route_creates.append({
+			var competition_count := _count_competitors_on_lane(lane_id, carrier.id, game_state)
+			# Aggressive NPCs barely penalize competition, cautious NPCs heavily penalize
+			var competition_penalty := 0.3
+			var score := demand_score - (competition_count * competition_penalty * demand_score * (1.0 - slot_aggression))
+			# Distance penalty: cautious NPCs prefer short routes, aggressive tolerate long ones
+			var distance_penalty := distance * (1.0 - slot_aggression * 0.5) * 2.0
+			score -= distance_penalty
+			# Per-NPC jitter (±15%) so identical-personality NPCs don't all pick the same route
+			score *= 1.0 + game_state.rng.randf_range(-0.15, 0.15)
+
+			candidates.append({
 				"origin_id": origin_id,
 				"dest_id": dest_id,
-				"ship_ids": [chosen_ship.id],
-				"passenger_price": passenger_price,
-				"cargo_price": cargo_price,
-				"frequency": _choose_frequency([chosen_ship.id], carrier, game_state, distance),
+				"lane_id": lane_id,
+				"distance": distance,
+				"score": score,
 			})
-			# Track creation turn for optimization grace period
-			var future_route_id := "%s-route-%d" % [carrier.id, carrier.routes.size() + routes_created]
-			_route_created_turn[future_route_id] = game_state.current_turn
-			used_ship_ids[chosen_ship.id] = true
-			routes_created += 1
+
+	# Sort by score descending — best candidates first
+	candidates.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return a["score"] > b["score"]
+	)
+
+	# Allow up to 3 routes per turn (limited by available ships)
+	var max_routes := 3
+	var routes_created := 0
+	var used_ship_ids: Dictionary = {}
+
+	for candidate: Dictionary in candidates:
+		if routes_created >= max_routes:
+			break
+
+		var origin_id: String = candidate["origin_id"]
+		var dest_id: String = candidate["dest_id"]
+		var distance: float = candidate["distance"]
+
+		# Find an available ship with enough range (skip already-used this turn)
+		var chosen_ship: ShipCatalog.ShipInstance = null
+		for ship: ShipCatalog.ShipInstance in available_ships:
+			if used_ship_ids.has(ship.id):
+				continue
+			var ship_type := game_state.catalog.get_type(ship.type_id)
+			if ship_type != null and ship_type.range >= distance:
+				chosen_ship = ship
+				break
+
+		if chosen_ship == null:
+			continue
+
+		# Check if NPC can sustain the new route's operating costs
+		var ship_type := game_state.catalog.get_type(chosen_ship.type_id)
+		if ship_type != null:
+			var npc_freq := _choose_frequency([chosen_ship.id], carrier, game_state, distance)
+			var new_route_cost: float = (distance / ship_type.efficiency) * npc_freq
+			var new_reserve := reserve + new_route_cost * RESERVE_BUFFER_TURNS
+			if carrier.cash <= new_reserve:
+				continue
+
+		# Price based on demand
+		var demand_entry := game_state.demand_table.get_entry(candidate["lane_id"], "forward")
+		var passenger_price := 5.0
+		var cargo_price := 4.0
+		if demand_entry != null:
+			passenger_price = demand_entry.base_demand_passenger * 0.08
+			cargo_price = demand_entry.base_demand_cargo * 0.06
+		# ±20% variance
+		passenger_price *= 1.0 + game_state.rng.randf_range(-0.2, 0.2)
+		cargo_price *= 1.0 + game_state.rng.randf_range(-0.2, 0.2)
+
+		intent.route_creates.append({
+			"origin_id": origin_id,
+			"dest_id": dest_id,
+			"ship_ids": [chosen_ship.id],
+			"passenger_price": passenger_price,
+			"cargo_price": cargo_price,
+			"frequency": _choose_frequency([chosen_ship.id], carrier, game_state, distance),
+		})
+		# Track creation turn for optimization grace period
+		var future_route_id := "%s-route-%d" % [carrier.id, carrier.routes.size() + routes_created]
+		_route_created_turn[future_route_id] = game_state.current_turn
+		used_ship_ids[chosen_ship.id] = true
+		routes_created += 1
 
 
 # ---------------------------------------------------------------------------
@@ -248,11 +283,32 @@ func _consider_ship_orders(
 	if available_types.is_empty():
 		return
 
-	# Pick ship type: cheapest that can reach at least one planet pair
+	# Pick ship type based on personality (fixes Problem B — always cheapest)
 	var best_type: ShipCatalog.ShipType = null
-	for st: ShipCatalog.ShipType in available_types:
-		if best_type == null or st.cost < best_type.cost:
-			best_type = st
+	if ship_eagerness >= 0.7:
+		# Aggressive: prefer larger/more capable ships (higher capacity)
+		for st: ShipCatalog.ShipType in available_types:
+			if best_type == null or st.max_capacity > best_type.max_capacity:
+				best_type = st
+	elif ship_eagerness <= 0.35:
+		# Cautious: stick with cheapest
+		for st: ShipCatalog.ShipType in available_types:
+			if best_type == null or st.cost < best_type.cost:
+				best_type = st
+	else:
+		# Balanced: pick based on route needs — prefer ships with range for longest route
+		var max_route_distance := 0.0
+		for route: CarrierData.Route in carrier.get_active_routes():
+			var d := game_state.galaxy.calculate_distance(route.origin_id, route.dest_id)
+			if d > max_route_distance:
+				max_route_distance = d
+		for st: ShipCatalog.ShipType in available_types:
+			if best_type == null:
+				best_type = st
+			elif max_route_distance > 5.0 and st.range > best_type.range:
+				best_type = st
+			elif max_route_distance <= 5.0 and st.cost < best_type.cost:
+				best_type = st
 
 	if best_type == null or carrier.cash - best_type.cost <= reserve:
 		return
@@ -375,26 +431,53 @@ func _consider_route_modifications(
 
 		var new_pax_price := route.passenger_price
 		var new_cargo_price := route.cargo_price
-		var price_changed := false
+		var new_ship_ids: Array = route.ship_ids.duplicate()
+		var new_frequency := route.frequency
+		var modified := false
 
-		if avg_load < 0.4:
-			# Underloaded — reduce prices to attract demand
+		if avg_load > 0.85:
+			# Overloaded — personality determines response
+			if route_preference >= 0.5:
+				# High route_preference: prefer adding ships to expand capacity
+				var available_ships: Array = carrier.get_available_ships()
+				var distance := game_state.galaxy.calculate_distance(route.origin_id, route.dest_id)
+				for ship: ShipCatalog.ShipInstance in available_ships:
+					var ship_type := game_state.catalog.get_type(ship.type_id)
+					if ship_type != null and ship_type.range >= distance:
+						new_ship_ids.append(ship.id)
+						new_frequency = _choose_frequency(new_ship_ids, carrier, game_state, distance)
+						modified = true
+						break
+			if not modified:
+				# Low route_preference or no ships available: raise prices
+				new_pax_price *= 1.10
+				new_cargo_price *= 1.10
+				modified = true
+			# Also try increasing frequency if ships support it
+			var distance := game_state.galaxy.calculate_distance(route.origin_id, route.dest_id)
+			var max_freq := RouteValidator.calculate_max_frequency(
+				new_ship_ids, carrier, game_state.catalog, distance
+			)
+			if max_freq > new_frequency:
+				new_frequency = mini(new_frequency + 1, max_freq)
+				modified = true
+		elif avg_load < 0.4:
+			# Underloaded — reduce prices
 			new_pax_price *= 0.92
 			new_cargo_price *= 0.92
-			price_changed = true
-		elif avg_load > 0.85:
-			# Overloaded — raise prices to capture more revenue
-			new_pax_price *= 1.10
-			new_cargo_price *= 1.10
-			price_changed = true
+			modified = true
+			# Also reduce frequency to cut operating costs
+			if new_frequency > 1:
+				new_frequency -= 1
+				modified = true
 
-		if price_changed:
+		if modified:
 			intent.route_modifications.append({
 				"route_id": route_id,
-				"ship_ids": route.ship_ids,
+				"ship_ids": new_ship_ids,
 				"passenger_price": new_pax_price,
 				"cargo_price": new_cargo_price,
-				"frequency": route.frequency,
+				"frequency": new_frequency,
 			})
 
 
@@ -407,6 +490,18 @@ func _has_route_on_lane(carrier: CarrierData, lane_id: String) -> bool:
 		if route.lane_id == lane_id:
 			return true
 	return false
+
+
+func _count_competitors_on_lane(lane_id: String, own_carrier_id: String, game_state: GameState) -> int:
+	var count := 0
+	for carrier: CarrierData in game_state.carriers:
+		if carrier.id == own_carrier_id:
+			continue
+		for route: CarrierData.Route in carrier.get_active_routes():
+			if route.lane_id == lane_id:
+				count += 1
+				break
+	return count
 
 
 func _has_route_potential(planet_id: String, carrier: CarrierData, game_state: GameState) -> bool:

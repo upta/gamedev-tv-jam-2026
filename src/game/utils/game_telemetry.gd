@@ -45,6 +45,10 @@ func get_turn_count() -> int:
 	return _turns.size()
 
 
+func get_turns() -> Array:
+	return _turns
+
+
 func clear() -> void:
 	_turns.clear()
 
