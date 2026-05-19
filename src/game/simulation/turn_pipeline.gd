@@ -78,7 +78,7 @@ static func resolve_turn(game_state: GameState, intents: Array) -> TurnResult:
 	# 8. REPORT — rankings and game-over check
 	result.rankings = ScoreCalculator.get_rankings(game_state.carriers, game_state.catalog, game_state.galaxy)
 
-	if game_state.current_turn >= 30 or result.bankruptcies.size() > 0:
+	if game_state.current_turn >= 30:
 		result.game_over = true
 		var winner_carrier := ScoreCalculator.determine_winner(game_state.carriers, game_state.catalog, game_state.galaxy)
 		if winner_carrier != null:

@@ -62,7 +62,6 @@ func advance_turn(intents: Array):
 	current_turn += 1
 	turn_resolved.emit(result.turn_number)
 	if result.game_over:
-		var reason := "bankruptcy" if result.bankruptcies.size() > 0 else "final_turn"
 		var winner_id: String = result.winner.get("carrier_id", "")
-		game_over.emit(winner_id, reason)
+		game_over.emit(winner_id, "final_turn")
 	return result

@@ -5,14 +5,20 @@ extends CarrierController
 ## Jam scope: good enough to be interesting, not optimal.
 ## One class with tunable weights — no strategy pattern.
 
-# Personality weights (tune these to differentiate NPCs)
-var slot_aggression: float = 0.5    # 0.0 = conservative, 1.0 = aggressive slot buying
+# Personality weights control intensity, not probability of acting
+var slot_aggression: float = 0.5    # 0.0 = 1 conservative bid, 1.0 = 3 aggressive bids
 var route_preference: float = 0.5   # 0.0 = few expensive routes, 1.0 = many cheap routes
-var ship_eagerness: float = 0.5     # 0.0 = waits, 1.0 = buys ships immediately
+var ship_eagerness: float = 0.5     # 0.0 = only when all deployed, 1.0 = proactive ordering
 
 
 const RESERVE_BUFFER_TURNS: int = 8
 const MIN_CASH_RESERVE: float = 1200.0
+const SLOT_GRACE_PERIOD: int = 5
+
+# Ephemeral state (persists across turns on the same controller instance)
+var _slot_bid_turns: Dictionary = {}       # planet_id -> turn when last bid was placed
+var _route_loss_streak: Dictionary = {}    # route_id -> consecutive unprofitable turns
+var _route_created_turn: Dictionary = {}   # route_id -> turn when route was created
 
 
 func generate_intent(game_state: GameState, carrier_id: String) -> TurnPipeline.CarrierIntent:
@@ -23,13 +29,18 @@ func generate_intent(game_state: GameState, carrier_id: String) -> TurnPipeline.
 	if carrier == null:
 		return intent
 
+	# Bankrupt carriers do nothing — can't spend and routes are losing money
+	if carrier.cash <= 0.0:
+		return intent
+
 	var reserve := _estimate_cash_reserve(carrier, game_state)
 
-	# Decision priority: Slots → Routes → Ships → Slot Sales
+	# Decision priority: Slots → Routes → Ships → Route Optimization → Slot Sales
 	_consider_slot_bids(intent, carrier, game_state, reserve)
 	_consider_route_creation(intent, carrier, game_state, reserve)
 	_consider_ship_orders(intent, carrier, game_state, reserve)
-	_consider_slot_sales(intent, carrier, game_state)
+	_consider_route_modifications(intent, carrier, game_state)
+	_consider_slot_sales(intent, carrier, game_state, reserve)
 
 	return intent
 
@@ -54,13 +65,13 @@ func _consider_slot_bids(
 	game_state: GameState,
 	reserve: float,
 ) -> void:
-	if game_state.rng.randf() >= slot_aggression:
-		return
-
 	var planets_with_slots := carrier.slots.keys().filter(
 		func(pid: String) -> bool: return carrier.get_slot_count(pid) > 0
 	)
-	if planets_with_slots.size() >= 4:
+
+	# Max planets scales with aggression: low=3, mid=4, high=6
+	var max_planets := 3 + int(slot_aggression * 3.0)
+	if planets_with_slots.size() >= max_planets:
 		return
 
 	# Find reachable planets where we don't already have slots
@@ -87,17 +98,22 @@ func _consider_slot_bids(
 		return a["total_slots"] > b["total_slots"]
 	)
 
-	var bid_count := mini(candidates.size(), 2)
+	# Bid count scales with aggression: 0.3→1, 0.5→1, 0.8→2
+	var bid_count := mini(candidates.size(), maxi(1, int(slot_aggression * 3.0)))
 	var cumulative_cost := 0.0
 	for i in range(bid_count):
-		var price := 150.0 + game_state.rng.randf_range(-50.0, 50.0)
+		# Price scales with aggression (aggressive NPCs bid higher to win)
+		var base_price := 120.0 + slot_aggression * 60.0
+		var price := base_price + game_state.rng.randf_range(-30.0, 30.0)
 		if carrier.cash - cumulative_cost - price <= reserve:
 			break
+		var planet_id: String = candidates[i]["planet_id"]
 		intent.slot_bids.append({
-			"planet_id": candidates[i]["planet_id"],
+			"planet_id": planet_id,
 			"quantity": 1,
 			"price_per_slot": price,
 		})
+		_slot_bid_turns[planet_id] = game_state.current_turn
 		cumulative_cost += price
 
 
@@ -119,8 +135,18 @@ func _consider_route_creation(
 	var slot_planets: Array = carrier.slots.keys().filter(
 		func(pid: String) -> bool: return carrier.get_slot_count(pid) > 0
 	)
+
+	# Allow up to 3 routes per turn (limited by available ships)
+	var max_routes := 3
+	var routes_created := 0
+	var used_ship_ids: Dictionary = {}
+
 	for i in range(slot_planets.size()):
+		if routes_created >= max_routes:
+			break
 		for j in range(i + 1, slot_planets.size()):
+			if routes_created >= max_routes:
+				break
 			var origin_id: String = slot_planets[i]
 			var dest_id: String = slot_planets[j]
 			var lane_id := GalaxyData.derive_lane_id(origin_id, dest_id)
@@ -131,9 +157,11 @@ func _consider_route_creation(
 			if distance < 0.0:
 				continue
 
-			# Find a ship with enough range
+			# Find an available ship with enough range (skip already-used this turn)
 			var chosen_ship: ShipCatalog.ShipInstance = null
 			for ship: ShipCatalog.ShipInstance in available_ships:
+				if used_ship_ids.has(ship.id):
+					continue
 				var ship_type := game_state.catalog.get_type(ship.type_id)
 				if ship_type != null and ship_type.range >= distance:
 					chosen_ship = ship
@@ -170,8 +198,11 @@ func _consider_route_creation(
 				"cargo_price": cargo_price,
 				"frequency": _choose_frequency([chosen_ship.id], carrier, game_state, distance),
 			})
-			# At most 1 route per turn
-			return
+			# Track creation turn for optimization grace period
+			var future_route_id := "%s-route-%d" % [carrier.id, carrier.routes.size() + routes_created]
+			_route_created_turn[future_route_id] = game_state.current_turn
+			used_ship_ids[chosen_ship.id] = true
+			routes_created += 1
 
 
 # ---------------------------------------------------------------------------
@@ -184,32 +215,57 @@ func _consider_ship_orders(
 	game_state: GameState,
 	reserve: float,
 ) -> void:
-	if game_state.rng.randf() >= ship_eagerness:
+	var total_ships := carrier.ships.size()
+	var available_ships := carrier.get_available_ships()
+	var assigned_count := total_ships - available_ships.size()
+
+	# Utilization threshold scales with eagerness: 0.3→100%, 0.5→80%, 0.8→50%
+	var util_threshold := 1.0 - ship_eagerness * 0.6
+	var utilization := 1.0 if total_ships == 0 else float(assigned_count) / float(total_ships)
+
+	if utilization < util_threshold:
 		return
 
-	if not carrier.get_available_ships().is_empty():
+	# Also check: are there unserved planet pairs that could use a ship?
+	var slot_planets: Array = carrier.slots.keys().filter(
+		func(pid: String) -> bool: return carrier.get_slot_count(pid) > 0
+	)
+	var has_unrouted_pair := false
+	for i in range(slot_planets.size()):
+		for j in range(i + 1, slot_planets.size()):
+			var lane_id := GalaxyData.derive_lane_id(slot_planets[i], slot_planets[j])
+			if not _has_route_on_lane(carrier, lane_id):
+				has_unrouted_pair = true
+				break
+		if has_unrouted_pair:
+			break
+
+	# Don't order if utilization is below threshold AND no unrouted pairs exist
+	if utilization < util_threshold and not has_unrouted_pair:
 		return
 
 	var available_types := game_state.catalog.get_available_types(game_state.current_turn)
 	if available_types.is_empty():
 		return
 
-	# Find cheapest type
-	var cheapest: ShipCatalog.ShipType = null
+	# Pick ship type: cheapest that can reach at least one planet pair
+	var best_type: ShipCatalog.ShipType = null
 	for st: ShipCatalog.ShipType in available_types:
-		if cheapest == null or st.cost < cheapest.cost:
-			cheapest = st
+		if best_type == null or st.cost < best_type.cost:
+			best_type = st
 
-	if cheapest == null or carrier.cash - cheapest.cost <= reserve:
+	if best_type == null or carrier.cash - best_type.cost <= reserve:
 		return
 
-	# 50/50 passenger/cargo split
-	var half := cheapest.max_capacity / 2
-	var remainder := cheapest.max_capacity - half * 2
+	# Set capacity based on existing route demand (if available)
+	var pax_ratio := _estimate_demand_ratio(carrier, game_state)
+	var pax_cap := int(best_type.max_capacity * pax_ratio)
+	var cargo_cap := best_type.max_capacity - pax_cap
+
 	intent.ship_orders.append({
-		"type_id": cheapest.id,
-		"passenger_capacity": half + remainder,
-		"cargo_capacity": half,
+		"type_id": best_type.id,
+		"passenger_capacity": pax_cap,
+		"cargo_capacity": cargo_cap,
 	})
 
 
@@ -221,7 +277,12 @@ func _consider_slot_sales(
 	intent: TurnPipeline.CarrierIntent,
 	carrier: CarrierData,
 	game_state: GameState,
+	reserve: float,
 ) -> void:
+	# Only sell under financial pressure
+	if carrier.cash >= reserve * 0.5:
+		return
+
 	var planets_with_slots: Array = carrier.slots.keys().filter(
 		func(pid: String) -> bool: return carrier.get_slot_count(pid) > 0
 	)
@@ -233,18 +294,108 @@ func _consider_slot_sales(
 	var active_routes := carrier.get_active_routes()
 
 	for planet_id: String in planets_with_slots:
+		# Grace period: don't sell recently-bid slots
+		if _slot_bid_turns.has(planet_id):
+			if game_state.current_turn - _slot_bid_turns[planet_id] < SLOT_GRACE_PERIOD:
+				continue
+
+		# Don't sell if a route uses this planet
 		var has_route := false
 		for route: CarrierData.Route in active_routes:
 			if route.origin_id == planet_id or route.dest_id == planet_id:
 				has_route = true
 				break
-		if not has_route:
-			intent.slot_sales.append({
-				"planet_id": planet_id,
-				"count": 1,
+		if has_route:
+			continue
+
+		# Don't sell if this slot could pair with another planet for a future route
+		if _has_route_potential(planet_id, carrier, game_state):
+			continue
+
+		intent.slot_sales.append({
+			"planet_id": planet_id,
+			"count": 1,
+		})
+		# Sell at most 1 per turn
+		return
+
+
+# ---------------------------------------------------------------------------
+# 5. Route Optimization
+# ---------------------------------------------------------------------------
+
+func _consider_route_modifications(
+	intent: TurnPipeline.CarrierIntent,
+	carrier: CarrierData,
+	game_state: GameState,
+) -> void:
+	var financials: Dictionary = game_state.last_turn_financials.get(carrier.id, {})
+	var route_summaries: Array = financials.get("routes", [])
+	if route_summaries.is_empty():
+		return
+
+	var active_routes := carrier.get_active_routes()
+
+	for summary: Dictionary in route_summaries:
+		var route_id: String = summary.get("route_id", "")
+		var route := _find_route(carrier, route_id)
+		if route == null or not route.active:
+			continue
+
+		# Skip routes that were just created (need time to build demand)
+		var created_turn: int = _route_created_turn.get(route_id, 0)
+		if game_state.current_turn - created_turn < 4:
+			continue
+
+		var revenue: Dictionary = summary.get("revenue", {})
+		var total_rev: float = revenue.get("total_revenue", 0.0)
+		var op_cost: float = summary.get("operating_cost", 0.0)
+
+		# Track loss streaks for cancellation
+		if total_rev < op_cost:
+			_route_loss_streak[route_id] = _route_loss_streak.get(route_id, 0) + 1
+		else:
+			_route_loss_streak[route_id] = 0
+
+		# Cancel after 5 consecutive loss turns, but never cancel the last route
+		if _route_loss_streak.get(route_id, 0) >= 5 and active_routes.size() > 1:
+			intent.route_cancellations.append(route_id)
+			_route_loss_streak.erase(route_id)
+			continue
+
+		# Adjust pricing based on load factor
+		var pax_served: int = summary.get("passengers_served", 0)
+		var pax_cap: int = summary.get("passenger_capacity", 1)
+		var cargo_served: int = summary.get("cargo_served", 0)
+		var cargo_cap: int = summary.get("cargo_capacity", 1)
+
+		var pax_load := float(pax_served) / maxf(float(pax_cap), 1.0)
+		var cargo_load := float(cargo_served) / maxf(float(cargo_cap), 1.0)
+		var avg_load := (pax_load + cargo_load) / 2.0
+
+		var new_pax_price := route.passenger_price
+		var new_cargo_price := route.cargo_price
+		var price_changed := false
+
+		if avg_load < 0.4:
+			# Underloaded — reduce prices to attract demand
+			new_pax_price *= 0.92
+			new_cargo_price *= 0.92
+			price_changed = true
+		elif avg_load > 0.85:
+			# Overloaded — raise prices to capture more revenue
+			new_pax_price *= 1.10
+			new_cargo_price *= 1.10
+			price_changed = true
+
+		if price_changed:
+			intent.route_modifications.append({
+				"route_id": route_id,
+				"ship_ids": route.ship_ids,
+				"passenger_price": new_pax_price,
+				"cargo_price": new_cargo_price,
+				"frequency": route.frequency,
 			})
-			# Sell at most 1 per turn to be conservative
-			return
 
 
 # ---------------------------------------------------------------------------
@@ -256,6 +407,50 @@ func _has_route_on_lane(carrier: CarrierData, lane_id: String) -> bool:
 		if route.lane_id == lane_id:
 			return true
 	return false
+
+
+func _has_route_potential(planet_id: String, carrier: CarrierData, game_state: GameState) -> bool:
+	## Returns true if this planet could pair with another slot-planet to form a route.
+	var slot_planets: Array = carrier.slots.keys().filter(
+		func(pid: String) -> bool: return carrier.get_slot_count(pid) > 0 and pid != planet_id
+	)
+	for other_pid: String in slot_planets:
+		var lane_id := GalaxyData.derive_lane_id(planet_id, other_pid)
+		if not _has_route_on_lane(carrier, lane_id):
+			# Check if any ship (including pending) could reach
+			var distance := game_state.galaxy.calculate_distance(planet_id, other_pid)
+			if distance > 0.0:
+				for ship: ShipCatalog.ShipInstance in carrier.ships:
+					var ship_type := game_state.catalog.get_type(ship.type_id)
+					if ship_type != null and ship_type.range >= distance:
+						return true
+	return false
+
+
+func _estimate_demand_ratio(carrier: CarrierData, game_state: GameState) -> float:
+	## Returns the passenger fraction (0.0-1.0) based on existing route performance.
+	var financials: Dictionary = game_state.last_turn_financials.get(carrier.id, {})
+	var route_summaries: Array = financials.get("routes", [])
+	if route_summaries.is_empty():
+		return 0.5  # Default 50/50
+
+	var total_pax := 0
+	var total_cargo := 0
+	for summary: Dictionary in route_summaries:
+		total_pax += summary.get("passengers_served", 0)
+		total_cargo += summary.get("cargo_served", 0)
+
+	var total := total_pax + total_cargo
+	if total == 0:
+		return 0.5
+	return clampf(float(total_pax) / float(total), 0.3, 0.7)
+
+
+func _find_route(carrier: CarrierData, route_id: String) -> CarrierData.Route:
+	for route: CarrierData.Route in carrier.routes:
+		if route.id == route_id:
+			return route
+	return null
 
 
 func _choose_frequency(ship_ids: Array, carrier: CarrierData, game_state: GameState, lane_distance: float) -> int:
