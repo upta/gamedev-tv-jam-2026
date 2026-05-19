@@ -158,7 +158,7 @@ static func get_active_event_descriptions(active_events: Array) -> Array:
 		var pct: int = roundi((event.modifier - 1.0) * 100.0)
 		var sign: String = "+" if pct >= 0 else ""
 		var type_label: String = event.demand_type + " demand"
-		var desc: String = "%s — %s %s%d%% (%d turns remaining)" % [
+		var desc: String = "%s - %s %s%d%% (%d turns remaining)" % [
 			event.description, type_label, sign, pct, event.remaining_turns
 		]
 		descriptions.append(desc)

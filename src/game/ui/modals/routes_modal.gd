@@ -65,7 +65,7 @@ func refresh() -> void:
 
 func _build_active_routes(carrier: CarrierData) -> void:
 	var header := Label.new()
-	header.text = "— Active Routes —"
+	header.text = "-- Active Routes --"
 	_content.add_child(header)
 
 	var active_routes := carrier.get_active_routes()
@@ -86,7 +86,7 @@ func _build_active_routes(carrier: CarrierData) -> void:
 		# Line 1: Route config + cancel button
 		var row := HBoxContainer.new()
 		var label := Label.new()
-		label.text = "%s → %s | Ships: %d | Pax: §%d Cargo: §%d | Freq: %d" % [
+		label.text = "%s -> %s | Ships: %d | Pax: §%d Cargo: §%d | Freq: %d" % [
 			origin_name, dest_name, route.ship_ids.size(),
 			int(route.passenger_price), int(route.cargo_price), route.frequency,
 		]
@@ -146,7 +146,7 @@ func _get_route_financials(carrier_id: String, route_id: String) -> Dictionary:
 
 func _build_pending_actions() -> void:
 	var header := Label.new()
-	header.text = "— Pending Route Actions —"
+	header.text = "-- Pending Route Actions --"
 	_content.add_child(header)
 
 	var intent := _player_controller.pending_intent
@@ -163,7 +163,7 @@ func _build_pending_actions() -> void:
 
 		var row := HBoxContainer.new()
 		var label := Label.new()
-		label.text = "Create: %s → %s (%d ships)" % [
+		label.text = "Create: %s -> %s (%d ships)" % [
 			origin_name, dest_name, rc["ship_ids"].size(),
 		]
 		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL

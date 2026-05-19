@@ -6,7 +6,7 @@ extends ModalDialog
 
 func _ready() -> void:
 	super()
-	set_title("📊 Dashboard")
+	set_title("Dashboard")
 
 
 func bind(game_state: GameState, carrier_id: String) -> void:

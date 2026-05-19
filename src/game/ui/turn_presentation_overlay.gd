@@ -170,7 +170,7 @@ func _build_npc_lines(summary: TurnSummaryBuilder.CarrierTurnSummary) -> Array[S
 	var lines: Array[String] = []
 
 	for action: String in summary.actions:
-		lines.append("[indent]• %s[/indent]" % action)
+		lines.append("[indent]- %s[/indent]" % action)
 
 	if lines.size() == 0:
 		lines.append("[indent][i]No notable actions[/i][/indent]")
@@ -180,7 +180,7 @@ func _build_npc_lines(summary: TurnSummaryBuilder.CarrierTurnSummary) -> Array[S
 		summary.total_revenue, summary.total_costs + summary.slot_upkeep,
 		"+" if summary.net >= 0 else "-", absf(summary.net),
 	])
-	lines.append("Cash: §%.0f → §%.0f" % [summary.cash_before, summary.cash_after])
+	lines.append("Cash: §%.0f -> §%.0f" % [summary.cash_before, summary.cash_after])
 
 	return lines
 
@@ -231,7 +231,7 @@ func _build_player_content(summary: TurnSummaryBuilder.CarrierTurnSummary) -> St
 				profit_color, "+" if profit >= 0 else "-", absf(profit), profit_delta_str,
 			]
 
-			lines.append("[indent]%s → %s    %s%s  %s%s  Profit: %s[/indent]" % [
+			lines.append("[indent]%s -> %s    %s%s  %s%s  Profit: %s[/indent]" % [
 				origin_name, dest_name,
 				pax_str, pax_delta_str,
 				cargo_str, cargo_delta_str,
@@ -251,7 +251,7 @@ func _build_player_content(summary: TurnSummaryBuilder.CarrierTurnSummary) -> St
 		if active_descs.size() > 0:
 			lines.append("[b]Events:[/b]")
 			for desc: String in active_descs:
-				lines.append("[indent]• %s[/indent]" % desc)
+				lines.append("[indent]- %s[/indent]" % desc)
 			lines.append("")
 
 	# Financials section
@@ -260,23 +260,23 @@ func _build_player_content(summary: TurnSummaryBuilder.CarrierTurnSummary) -> St
 		summary.total_revenue, summary.total_costs, summary.slot_upkeep,
 		"+" if summary.net >= 0 else "-", absf(summary.net),
 	])
-	lines.append("[indent]Cash: §%.0f → §%.0f[/indent]" % [summary.cash_before, summary.cash_after])
+	lines.append("[indent]Cash: §%.0f -> §%.0f[/indent]" % [summary.cash_before, summary.cash_after])
 	lines.append("")
 
 	# Other section
 	var other_lines: Array[String] = []
 	for delivery: Dictionary in summary.ships_delivered:
-		other_lines.append("• Ship delivered: %s" % delivery.get("type_id", ""))
+		other_lines.append("- Ship delivered: %s" % delivery.get("type_id", ""))
 	for slot: Dictionary in summary.slots_won:
 		var pname := _get_planet_name(slot.get("planet_id", ""))
-		other_lines.append("• Won %d slot%s at %s" % [
+		other_lines.append("- Won %d slot%s at %s" % [
 			slot.get("count", 0), "s" if slot.get("count", 0) != 1 else "", pname,
 		])
 	for slot: Dictionary in summary.slots_lost:
 		var pname := _get_planet_name(slot.get("planet_id", ""))
-		other_lines.append("• Lost bid at %s" % pname)
+		other_lines.append("- Lost bid at %s" % pname)
 	for order: Dictionary in summary.ships_ordered:
-		other_lines.append("• Ordered %s" % order.get("type_id", ""))
+		other_lines.append("- Ordered %s" % order.get("type_id", ""))
 
 	if other_lines.size() > 0:
 		lines.append("[b]Other:[/b]")

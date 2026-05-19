@@ -6,11 +6,11 @@ signal toolbar_button_pressed(modal_name: String)
 signal debug_save_pressed()
 
 const TOOLBAR_BUTTONS: Array[Array] = [
-	["📊 Dashboard", "dashboard"],
-	["🚀 Routes", "routes"],
-	["🛸 Ships", "ships"],
-	["🏷️ Slots", "slots"],
-	["📜 Turn Log", "turn_log"],
+	["Dashboard", "dashboard"],
+	["Routes", "routes"],
+	["Ships", "ships"],
+	["Slots", "slots"],
+	["Turn Log", "turn_log"],
 ]
 
 @onready var _turn_label: Label = %TurnLabel

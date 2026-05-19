@@ -14,7 +14,7 @@ var _content_vbox: VBoxContainer
 
 func _ready() -> void:
 	super()
-	set_title("🪐 Planet Slots")
+	set_title("Planet Slots")
 
 
 func bind(player_controller: PlayerController, game_state: GameState) -> void:
@@ -81,7 +81,7 @@ func _build_pending_section() -> void:
 		var planet_name: String = planet.name if planet else str(bid["planet_id"])
 		var row := HBoxContainer.new()
 		var lbl := Label.new()
-		lbl.text = "Bid: %s × %d @ $%.0f/slot" % [planet_name, bid["quantity"], bid["price_per_slot"]]
+		lbl.text = "Bid: %s x %d @ $%.0f/slot" % [planet_name, bid["quantity"], bid["price_per_slot"]]
 		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(lbl)
 		var cancel_btn := Button.new()
@@ -98,7 +98,7 @@ func _build_pending_section() -> void:
 		var planet_name: String = planet.name if planet else str(sale["planet_id"])
 		var row := HBoxContainer.new()
 		var lbl := Label.new()
-		lbl.text = "Sell: %s × %d" % [planet_name, sale["count"]]
+		lbl.text = "Sell: %s x %d" % [planet_name, sale["count"]]
 		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(lbl)
 		var cancel_btn := Button.new()

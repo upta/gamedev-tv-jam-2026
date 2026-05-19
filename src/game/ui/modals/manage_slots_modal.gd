@@ -229,7 +229,7 @@ func _show_buy_popup(planet_id: String) -> void:
 	_popup_planet_id = planet_id
 	var available := _calc_available_slots(planet_id)
 
-	_popup_title.text = "Buy Slots — %s" % planet.name
+	_popup_title.text = "Buy Slots - %s" % planet.name
 	_popup_qty_spin.max_value = maxi(available, 1)
 	_popup_qty_spin.value = 1
 	_popup_price_row.visible = true
@@ -248,7 +248,7 @@ func _show_sell_popup(planet_id: String) -> void:
 	_popup_mode = "sell"
 	_popup_planet_id = planet_id
 
-	_popup_title.text = "Sell Slots — %s" % planet.name
+	_popup_title.text = "Sell Slots - %s" % planet.name
 	_popup_qty_spin.max_value = owned
 	_popup_qty_spin.value = 1
 	_popup_price_row.visible = false

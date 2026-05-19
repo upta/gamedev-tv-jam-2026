@@ -228,7 +228,7 @@ func _rebuild_route_details(carrier: CarrierData) -> void:
 	# Max frequency label
 	var freq_max_label := Label.new()
 	freq_max_label.name = "FreqMaxLabel"
-	freq_max_label.text = "/ %d" % max_freq if max_freq > 0 else "/ —"
+	freq_max_label.text = "/ %d" % max_freq if max_freq > 0 else "/ -"
 	freq_row.add_child(freq_max_label)
 
 	# Pricing
@@ -311,13 +311,13 @@ func _open_planet_selector(target: String) -> void:
 			var available_count: int = carrier.get_available_slots_at(planet.id) - _count_pending_routes_at(planet.id)
 			items_with_slots.append({
 				"id": planet.id,
-				"label": "%s — %d available (%d owned)" % [planet.name, available_count, slot_count],
+				"label": "%s - %d available (%d owned)" % [planet.name, available_count, slot_count],
 				"selectable": available_count >= 1,
 			})
 		else:
 			items_no_slots.append({
 				"id": planet.id,
-				"label": "%s — No slots" % planet.name,
+				"label": "%s - No slots" % planet.name,
 				"selectable": false,
 			})
 
@@ -387,14 +387,14 @@ func _open_ship_selector() -> void:
 				"id": ship.id,
 				"label": "%s (Pax:%d Cargo:%d)%s" % [
 					type_name, ship.passenger_capacity, ship.cargo_capacity,
-					" ✓" if already_selected else "",
+					" *" if already_selected else "",
 				],
 				"selectable": true,
 			})
 		else:
 			out_range.append({
 				"id": ship.id,
-				"label": "%s — Out of range" % type_name,
+				"label": "%s - Out of range" % type_name,
 				"selectable": false,
 			})
 
@@ -440,7 +440,7 @@ func _show_selection_popup(
 	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_row.add_child(title_label)
 	var close_btn := Button.new()
-	close_btn.text = "✕"
+	close_btn.text = "X"
 	close_btn.pressed.connect(_close_selection_popup)
 	title_row.add_child(close_btn)
 	vbox.add_child(title_row)
@@ -646,7 +646,7 @@ func _update_frequency_max() -> void:
 	if freq_row:
 		var max_label := freq_row.get_node_or_null("FreqMaxLabel")
 		if max_label:
-			max_label.text = "/ %d" % max_freq if max_freq > 0 else "/ —"
+			max_label.text = "/ %d" % max_freq if max_freq > 0 else "/ -"
 
 
 # ---------------------------------------------------------------------------

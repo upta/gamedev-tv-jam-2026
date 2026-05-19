@@ -6,7 +6,7 @@ extends ModalDialog
 
 func _ready() -> void:
 	super()
-	set_title("📜 Turn Log")
+	set_title("Turn Log")
 
 
 func add_turn_result(turn_number: int, result: TurnPipeline.TurnResult, carrier_id: String) -> void:

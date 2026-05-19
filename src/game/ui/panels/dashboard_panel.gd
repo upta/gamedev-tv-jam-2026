@@ -104,7 +104,7 @@ func _refresh_routes() -> void:
 		if dest != null:
 			dest_name = dest.name
 		var label := Label.new()
-		label.text = "%s → %s | Pax: §%d Cargo: §%d | Ships: %d | Freq: %d" % [
+		label.text = "%s -> %s | Pax: §%d Cargo: §%d | Ships: %d | Freq: %d" % [
 			origin_name, dest_name,
 			int(route.passenger_price), int(route.cargo_price),
 			route.ship_ids.size(), route.frequency,

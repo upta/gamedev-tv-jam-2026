@@ -175,7 +175,7 @@ static func _build_actions(summary: CarrierTurnSummary, game_state: GameState) -
 		var origin_name := _get_planet_name(game_state, route.get("origin_id", ""))
 		var dest_name := _get_planet_name(game_state, route.get("dest_id", ""))
 		var ship_count: int = route.get("ship_count", 0)
-		actions.append("Created route %s → %s (%d ship%s)" % [
+		actions.append("Created route %s -> %s (%d ship%s)" % [
 			origin_name, dest_name, ship_count,
 			"s" if ship_count != 1 else "",
 		])

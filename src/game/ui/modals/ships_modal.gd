@@ -73,12 +73,12 @@ func _build_fleet_section(carrier: CarrierData) -> void:
 			var type_name := ship_type.name if ship_type else ship.type_id
 			var assignment: String = ship_route_map.get(ship.id, "Idle")
 			var label := Label.new()
-			label.text = "%s — Pax:%d Cargo:%d — %s" % [type_name, ship.passenger_capacity, ship.cargo_capacity, assignment]
+			label.text = "%s - Pax:%d Cargo:%d - %s" % [type_name, ship.passenger_capacity, ship.cargo_capacity, assignment]
 			_content_vbox.add_child(label)
 
 		for ship: ShipCatalog.ShipInstance in carrier.pending_orders:
 			var label := Label.new()
-			label.text = "(Building) %s — Ready turn %d" % [ship.type_id, ship.available_turn]
+			label.text = "(Building) %s - Ready turn %d" % [ship.type_id, ship.available_turn]
 			_content_vbox.add_child(label)
 
 	_content_vbox.add_child(HSeparator.new())
@@ -103,7 +103,7 @@ func _build_pending_orders_section() -> void:
 			var order: Dictionary = orders[i]
 			var row := HBoxContainer.new()
 			var label := Label.new()
-			label.text = "%s — Pax:%d Cargo:%d" % [order["type_id"], order["passenger_capacity"], order["cargo_capacity"]]
+			label.text = "%s - Pax:%d Cargo:%d" % [order["type_id"], order["passenger_capacity"], order["cargo_capacity"]]
 			label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			row.add_child(label)
 

@@ -148,7 +148,7 @@ func _update_stats_and_button(carrier: CarrierData) -> void:
 		return
 	var qty := int(_qty_spin.value) if _qty_spin else 1
 	var total_cost := st.cost * qty
-	_stats_label.text = "Cost: §%d × %d = §%d | Cap: %d | Range: %.1f ly | Build: %d turns" % [st.cost, qty, total_cost, st.max_capacity, st.range, st.build_turns]
+	_stats_label.text = "Cost: §%d x %d = §%d | Cap: %d | Range: %.1f ly | Build: %d turns" % [st.cost, qty, total_cost, st.max_capacity, st.range, st.build_turns]
 	_order_button.disabled = carrier.cash < total_cost
 
 

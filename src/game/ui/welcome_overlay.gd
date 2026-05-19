@@ -44,9 +44,9 @@ func _build_pages() -> void:
 			"title": "Your Starting Assets",
 			"content": (
 				"You begin with:\n\n"
-				+ "  •  [b]$3,000[/b] in cash\n"
-				+ "  •  [b]1 shuttle[/b] (SD-100 — 40 capacity, split between passengers and cargo)\n"
-				+ "  •  [b]2 landing slots[/b] at Earth and Mars\n\n"
+				+ "  -  [b]$3,000[/b] in cash\n"
+				+ "  -  [b]1 shuttle[/b] (SD-100 -- 40 capacity, split between passengers and cargo)\n"
+				+ "  -  [b]2 landing slots[/b] at Earth and Mars\n\n"
 				+ "Landing slots give you the right to operate at a planet. "
 				+ "You need a slot at both ends of any route you create."
 			),
@@ -59,16 +59,16 @@ func _build_pages() -> void:
 				+ "  2.  Click [b]Create Route[/b]\n"
 				+ "  3.  Pick an origin and destination (you need slots at both)\n"
 				+ "  4.  Assign ships and set flight frequency\n\n"
-				+ "[b]Tip:[/b] Start with a route between Earth and Mars — you already have slots there!"
+				+ "[b]Tip:[/b] Start with a route between Earth and Mars -- you already have slots there!"
 			),
 		},
 		{
 			"title": "Growing Your Network",
 			"content": (
 				"To expand beyond your starting planets:\n\n"
-				+ "  •  [b]Slots[/b] — Bid on landing slots at new planets. Costs money and takes a turn to process. "
+				+ "  -  [b]Slots[/b] -- Bid on landing slots at new planets. Costs money and takes a turn to process. "
 				+ "Other carriers are bidding too!\n\n"
-				+ "  •  [b]Ships[/b] — Order new ships to increase your capacity. Bigger ships unlock at later turns "
+				+ "  -  [b]Ships[/b] -- Order new ships to increase your capacity. Bigger ships unlock at later turns "
 				+ "and take several turns to build.\n\n"
 				+ "Hover over planets on the star map to see demand levels and slot availability."
 			),
@@ -77,10 +77,10 @@ func _build_pages() -> void:
 			"title": "Each Turn",
 			"content": (
 				"Click [b]Next Turn[/b] when you're ready to advance. Each turn:\n\n"
-				+ "  •  Your routes operate and earn (or lose) money\n"
-				+ "  •  Ship orders and slot bids are processed\n"
-				+ "  •  NPC carriers take their actions\n"
-				+ "  •  You'll see a summary of everything that happened\n\n"
+				+ "  -  Your routes operate and earn (or lose) money\n"
+				+ "  -  Ship orders and slot bids are processed\n"
+				+ "  -  NPC carriers take their actions\n"
+				+ "  -  You'll see a summary of everything that happened\n\n"
 				+ "Use the [b]Dashboard[/b] to track your finances and the [b]Turn Log[/b] to review past turns."
 			),
 		},
