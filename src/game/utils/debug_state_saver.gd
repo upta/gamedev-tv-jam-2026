@@ -39,6 +39,7 @@ static func _build_state_dict(game_state: GameState, player_controller: PlayerCo
 	if player_controller != null:
 		result["player_pending_intent"] = _serialize_intent(player_controller.pending_intent)
 	result["events"] = _serialize_events(game_state.events)
+	result["telemetry_turns_recorded"] = 0
 	result["console_errors"] = _serialize_console_log()
 	return result
 

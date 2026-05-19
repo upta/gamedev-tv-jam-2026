@@ -13,6 +13,7 @@ var controllers: Dictionary = {}  # carrier_id: String -> CarrierController
 var is_running: bool = false
 var is_complete: bool = false
 var final_results: Dictionary = {}
+var telemetry: GameTelemetry
 
 
 func setup(p_game_state: GameState, p_controllers: Dictionary) -> void:
@@ -21,6 +22,7 @@ func setup(p_game_state: GameState, p_controllers: Dictionary) -> void:
 	is_running = false
 	is_complete = false
 	final_results = {}
+	telemetry = GameTelemetry.new()
 
 
 func run_all_turns() -> void:
@@ -66,6 +68,7 @@ func run_next_turn() -> TurnPipeline.TurnResult:
 			intents.append(controller.generate_intent(game_state, carrier.id))
 
 	var result = game_state.advance_turn(intents)
+	telemetry.record_turn(game_state.current_turn - 1, intents, result, game_state)
 	turn_completed.emit(game_state.current_turn - 1, result)
 	if result.game_over:
 		is_complete = true

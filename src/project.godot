@@ -19,10 +19,6 @@ config/features=PackedStringArray("4.6")
 window/size/viewport_width=1280
 window/size/viewport_height=720
 
-[gui]
-
-theme/custom_font="res://assets/fonts/NotoSans-Regular.ttf"
-
 [dotnet]
 
 project/assembly_name="My Prototype"
@@ -30,3 +26,7 @@ project/assembly_name="My Prototype"
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/gut/plugin.cfg")
+
+[gui]
+
+theme/custom_font="res://assets/fonts/NotoSans-Regular.ttf"

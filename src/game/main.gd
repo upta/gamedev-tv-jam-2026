@@ -211,7 +211,9 @@ func _on_play_again() -> void:
 
 func _save_debug_state() -> void:
 	var path := DebugStateSaver.save(_session.game_state, _player_controller)
+	var telemetry_path := _session.telemetry.save_to_file()
 	_toast_manager.show_toast("Debug state saved: %s" % path, "success")
+	_toast_manager.show_toast("Telemetry saved (%d turns): %s" % [_session.telemetry.get_turn_count(), telemetry_path], "success")
 
 
 func _on_create_route_requested() -> void:
