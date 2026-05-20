@@ -580,6 +580,12 @@ func _update_create_button_state() -> void:
 		if carrier:
 			var origin_avail := carrier.get_available_slots_at(_origin_id) - _count_pending_routes_at(_origin_id)
 			var dest_avail := carrier.get_available_slots_at(_dest_id) - _count_pending_routes_at(_dest_id)
+			# In edit mode, the route being edited already holds slots at its endpoints
+			if _edit_mode and _editing_route:
+				if _editing_route.origin_id == _origin_id:
+					origin_avail += 1
+				if _editing_route.dest_id == _dest_id:
+					dest_avail += 1
 			has_slots = origin_avail >= 1 and dest_avail >= 1
 
 	_create_btn.disabled = not any_ships or not has_slots

@@ -482,3 +482,76 @@ func test_route_consumes_slot_at_both_endpoints() -> void:
 	assert_eq(carrier.get_slots_used_by_routes("mars"), 1, "1 route uses 1 mars slot")
 	assert_eq(carrier.get_available_slots_at("earth"), 1, "earth: 2 owned - 1 used = 1 available")
 	assert_eq(carrier.get_available_slots_at("mars"), 0, "mars: 1 owned - 1 used = 0 available")
+
+
+# ---------------------------------------------------------------------------
+# validate_route_creation — pending_creates slot tracking
+# ---------------------------------------------------------------------------
+
+func test_pending_creates_consume_origin_slots() -> void:
+	var carrier := _make_carrier()  # earth=2, mars=1
+	var ship1 := _add_ship(carrier)
+	var ship2 := _add_ship(carrier)
+
+	# Pending create already claims earth→mars
+	var pending := [{ "origin_id": "earth", "dest_id": "mars", "ship_ids": [ship1.id] }]
+
+	# Second route also needs mars, but mars only has 1 slot
+	var result := RouteValidator.validate_route_creation(
+		carrier, galaxy, catalog,
+		"earth", "mars",
+		[ship2.id], 1, 1, pending,
+	)
+	assert_false(result["valid"], "pending route already consumed mars slot")
+	assert_true(result["reason"].contains("destination"), "reason mentions destination")
+
+
+func test_pending_creates_consume_dest_slots() -> void:
+	var carrier := _make_carrier()  # earth=2, mars=1
+	carrier.slots["proxima_b"] = 1
+	var ship1 := _add_ship(carrier, "fw-10", 10, 10)  # range 15, can reach proxima_b
+	var ship2 := _add_ship(carrier, "fw-10", 10, 10)
+
+	# Pending create claims earth→proxima_b
+	var pending := [{ "origin_id": "earth", "dest_id": "proxima_b", "ship_ids": [ship1.id] }]
+
+	# Second route also needs proxima_b, but proxima_b only has 1 slot
+	var result := RouteValidator.validate_route_creation(
+		carrier, galaxy, catalog,
+		"mars", "proxima_b",
+		[ship2.id], 1, 1, pending,
+	)
+	assert_false(result["valid"], "pending route consumed proxima_b slot")
+
+
+func test_pending_creates_allow_with_enough_slots() -> void:
+	var carrier := _make_carrier()  # earth=2, mars=1
+	carrier.slots["mars"] = 2  # Bump mars to 2
+	var ship1 := _add_ship(carrier)
+	var ship2 := _add_ship(carrier)
+
+	var pending := [{ "origin_id": "earth", "dest_id": "mars", "ship_ids": [ship1.id] }]
+
+	var result := RouteValidator.validate_route_creation(
+		carrier, galaxy, catalog,
+		"earth", "mars",
+		[ship2.id], 1, 1, pending,
+	)
+	assert_true(result["valid"], "enough slots at both planets even with pending route")
+
+
+func test_pending_creates_block_ship_reuse() -> void:
+	var carrier := _make_carrier()  # earth=2, mars=1
+	carrier.slots["mars"] = 2
+	var ship := _add_ship(carrier)
+
+	# Pending create uses the same ship
+	var pending := [{ "origin_id": "earth", "dest_id": "mars", "ship_ids": [ship.id] }]
+
+	var result := RouteValidator.validate_route_creation(
+		carrier, galaxy, catalog,
+		"earth", "mars",
+		[ship.id], 1, 1, pending,
+	)
+	assert_false(result["valid"], "ship already used in pending create")
+	assert_true(result["reason"].contains("assigned"), "reason mentions assigned")

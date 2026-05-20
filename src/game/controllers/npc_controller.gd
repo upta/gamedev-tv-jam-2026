@@ -190,6 +190,7 @@ func _consider_route_creation(
 	var max_routes := 3
 	var routes_created := 0
 	var used_ship_ids: Dictionary = {}
+	var pending_slot_usage: Dictionary = {}  # planet_id -> count of slots consumed by pending creates
 
 	for candidate: Dictionary in candidates:
 		if routes_created >= max_routes:
@@ -198,6 +199,12 @@ func _consider_route_creation(
 		var origin_id: String = candidate["origin_id"]
 		var dest_id: String = candidate["dest_id"]
 		var distance: float = candidate["distance"]
+
+		# Check available slots accounting for pending creates this turn
+		var origin_avail: int = carrier.get_available_slots_at(origin_id) - pending_slot_usage.get(origin_id, 0)
+		var dest_avail: int = carrier.get_available_slots_at(dest_id) - pending_slot_usage.get(dest_id, 0)
+		if origin_avail < 1 or dest_avail < 1:
+			continue
 
 		# Find an available ship with enough range (skip already-used this turn)
 		var chosen_ship: ShipCatalog.ShipInstance = null
@@ -246,6 +253,8 @@ func _consider_route_creation(
 		var future_route_id := "%s-route-%d" % [carrier.id, carrier.routes.size() + routes_created]
 		_route_created_turn[future_route_id] = game_state.current_turn
 		used_ship_ids[chosen_ship.id] = true
+		pending_slot_usage[origin_id] = pending_slot_usage.get(origin_id, 0) + 1
+		pending_slot_usage[dest_id] = pending_slot_usage.get(dest_id, 0) + 1
 		routes_created += 1
 
 

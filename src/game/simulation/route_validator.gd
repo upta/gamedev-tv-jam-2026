@@ -14,12 +14,13 @@ static func validate_route_creation(
 	ship_ids: Array,
 	frequency: int,
 	current_turn: int,
+	pending_creates: Array = [],
 ) -> Dictionary:
-	var origin_available := carrier.get_slot_count(origin_id) - _count_routes_at_planet(carrier, origin_id)
+	var origin_available := carrier.get_slot_count(origin_id) - _count_routes_at_planet(carrier, origin_id) - _count_pending_creates_at_planet(pending_creates, origin_id)
 	if origin_available < 1:
 		return _fail("No available slots at origin planet '%s' (all %d consumed by routes)" % [origin_id, carrier.get_slot_count(origin_id)])
 
-	var dest_available := carrier.get_slot_count(dest_id) - _count_routes_at_planet(carrier, dest_id)
+	var dest_available := carrier.get_slot_count(dest_id) - _count_routes_at_planet(carrier, dest_id) - _count_pending_creates_at_planet(pending_creates, dest_id)
 	if dest_available < 1:
 		return _fail("No available slots at destination planet '%s' (all %d consumed by routes)" % [dest_id, carrier.get_slot_count(dest_id)])
 
@@ -28,6 +29,10 @@ static func validate_route_creation(
 		return _fail("No lane exists between '%s' and '%s'" % [origin_id, dest_id])
 
 	var assigned_ids := _get_assigned_ship_ids(carrier, "")
+	# Also mark ships from pending creates as assigned
+	for rc: Dictionary in pending_creates:
+		for sid: String in rc.get("ship_ids", []):
+			assigned_ids[sid] = true
 	var ship_error := _validate_ships(carrier, catalog, ship_ids, lane.distance, assigned_ids, current_turn)
 	if ship_error != "":
 		return _fail(ship_error)
@@ -119,6 +124,14 @@ static func get_route_capacity(
 
 static func _fail(reason: String) -> Dictionary:
 	return { "valid": false, "reason": reason, "clamped_frequency": 0 }
+
+
+static func _count_pending_creates_at_planet(pending_creates: Array, planet_id: String) -> int:
+	var count := 0
+	for rc: Dictionary in pending_creates:
+		if rc.get("origin_id", "") == planet_id or rc.get("dest_id", "") == planet_id:
+			count += 1
+	return count
 
 
 static func _count_routes_at_planet(carrier: CarrierData, planet_id: String, exclude_route_id: String = "") -> int:

@@ -236,14 +236,16 @@ func test_npc_creates_multiple_routes() -> void:
 	## NPC should create multiple routes in a single turn when possible.
 	var carrier := game_state.get_carrier("npc_1")
 	carrier.cash = 10000.0
-	# Give NPC slots at 3 planets and 3 ships
-	carrier.slots["centauri_prime"] = 1
+	# Give NPC slots at 3 planets (2 per planet so multiple routes can share an endpoint)
+	carrier.slots["proxima_b"] = 2
+	carrier.slots["haven"] = 2
+	carrier.slots["centauri_prime"] = 2
 	var ship2 := game_state.catalog.create_ship_instance("sd-100", 20, 20, "npc_1", -2)
 	var ship3 := game_state.catalog.create_ship_instance("sd-100", 20, 20, "npc_1", -2)
 	carrier.ships.append(ship2)
 	carrier.ships.append(ship3)
 	var intent := controller.generate_intent(game_state, "npc_1")
-	# With 3 planets (proxima_b, haven, centauri_prime) and 3 ships, up to 3 routes possible
+	# With 3 planets (2 slots each) and 3 ships, up to 3 routes possible
 	assert_true(intent.route_creates.size() >= 2,
 		"NPC with multiple ships and planet pairs should create multiple routes")
 
