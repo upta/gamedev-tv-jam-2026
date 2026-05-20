@@ -195,3 +195,11 @@ All processed in carrier_order (index-based tie-breaking, D004).
 - **Route modifications beyond price**: Overloaded routes (avg_load > 0.85) now trigger ship additions (if `route_preference >= 0.5` and available ships exist) and frequency increases. Underloaded routes reduce both price and frequency.
 - **Diagnostic testing pattern**: `GameSetup.create_all_npc_session(seed)` + `session.run_all_turns()` + `telemetry.get_turns()` provides full 30-turn intent/state history for behavioral assertions without needing scene tree.
 - Added `get_turns() -> Array` to `GameTelemetry` to expose `_turns` for test analysis.
+
+### Route Edit & Pending Slot Bugs (2026-05-19)
+
+- **Edit mode save button fix**: `_update_create_button_state()` in `create_route_modal.gd` counted the editing route's own slot usage against availability, making the Save button permanently disabled. Fix: add back +1 for each endpoint matching the editing route's origin/dest.
+- **Pending slot tracking in RouteValidator**: `validate_route_creation()` now accepts `pending_creates: Array = []` parameter. Counts pending route creates against slot availability at both endpoints, and marks ships from pending creates as assigned. This makes the validator correct regardless of caller (UI, NPC, pipeline).
+- **NPC controller slot tracking**: `_consider_route_creation()` now maintains a `pending_slot_usage` dictionary, incrementing per-planet counts as routes are added to the intent. Prevents NPCs from over-committing slots when creating multiple routes in one turn.
+- **Test update**: `test_npc_creates_multiple_routes` was asserting the buggy behavior (2+ routes with only 1 slot per planet). Updated to give 2 slots per planet so 2 routes are legitimately possible.
+- Added 4 unit tests for `pending_creates`: origin slot blocking, dest slot blocking, allowing with sufficient slots, and ship reuse prevention.

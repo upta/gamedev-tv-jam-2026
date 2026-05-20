@@ -149,3 +149,13 @@ All 5 fixes implemented and deployed:
 **Brady approval:** ✓ Proposal approved. Implementation delivered exactly as specified.
 
 **Decision record:** D009 in `.squad/decisions.md`
+
+### Route Creation UX Analysis (2025-07-18, proposed)
+
+35. **Lane distances invisible until too late.** CreateRouteModal shows distance only after both planets selected AND ships assigned. Star map has zero lane interactivity — no hover, no click, no distance labels. Players can't plan ship orders without knowing lane distances first.
+
+36. **Slot-gating hides possibility space.** Planet selector in route creation only shows planets where player owns slots. New players can't discover what routes *could* exist, preventing strategic planning ("I need slots at Proxima for an 8.2 ly route → order SD-300").
+
+37. **Recommended fix: lane labels + browse-first explorer.** (a) Add distance labels on star map lanes (small). (b) Show all planets in route creation selector regardless of slots, gate only the Create button, show clear "need slots" messaging (medium). Skip inline ship catalog for now — one click to Ships modal is acceptable.
+
+**Analysis document:** `.squad/decisions/inbox/lead-route-creation-ux.md`

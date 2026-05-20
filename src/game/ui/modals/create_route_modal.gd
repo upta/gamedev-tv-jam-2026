@@ -182,13 +182,6 @@ func _rebuild_route_details(carrier: CarrierData) -> void:
 	if _origin_id.is_empty() or _dest_id.is_empty() or _origin_id == _dest_id:
 		return
 
-	if _selected_ship_ids.is_empty():
-		var hint := Label.new()
-		hint.text = "Select ships to configure route"
-		hint.modulate = Color(0.6, 0.6, 0.6)
-		_details_section.add_child(hint)
-		return
-
 	var lane := _game_state.galaxy.get_lane(_origin_id, _dest_id)
 	if lane == null:
 		var no_lane := Label.new()
@@ -196,14 +189,53 @@ func _rebuild_route_details(carrier: CarrierData) -> void:
 		_details_section.add_child(no_lane)
 		return
 
-	# Distance and slot info
+	# Show distance immediately after planets selected
+	var distance_label := Label.new()
+	distance_label.text = "Distance: %.1f ly" % lane.distance
+	_details_section.add_child(distance_label)
+
+	# Show which ships in fleet can reach this distance
+	var ships_in_range: Array = []
+	for ship in carrier.ships:
+		var ship_type := _game_state.catalog.get_type(ship.type_id)
+		if ship_type and ship_type.range >= lane.distance:
+			ships_in_range.append(ship)
+
+	var ships_by_type: Dictionary = {}
+	for ship in ships_in_range:
+		var type_id: String = ship.type_id
+		if not ships_by_type.has(type_id):
+			ships_by_type[type_id] = 0
+		ships_by_type[type_id] += 1
+
+	var range_label := Label.new()
+	if ships_in_range.is_empty():
+		range_label.text = "No ships in range — order ships with range >= %.1f ly" % lane.distance
+		range_label.modulate = Color(0.8, 0.4, 0.4)
+	else:
+		var ship_list: Array = []
+		for type_id in ships_by_type.keys():
+			var count: int = ships_by_type[type_id]
+			ship_list.append("%s (x%d)" % [type_id, count])
+		range_label.text = "Ships in range: " + ", ".join(ship_list)
+		range_label.modulate = Color(0.6, 0.8, 0.6)
+	_details_section.add_child(range_label)
+
+	if _selected_ship_ids.is_empty():
+		var hint := Label.new()
+		hint.text = "Select ships to configure route"
+		hint.modulate = Color(0.6, 0.6, 0.6)
+		_details_section.add_child(hint)
+		return
+
+	# Distance and slot info (detailed view after ships selected)
 	var origin_slots: int = carrier.get_slot_count(_origin_id)
 	var dest_slots: int = carrier.get_slot_count(_dest_id)
 	var origin_avail: int = carrier.get_available_slots_at(_origin_id) - _count_pending_routes_at(_origin_id)
 	var dest_avail: int = carrier.get_available_slots_at(_dest_id) - _count_pending_routes_at(_dest_id)
 	_info_label = Label.new()
-	_info_label.text = "Distance: %.1f ly | %s: %d/%d avail | %s: %d/%d avail" % [
-		lane.distance, _get_planet_display_name(_origin_id), origin_avail, origin_slots,
+	_info_label.text = "%s: %d/%d avail | %s: %d/%d avail" % [
+		_get_planet_display_name(_origin_id), origin_avail, origin_slots,
 		_get_planet_display_name(_dest_id), dest_avail, dest_slots,
 	]
 	_details_section.add_child(_info_label)
