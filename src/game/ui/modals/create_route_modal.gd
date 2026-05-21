@@ -32,12 +32,14 @@ var _freq_spin: SpinBox
 var _pax_spin: SpinBox
 var _cargo_spin: SpinBox
 var _create_btn: Button
+var _create_status_label: Label
 var _details_section: VBoxContainer
 
 # Sub-dialog
 var _selection_popup: PanelContainer
 var _selection_overlay: ColorRect
 var _selection_callback: Callable
+var _selection_popup_items: Array[Dictionary] = []
 
 
 func _ready() -> void:
@@ -178,6 +180,7 @@ func _rebuild_route_details(carrier: CarrierData) -> void:
 	for child: Node in _details_section.get_children():
 		child.queue_free()
 	_create_btn = null
+	_create_status_label = null
 
 	if _origin_id.is_empty() or _dest_id.is_empty() or _origin_id == _dest_id:
 		return
@@ -231,12 +234,12 @@ func _rebuild_route_details(carrier: CarrierData) -> void:
 	# Distance and slot info (detailed view after ships selected)
 	var origin_slots: int = carrier.get_slot_count(_origin_id)
 	var dest_slots: int = carrier.get_slot_count(_dest_id)
-	var origin_avail: int = carrier.get_available_slots_at(_origin_id) - _count_pending_routes_at(_origin_id)
-	var dest_avail: int = carrier.get_available_slots_at(_dest_id) - _count_pending_routes_at(_dest_id)
+	var origin_avail: int = _get_adjusted_available_slots(carrier, _origin_id)
+	var dest_avail: int = _get_adjusted_available_slots(carrier, _dest_id)
 	_info_label = Label.new()
 	_info_label.text = "%s: %d/%d avail | %s: %d/%d avail" % [
-		_get_planet_display_name(_origin_id), origin_avail, origin_slots,
-		_get_planet_display_name(_dest_id), dest_avail, dest_slots,
+		_get_planet_display_name(_origin_id), maxi(origin_avail, 0), origin_slots,
+		_get_planet_display_name(_dest_id), maxi(dest_avail, 0), dest_slots,
 	]
 	_details_section.add_child(_info_label)
 
@@ -306,6 +309,11 @@ func _rebuild_route_details(carrier: CarrierData) -> void:
 	btn_row.add_child(_create_btn)
 	_details_section.add_child(btn_row)
 
+	_create_status_label = Label.new()
+	_create_status_label.modulate = Color(0.95, 0.75, 0.35)
+	_create_status_label.visible = false
+	_details_section.add_child(_create_status_label)
+
 	# Cancel Route button (edit mode only, at bottom, styled as destructive)
 	if _edit_mode:
 		var cancel_route_row := HBoxContainer.new()
@@ -329,8 +337,7 @@ func _open_planet_selector(target: String) -> void:
 	if carrier == null:
 		return
 
-	var items_with_slots: Array[Dictionary] = []
-	var items_no_slots: Array[Dictionary] = []
+	var items: Array[Dictionary] = []
 
 	for planet: GalaxyData.Planet in _game_state.galaxy.planets:
 		# Exclude the already-selected counterpart
@@ -339,22 +346,19 @@ func _open_planet_selector(target: String) -> void:
 		if target == "dest" and planet.id == _origin_id:
 			continue
 		var slot_count: int = carrier.get_slot_count(planet.id)
+		var available_count: int = _get_adjusted_available_slots(carrier, planet.id)
+		var item := {
+			"id": planet.id,
+			"selectable": true,
+		}
 		if slot_count > 0:
-			var available_count: int = carrier.get_available_slots_at(planet.id) - _count_pending_routes_at(planet.id)
-			items_with_slots.append({
-				"id": planet.id,
-				"label": "%s - %d available (%d owned)" % [planet.name, available_count, slot_count],
-				"selectable": available_count >= 1,
-			})
+			item["label"] = "%s - %d available (%d owned)" % [planet.name, maxi(available_count, 0), slot_count]
 		else:
-			items_no_slots.append({
-				"id": planet.id,
-				"label": "%s - No slots" % planet.name,
-				"selectable": false,
-			})
+			item["label"] = "%s - No slots" % planet.name
+			item["label_modulate"] = Color(0.95, 0.75, 0.35)
+		items.append(item)
 
-	items_with_slots.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["label"] < b["label"])
-	items_no_slots.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["label"] < b["label"])
+	items.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["label"] < b["label"])
 
 	var callback := func(selected_id: String) -> void:
 		if target == "origin":
@@ -364,7 +368,7 @@ func _open_planet_selector(target: String) -> void:
 		_selected_ship_ids.clear()
 		_rebuild_form()
 
-	_show_selection_popup("Select Planet", items_with_slots, items_no_slots, callback)
+	_show_selection_popup("Select Planet", items, [], callback)
 
 
 # ---------------------------------------------------------------------------
@@ -458,6 +462,11 @@ func _show_selection_popup(
 ) -> void:
 	_close_selection_popup()
 	_selection_callback = callback
+	_selection_popup_items = []
+	for item: Dictionary in group_a:
+		_selection_popup_items.append(item.duplicate(true))
+	for item: Dictionary in group_b:
+		_selection_popup_items.append(item.duplicate(true))
 
 	_selection_popup = PanelContainer.new()
 	_selection_popup.custom_minimum_size = Vector2(400, 300)
@@ -494,9 +503,12 @@ func _show_selection_popup(
 		var lbl := Label.new()
 		lbl.text = item["label"]
 		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if item.has("label_modulate"):
+			lbl.modulate = item["label_modulate"]
 		row.add_child(lbl)
 		var btn := Button.new()
 		btn.text = "Select"
+		btn.disabled = not item.get("selectable", true)
 		var item_id: String = item["id"]
 		btn.pressed.connect(_on_selection_item_clicked.bind(item_id, close_on_select))
 		row.add_child(btn)
@@ -549,6 +561,7 @@ func _on_selection_item_clicked(item_id: String, close_on_select: bool) -> void:
 
 
 func _close_selection_popup() -> void:
+	_selection_popup_items.clear()
 	if _selection_overlay and is_instance_valid(_selection_overlay):
 		_selection_overlay.queue_free()
 		_selection_overlay = null
@@ -605,22 +618,24 @@ func _update_create_button_state() -> void:
 	if _create_btn == null:
 		return
 	var any_ships := not _selected_ship_ids.is_empty()
-
 	var has_slots := true
+	var missing_slot_planets: Array[String] = []
+
 	if not _origin_id.is_empty() and not _dest_id.is_empty():
 		var carrier := _game_state.get_player_carrier()
 		if carrier:
-			var origin_avail := carrier.get_available_slots_at(_origin_id) - _count_pending_routes_at(_origin_id)
-			var dest_avail := carrier.get_available_slots_at(_dest_id) - _count_pending_routes_at(_dest_id)
-			# In edit mode, the route being edited already holds slots at its endpoints
-			if _edit_mode and _editing_route:
-				if _editing_route.origin_id == _origin_id:
-					origin_avail += 1
-				if _editing_route.dest_id == _dest_id:
-					dest_avail += 1
-			has_slots = origin_avail >= 1 and dest_avail >= 1
+			missing_slot_planets = _get_missing_slot_planet_names(carrier)
+			has_slots = missing_slot_planets.is_empty()
 
 	_create_btn.disabled = not any_ships or not has_slots
+
+	if _create_status_label:
+		if not has_slots and any_ships:
+			_create_status_label.text = "Need slots at %s to create this route." % " and ".join(missing_slot_planets)
+			_create_status_label.visible = true
+		else:
+			_create_status_label.text = ""
+			_create_status_label.visible = false
 
 
 func _update_ship_display() -> void:
@@ -654,6 +669,22 @@ func _count_pending_routes_at(planet_id: String) -> int:
 		if rc["origin_id"] == planet_id or rc["dest_id"] == planet_id:
 			count += 1
 	return count
+
+
+func _get_adjusted_available_slots(carrier: CarrierData, planet_id: String) -> int:
+	var available := carrier.get_available_slots_at(planet_id) - _count_pending_routes_at(planet_id)
+	if _edit_mode and _editing_route and (_editing_route.origin_id == planet_id or _editing_route.dest_id == planet_id):
+		available += 1
+	return available
+
+
+func _get_missing_slot_planet_names(carrier: CarrierData) -> Array[String]:
+	var missing_planets: Array[String] = []
+	if not _origin_id.is_empty() and _get_adjusted_available_slots(carrier, _origin_id) < 1:
+		missing_planets.append(_get_planet_display_name(_origin_id))
+	if not _dest_id.is_empty() and _get_adjusted_available_slots(carrier, _dest_id) < 1:
+		missing_planets.append(_get_planet_display_name(_dest_id))
+	return missing_planets
 
 
 func _compute_max_frequency() -> int:
@@ -787,6 +818,36 @@ func get_selection_popup_item_count() -> int:
 					count += 1
 			return count
 	return 0
+
+
+func get_selection_popup_items() -> Array[Dictionary]:
+	return _selection_popup_items.duplicate(true)
+
+
+func select_selection_popup_item(item_id: String, close_on_select: bool = true) -> void:
+	if not is_selection_popup_visible() or not _selection_callback.is_valid():
+		return
+	_selection_callback.call(item_id)
+	if close_on_select:
+		_close_selection_popup()
+
+
+func is_create_action_disabled() -> bool:
+	return _create_btn == null or _create_btn.disabled
+
+
+func get_create_status_text() -> String:
+	return _create_status_label.text if _create_status_label else ""
+
+
+func get_detail_lines() -> Array[String]:
+	var detail_lines: Array[String] = []
+	if _details_section == null:
+		return detail_lines
+	for child: Node in _details_section.get_children():
+		if child is Label:
+			detail_lines.append(child.text)
+	return detail_lines
 
 
 # ---------------------------------------------------------------------------

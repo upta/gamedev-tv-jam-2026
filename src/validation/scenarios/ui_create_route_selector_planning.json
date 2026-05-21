@@ -1,0 +1,101 @@
+{
+  "scenario_id": "ui_create_route_selector_planning",
+  "version": 3,
+  "description": "Verify create-route planet selection allows planning with no-slot planets while creation stays blocked until slots exist",
+  "harness_scene": "res://validation/harnesses/ui_route_planning_harness.tscn",
+  "done_contract": {},
+  "artifact_contract": {
+    "required_files": ["summary.json", "event_log.json", "scene_tree.json", "console.log"],
+    "missing_file_is_failure": true
+  },
+  "exit_codes": {
+    "pass": 0,
+    "assertion_failure": 1,
+    "runtime_error": 2,
+    "timeout": 3,
+    "artifact_generation_error": 4
+  },
+  "cli_contract": {
+    "command_template": "godot --path <project> -- --test-mode --scenario <path> --artifacts <dir>"
+  },
+  "steps": [
+    { "op": "load_harness" },
+    { "op": "wait_frames", "frames": 75 },
+    { "op": "checkpoint", "name": "selector_open" },
+    {
+      "op": "assert_value",
+      "checkpoint": "selector_open",
+      "path": "harness_state.create_route_modal_open",
+      "comparator": "eq",
+      "expected": true
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "selector_open",
+      "path": "harness_state.selection_popup_visible",
+      "comparator": "eq",
+      "expected": true
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "selector_open",
+      "path": "harness_state.no_slot_planet_present",
+      "comparator": "eq",
+      "expected": true
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "selector_open",
+      "path": "harness_state.no_slot_planet_selectable",
+      "comparator": "eq",
+      "expected": true
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "selector_open",
+      "path": "harness_state.no_slot_planet_label",
+      "comparator": "contains",
+      "expected": "No slots"
+    },
+    { "op": "wait_frames", "frames": 10 },
+    { "op": "checkpoint", "name": "no_slot_selected" },
+    {
+      "op": "assert_value",
+      "checkpoint": "no_slot_selected",
+      "path": "harness_state.dest_id",
+      "comparator": "eq",
+      "expected": "titan"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "no_slot_selected",
+      "path": "harness_state.distance_text",
+      "comparator": "starts_with",
+      "expected": "Distance:"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "no_slot_selected",
+      "path": "harness_state.range_text",
+      "comparator": "contains",
+      "expected": "Ships in range:"
+    },
+    { "op": "wait_frames", "frames": 10 },
+    { "op": "checkpoint", "name": "create_blocked" },
+    {
+      "op": "assert_value",
+      "checkpoint": "create_blocked",
+      "path": "harness_state.create_button_disabled",
+      "comparator": "eq",
+      "expected": true
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "create_blocked",
+      "path": "harness_state.create_block_reason",
+      "comparator": "contains",
+      "expected": "Need slots at Titan"
+    },
+    { "op": "quit" }
+  ]
+}
