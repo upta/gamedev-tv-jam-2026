@@ -4,6 +4,7 @@ signal volume_changed(bus: String, value: float)
 
 const SETTINGS_PATH := "user://settings.cfg"
 const SFX_POOL_SIZE := 8
+const DEFAULT_VOLUME := 0.5
 const BUS_NAMES := ["Master", "Music", "Sfx"]
 
 const MUSIC_SPACE := preload("res://assets/music/space_ambient.ogg")
@@ -27,7 +28,7 @@ func _ready() -> void:
 	add_child(_music_player)
 
 	for bus_name: String in BUS_NAMES:
-		var saved: float = _config.get_value("audio", bus_name, 1.0)
+		var saved: float = _config.get_value("audio", bus_name, DEFAULT_VOLUME)
 		_bus_values[bus_name] = saved
 		_apply_bus_volume(bus_name, saved)
 
@@ -65,7 +66,7 @@ func is_music_playing() -> bool:
 
 
 func get_volume(bus: String) -> float:
-	return _bus_values.get(bus, 1.0)
+	return _bus_values.get(bus, DEFAULT_VOLUME)
 
 
 func set_volume(bus: String, value: float) -> void:
