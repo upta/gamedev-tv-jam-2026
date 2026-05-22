@@ -418,3 +418,128 @@ See lead-implementation-plan.md (Phase 1), lead-phase2-plan.md (Phase 2), and le
 **Rationale:** OptionButtons and SpinBoxes appear throughout route/ship/slot creation modals. Consistent theming reduces visual fragmentation and reinforces the unified HUD aesthetic.
 
 **Impact:** All OptionButtons, PopupMenus, and SpinBoxes in the game inherit sci-fi theme automatically. No per-instance overrides needed. Headless validation confirmed no script errors; all existing scenarios pass.
+
+---
+
+## D011: Planet Selection Guide Line
+
+**Date:** 2026-05-22  
+**Author:** Lead (Game Architect)  
+**Status:** Implemented
+
+**Summary**
+
+Add a "selection mode" to the star map: click a planet to start drawing a dashed guide line from that planet to the cursor. When hovering a second planet, the line snaps to it and the hover panel shows route distance. Clicking the second planet opens CreateRouteModal with both planets pre-selected. Clicking empty space cancels.
+
+**State Management**
+
+New state in `star_map.gd`:
+- `_guide_origin_id: String` — planet that started guide mode
+- `_guide_mouse_pos: Vector2` — current mouse position (for line endpoint)
+- `_guide_snap_planet_id: String` — planet the cursor is snapping to
+
+`_selected_planet_id` is repurposed as the guide origin. First click enters guide mode, second click completes it and emits `route_requested`.
+
+**Guide Line Rendering**
+
+Approach: `_draw()` override (extend existing)
+- StarMap already has a `_draw()` method for the star field. Add the guide line drawing at the end.
+- Why `_draw()` over Line2D: The line is ephemeral (follows cursor, no children to manage). Dashed lines are trivial with `draw_dashed_line()` (Godot 4.x built-in).
+
+Drawing logic:
+```gdscript
+if _guide_origin_id != "":
+    var from: Vector2 = _planet_positions.get(_guide_origin_id, Vector2.ZERO)
+    var to: Vector2
+    if _guide_snap_planet_id != "":
+        to = _planet_positions.get(_guide_snap_planet_id, _guide_mouse_pos)
+    else:
+        to = _guide_mouse_pos
+    var guide_color := Color(1.0, 1.0, 1.0, 0.6)
+    draw_dashed_line(from, to, guide_color, 2.0, 6.0)
+```
+
+Cursor-following: In `_gui_input()` for `InputEventMouseMotion`, update `_guide_mouse_pos = motion.position` and call `queue_redraw()` when guide is active.
+
+Snap behavior: In `_update_hover()`, when guide is active:
+- If `_hovered_planet_id != ""` and `_hovered_planet_id != _guide_origin_id`: set `_guide_snap_planet_id = _hovered_planet_id`
+- Otherwise: set `_guide_snap_planet_id = ""`
+
+**Hover Panel Enhancement**
+
+When **all three conditions are true:**
+1. Guide mode is active (`_guide_origin_id != ""`)
+2. Hovering a planet (`_hovered_planet_id != ""`)
+3. Hovered planet is not the origin (`_hovered_planet_id != _guide_origin_id`)
+
+…append a new section to the hover panel below the Demand row:
+
+```
+─────────────────
+Distance   8.2 ly
+```
+
+Use `GalaxyData.calculate_distance()` which already exists and returns Euclidean distance.
+
+**Route Screen Handoff**
+
+New method on CreateRouteModal:
+```gdscript
+func open_with_planets(origin_id: String, dest_id: String) -> void:
+    _edit_mode = false
+    _editing_route = null
+    _reset_form()
+    _origin_id = origin_id
+    _dest_id = dest_id
+    set_title("New Route")
+    super.open()
+    _rebuild_form()
+```
+
+New signal on StarMap:
+```gdscript
+signal route_requested(origin_id: String, dest_id: String)
+```
+
+In GameScene `_connect_signals()`:
+```gdscript
+_star_map.route_requested.connect(_on_star_map_route_requested)
+```
+
+New handler in GameScene:
+```gdscript
+func _on_star_map_route_requested(origin_id: String, dest_id: String) -> void:
+    if not _active_modal.is_empty():
+        _modals[_active_modal].close()
+        _active_modal = ""
+        _top_bar.set_active_toolbar("")
+    _create_route_modal.open_with_planets(origin_id, dest_id)
+```
+
+**Edge Cases**
+
+- **Same planet twice:** First click enters guide mode. Second click on the same planet: cancel guide mode (same as clicking empty space). Do NOT open the route modal with identical origin/dest.
+- **Hovering the origin planet:** Show the normal hover panel (name, system, slots, routes, demand). No distance row. Guide line is not snapped.
+- **Window resize during guide mode:** Cancel guide mode. `_on_resized()` calls `_build_map()` which rebuilds planet positions; guide mode state would be stale.
+- **Modal open during guide mode:** Cancel guide mode. The dim overlay would obscure the star map anyway.
+- **Turn advance during guide mode:** Guide mode can safely persist through a turn advance — the origin planet position hasn't changed. No special handling needed.
+- **CreateRouteModal close:** When the user closes CreateRouteModal without creating a route, guide mode is already inactive (it was cancelled when the modal opened).
+
+**File Changes**
+
+| File | Change |
+|------|--------|
+| `src/game/ui/star_map/star_map.gd` | Add guide mode state vars, `route_requested` signal, update `_on_planet_clicked()` for two-phase selection, extend `_gui_input()` for cursor tracking, extend `_draw()` for dashed line, extend `_on_planet_hovered()` for distance row, add `cancel_guide_mode()` public method |
+| `src/game/ui/modals/create_route_modal.gd` | Add `open_with_planets(origin_id, dest_id)` method |
+| `src/game/main.gd` | Connect `route_requested` signal, add `_on_star_map_route_requested()` handler, call `cancel_guide_mode()` on toolbar press |
+
+**Rationale**
+
+Repurposes dead `_selected_planet_id` click behavior (nothing consumed the old `planet_selected` signal). Two-phase click enables users to see route distance before committing to CreateRouteModal, reducing trial-and-error in route planning. Dashed line rendering uses Godot's built-in `draw_dashed_line()` — no shader or custom drawing. Snap behavior is visual only (line endpoint moves to planet center). Implementation is minimal — three files, no new scenes or classes.
+
+**Impact**
+
+- New route creation UX: guide mode provides spatial awareness of distance before modal opens
+- Maintains signal-driven architecture (D001, D002)
+- No breaking changes to GameState, carrier model, or existing signals
+- Validation scenarios cover guide activation, snapping, cancellation paths, and edge cases

@@ -178,3 +178,21 @@ All 5 fixes implemented and deployed:
 - `src/game/main.gd` — `route_requested` signal wiring
 
 **Design document:** `.squad/decisions/inbox/lead-planet-selection-design.md`
+
+### Planet Selection Guide Line Implemented (2026-05-22)
+
+**By:** Lead (design), Builder (implementation), Validator (scenarios)
+
+**Decision D011 approved and merged to decisions.md**
+
+Implementation delivered:
+1. Lead completed architecture specification (D011)
+2. Builder implemented guide mode state, dashed line rendering, hover distance display, signal flow (3 files)
+3. Validator created 2 scenarios covering guide mode, snapping, and cancellation (6 assets)
+4. 308/310 GUT tests pass (2 pre-existing)
+5. Full validation suite: 56 scenarios, 0 failures
+6. All code committed and pushed
+
+**Outcome:** Two-phase planet selection now enables users to see route distance before committing to route creation modal. Repurposes dead `planet_selected` signal behavior. Minimal implementation footprint.
+
+**Reference:** D011 in `.squad/decisions.md`

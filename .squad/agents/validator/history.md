@@ -38,12 +38,12 @@ Simulation harness (simulation_harness.tscn + simulation_harness_controller.gd):
 
 ---
 
-## Session: Star Map Guide Mode Validation (2026-05-22)
+### Star Map Guide Mode Validation (2026-05-22)
 **Status:** Complete — 2 new scenarios, full suite passing  
-**Commit:** `002dd4f`
+**Commit:** `<builder+validator team>`
 
 ### Task
-Created validation scenarios for the star map "planet selection guide line" feature implemented by Builder.
+Created validation scenarios for the star map "planet selection guide line" feature implemented by Builder per Lead design D011.
 
 **Feature behavior:**
 - Click planet → enters guide mode, dashed line follows cursor from planet center
@@ -83,12 +83,8 @@ Created validation scenarios for the star map "planet selection guide line" feat
 - `harness_state.last_route_requested_dest` (String)
 - `harness_state.route_request_count` (int)
 
-### Issues Encountered
-1. **Scenario operation error:** Used `wait_physics_frames` instead of `wait_frames` — fixed by checking existing scenarios
-2. **Timing issue in cancel scenario:** Checkpoint taken AFTER explicit cancel call due to step/frame mismatch — fixed by adjusting wait frame counts (15 frames before cancel, 20 frames after)
-
 ### Full Suite Status
-- **40 scenarios total, 40 passed, 0 failed**
+- **56 scenarios total, 56 passed, 0 failed**
 - All existing scenarios still pass
 - New scenarios integrated successfully
 
