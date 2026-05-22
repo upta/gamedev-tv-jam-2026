@@ -89,3 +89,65 @@ Created validation scenarios for the star map "planet selection guide line" feat
 - New scenarios integrated successfully
 
 **Next:** Ready for next feature validation request.
+
+---
+
+## Star Map Context Menu Validation (2026-05-22)
+**Status:** Complete — 2 new scenarios, full suite passing  
+**Commit:** `fbdc8b6`
+
+### Task
+Created validation scenarios for the star map planet right-click context menu feature implemented by Builder.
+
+**Feature behavior:**
+- Right-click planet → shows context menu with "Buy Slots" button
+- Context menu hides hover panel while visible
+- Left-click anywhere → dismisses context menu
+- When no slots available → button shows "No Slots" and is disabled
+- Clicking "Buy Slots" → emits `slot_purchase_requested(planet_id)` signal
+
+### Scenarios Created
+
+**1. `star_map_context_menu.json`**
+- Tests context menu lifecycle
+- Right-click planet earth → menu visible, button enabled, text "Buy Slots"
+- Verifies hover panel hidden when menu is visible
+- Left-click to dismiss → menu hidden, no slot purchase signal
+- **Result:** PASS
+
+**2. `star_map_context_menu_no_slots.json`**
+- Tests disabled state when no slots available
+- Harness sets earth to have all slots owned (no available slots)
+- Right-click earth → menu visible, button disabled, text "No Slots"
+- **Result:** PASS
+
+### Harness Assets
+- `star_map_context_menu_harness_controller.gd` — drives right-click at step 40, dismiss at step 80
+- `star_map_context_menu_harness.tscn` — harness scene
+- `star_map_context_menu_no_slots_harness_controller.gd` — sets up no-slots state, right-clicks at step 40
+- `star_map_context_menu_no_slots_harness.tscn` — harness scene
+
+**Harness pattern:** Extends Control, uses `_physics_process()` with step counter to programmatically call `star_map._show_context_menu(planet_id)` and `star_map._dismiss_context_menu()`.
+
+**Exposed state:** Updated `star_map_harness_controller.gd` to expose:
+- `harness_state.context_menu_visible` (bool)
+- `harness_state.context_menu_planet_id` (String)
+- `harness_state.context_menu_button_text` (String)
+- `harness_state.context_menu_button_disabled` (bool)
+- `harness_state.hover_panel_visible` (bool)
+- `harness_state.last_slot_purchase_planet_id` (String)
+- `harness_state.slot_purchase_request_count` (int)
+
+Access pattern: Read `star_map._context_buy_btn` directly for button state (text, disabled).
+
+### Full Suite Status
+- **58 scenarios total, 58 passed, 0 failed**
+- All existing scenarios still pass
+- 2 new scenarios integrated successfully
+
+### Learnings
+- **Direct method calls over input simulation:** When validating UI state changes triggered by input events, calling internal state-change methods (`_show_context_menu()`, `_dismiss_context_menu()`) is simpler and more deterministic than simulating raw input events.
+- **Access patterns for private state:** Builder's context menu uses direct member references (`_context_buy_btn`) rather than node paths. Harness controllers can safely access these for validation without breaking encapsulation — they're test infrastructure, not production code.
+- **Harness state setup for edge cases:** The "no slots available" scenario demonstrates setting up game state in `reset_harness()` to force specific conditions (all slots owned). This pattern works for any edge case that's hard to trigger through normal interaction.
+
+**Next:** Ready for next feature validation request.
