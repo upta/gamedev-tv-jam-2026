@@ -66,7 +66,6 @@ func _bind_all() -> void:
 	_star_map.bind(_session.game_state)
 	_scoreboard.bind(_session.game_state, _carrier_id)
 	_pending_actions.bind(_player_controller, _session.game_state, _carrier_id)
-	_pending_actions.set_scoreboard(_scoreboard)
 	_dashboard_modal.bind(_session.game_state, _carrier_id)
 	_ships_modal.bind(_player_controller, _session.game_state)
 	_slots_modal.bind(_player_controller, _session.game_state)

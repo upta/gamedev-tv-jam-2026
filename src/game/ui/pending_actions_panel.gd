@@ -5,13 +5,12 @@ var _game_state: GameState
 var _carrier_id: String
 var _player_controller: PlayerController
 var _content: VBoxContainer
-var _scoreboard: Control  # sibling to position below
 
 
 func _ready() -> void:
 	_apply_style()
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	size = Vector2.ZERO  # let content determine size
+	size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 
 	var margin := MarginContainer.new()
 	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -42,19 +41,6 @@ func bind(player_controller: PlayerController, game_state: GameState, carrier_id
 	_game_state = game_state
 	_carrier_id = carrier_id
 	refresh()
-
-
-func set_scoreboard(scoreboard: Control) -> void:
-	_scoreboard = scoreboard
-	_scoreboard.resized.connect(_reposition)
-	_reposition()
-
-
-func _reposition() -> void:
-	if _scoreboard:
-		position.x = _scoreboard.position.x
-		position.y = _scoreboard.position.y + _scoreboard.size.y + 8
-		custom_minimum_size.x = _scoreboard.size.x
 
 
 func refresh() -> void:
@@ -140,8 +126,6 @@ func refresh() -> void:
 		_add_section("SLOTS", slot_items)
 	else:
 		_add_section_empty("SLOTS")
-
-	_reposition()
 
 
 func _add_spacer() -> void:
