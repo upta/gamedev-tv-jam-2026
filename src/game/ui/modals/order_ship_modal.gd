@@ -2,7 +2,7 @@ class_name OrderShipModal
 extends ModalDialog
 
 ## Modal for ordering a new ship.
-## Opened from ShipsModal via "Order Ship" button.
+## Two-step flow: Step 0 = browse ship cards, Step 1 = customize selected ship.
 
 signal ship_ordered
 
@@ -10,14 +10,16 @@ var _player_controller: PlayerController
 var _game_state: GameState
 var _content: VBoxContainer
 
-# Form controls
-var _type_option: OptionButton
+# Step tracking
+var _current_step: int = 0  # 0 = selection, 1 = customization
+var _selected_type: ShipCatalog.ShipType = null
+
+# Customization controls (step 1)
 var _pax_spin: SpinBox
 var _cargo_spin: SpinBox
 var _qty_spin: SpinBox
-var _stats_label: RichTextLabel
+var _cost_label: Label
 var _order_button: Button
-var _cancel_button: Button
 
 var _available_types: Array = []
 var _updating_spinboxes: bool = false
@@ -40,46 +42,155 @@ func bind(player_controller: PlayerController, game_state: GameState) -> void:
 
 func open() -> void:
 	super.open()
-	_rebuild_form()
+	_current_step = 0
+	_selected_type = null
+	_available_types = _game_state.catalog.get_available_types(_game_state.current_turn) if _game_state else []
+	_build_selection_step()
 
 
-func _rebuild_form() -> void:
-	if not _game_state or not _player_controller:
+# ---------------------------------------------------------------------------
+# Step 0: Ship Selection (card browser)
+# ---------------------------------------------------------------------------
+
+func _build_selection_step() -> void:
+	_clear_content()
+	set_title("Order Ship")
+
+	if _available_types.is_empty():
+		var empty := Label.new()
+		empty.text = "No ships available this turn."
+		_content.add_child(empty)
 		return
 
-	for child in _content.get_children():
-		child.queue_free()
+	for st: ShipCatalog.ShipType in _available_types:
+		_content.add_child(_make_ship_card(st))
 
+
+func _make_ship_card(st: ShipCatalog.ShipType) -> PanelContainer:
+	var card := PanelContainer.new()
+	var card_style := StyleBoxFlat.new()
+	card_style.bg_color = ThemeBuilder.MODAL_SURFACE.lightened(0.06)
+	card_style.border_color = ThemeBuilder.BORDER
+	card_style.set_border_width_all(1)
+	card_style.set_corner_radius_all(8)
+	card_style.set_content_margin_all(12)
+	card.add_theme_stylebox_override("panel", card_style)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 4)
+	card.add_child(vbox)
+
+	# Row 1: Name + Price
+	var row1 := HBoxContainer.new()
+	var name_label := Label.new()
+	var font_bold = load("res://assets/fonts/SpaceGrotesk-Bold.ttf") as Font
+	if font_bold:
+		name_label.add_theme_font_override("font", font_bold)
+	name_label.add_theme_font_size_override("font_size", 15)
+	name_label.text = st.name
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row1.add_child(name_label)
+
+	var price_label := Label.new()
+	price_label.text = "§%d" % st.cost
+	price_label.add_theme_color_override("font_color", ThemeBuilder.ACCENT)
+	if font_bold:
+		price_label.add_theme_font_override("font", font_bold)
+	row1.add_child(price_label)
+	vbox.add_child(row1)
+
+	# Row 2: Capacity + Fuel rating
+	var row2 := HBoxContainer.new()
+	var cap_rtl := ThemeBuilder.make_icon_label()
+	cap_rtl.text = "%s Capacity: %d" % [ThemeBuilder.pax_bb(), st.max_capacity]
+	cap_rtl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row2.add_child(cap_rtl)
+
+	var fuel_rtl := ThemeBuilder.make_icon_label()
+	fuel_rtl.text = "%s %s" % [ThemeBuilder.fuel_bb(), st.get_efficiency_rating()]
+	row2.add_child(fuel_rtl)
+	vbox.add_child(row2)
+
+	# Row 3: Range + Build time + Select button
+	var row3 := HBoxContainer.new()
+	var range_label := Label.new()
+	range_label.text = "Range: %.1f ly" % st.range
+	range_label.add_theme_color_override("font_color", ThemeBuilder.MUTED)
+	range_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row3.add_child(range_label)
+
+	var build_label := Label.new()
+	build_label.text = "Build: %d turn%s" % [st.build_turns, "s" if st.build_turns != 1 else ""]
+	build_label.add_theme_color_override("font_color", ThemeBuilder.MUTED)
+	row3.add_child(build_label)
+	vbox.add_child(row3)
+
+	# Row 4: Select button (right-aligned)
+	var btn_row := HBoxContainer.new()
+	btn_row.alignment = BoxContainer.ALIGNMENT_END
+	var select_btn := Button.new()
+	select_btn.text = "Select"
+	var btn_style := StyleBoxFlat.new()
+	btn_style.bg_color = ThemeBuilder.ACCENT.darkened(0.6)
+	btn_style.border_color = ThemeBuilder.ACCENT
+	btn_style.set_border_width_all(1)
+	btn_style.set_corner_radius_all(4)
+	btn_style.set_content_margin_all(4)
+	btn_style.content_margin_left = 16
+	btn_style.content_margin_right = 16
+	select_btn.add_theme_stylebox_override("normal", btn_style)
+	select_btn.add_theme_color_override("font_color", ThemeBuilder.ACCENT)
+	var btn_hover := btn_style.duplicate()
+	btn_hover.bg_color = ThemeBuilder.ACCENT.darkened(0.4)
+	select_btn.add_theme_stylebox_override("hover", btn_hover)
+	select_btn.pressed.connect(_on_card_selected.bind(st))
+	btn_row.add_child(select_btn)
+	vbox.add_child(btn_row)
+
+	return card
+
+
+func _on_card_selected(st: ShipCatalog.ShipType) -> void:
+	_selected_type = st
+	_current_step = 1
+	_build_customization_step()
+
+
+# ---------------------------------------------------------------------------
+# Step 1: Customization (after selecting a ship type)
+# ---------------------------------------------------------------------------
+
+func _build_customization_step() -> void:
+	_clear_content()
+	if _selected_type == null:
+		return
+
+	set_title("Configure — %s" % _selected_type.name)
+	var st := _selected_type
 	var carrier := _game_state.get_player_carrier()
 
-	# Ship type dropdown
-	var type_label := Label.new()
-	type_label.text = "Ship Type:"
-	_content.add_child(type_label)
+	# Ship header summary
+	var header_rtl := ThemeBuilder.make_icon_label()
+	header_rtl.text = "[b]%s[/b]  §%d  |  %s Cap: %d  |  %s %s  |  Range: %.1f ly  |  Build: %d turn%s" % [
+		st.name, st.cost,
+		ThemeBuilder.pax_bb(), st.max_capacity,
+		ThemeBuilder.fuel_bb(), st.get_efficiency_rating(),
+		st.range, st.build_turns,
+		"s" if st.build_turns != 1 else "",
+	]
+	_content.add_child(header_rtl)
 
-	_type_option = OptionButton.new()
-	_available_types = _game_state.catalog.get_available_types(_game_state.current_turn)
-	for idx in range(_available_types.size()):
-		var st: ShipCatalog.ShipType = _available_types[idx]
-		_type_option.add_item(st.name, idx)
-	_type_option.item_selected.connect(_on_type_selected)
-	_content.add_child(_type_option)
+	_content.add_child(HSeparator.new())
 
-	# Stats display
-	_stats_label = ThemeBuilder.make_icon_label()
-	_stats_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_content.add_child(_stats_label)
+	# Capacity split
+	var cap_header := ThemeBuilder.make_section_header("Capacity Split")
+	_content.add_child(cap_header)
 
-	# Capacity spinboxes
-	var max_cap := 0
-	if _available_types.size() > 0:
-		max_cap = _available_types[0].max_capacity
-
-	var pax_row := _create_label_spinbox("Passengers:", 0, max_cap, 1, max_cap / 2, ThemeBuilder.ICON_PAX)
+	var pax_row := _create_label_spinbox("Passengers:", 0, st.max_capacity, 1, st.max_capacity / 2, ThemeBuilder.ICON_PAX)
 	_pax_spin = pax_row.get_child(pax_row.get_child_count() - 1) as SpinBox
 	_content.add_child(pax_row)
 
-	var cargo_row := _create_label_spinbox("Cargo:", 0, max_cap, 1, max_cap - max_cap / 2, ThemeBuilder.ICON_CARGO)
+	var cargo_row := _create_label_spinbox("Cargo:", 0, st.max_capacity, 1, st.max_capacity - st.max_capacity / 2, ThemeBuilder.ICON_CARGO)
 	_cargo_spin = cargo_row.get_child(cargo_row.get_child_count() - 1) as SpinBox
 	_content.add_child(cargo_row)
 
@@ -96,29 +207,51 @@ func _rebuild_form() -> void:
 
 	_content.add_child(HSeparator.new())
 
+	# Total cost
+	_cost_label = Label.new()
+	_cost_label.add_theme_color_override("font_color", ThemeBuilder.TEXT)
+	var font_bold = load("res://assets/fonts/SpaceGrotesk-Bold.ttf") as Font
+	if font_bold:
+		_cost_label.add_theme_font_override("font", font_bold)
+	_content.add_child(_cost_label)
+
 	# Button row
 	var btn_row := HBoxContainer.new()
 	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	btn_row.add_theme_constant_override("separation", 12)
 
-	_cancel_button = Button.new()
-	_cancel_button.text = "Cancel"
-	_cancel_button.pressed.connect(close)
-	btn_row.add_child(_cancel_button)
+	var back_button := Button.new()
+	back_button.text = "Back"
+	back_button.pressed.connect(_on_back_pressed)
+	btn_row.add_child(back_button)
 
 	_order_button = Button.new()
-	_order_button.text = "Order Ship"
+	_order_button.text = "Order"
+	var order_style := StyleBoxFlat.new()
+	order_style.bg_color = ThemeBuilder.ACCENT.darkened(0.6)
+	order_style.border_color = ThemeBuilder.ACCENT
+	order_style.set_border_width_all(2)
+	order_style.set_corner_radius_all(4)
+	order_style.set_content_margin_all(6)
+	order_style.content_margin_left = 20
+	order_style.content_margin_right = 20
+	_order_button.add_theme_stylebox_override("normal", order_style)
+	_order_button.add_theme_color_override("font_color", ThemeBuilder.ACCENT)
+	var order_hover := order_style.duplicate()
+	order_hover.bg_color = ThemeBuilder.ACCENT.darkened(0.4)
+	_order_button.add_theme_stylebox_override("hover", order_hover)
 	_order_button.pressed.connect(_on_order_pressed)
 	btn_row.add_child(_order_button)
 
 	_content.add_child(btn_row)
 
-	_update_stats_and_button(carrier)
+	_update_cost_and_button(carrier)
 
 
 func _create_label_spinbox(label_text: String, min_val: float, max_val: float, step: float, default_val: float, icon_path: String = "") -> HBoxContainer:
 	var row := HBoxContainer.new()
 	if not icon_path.is_empty():
-		var icon_tex := load(icon_path) as Texture2D
+		var icon_tex := ThemeBuilder.load_icon_texture(icon_path, 16)
 		if icon_tex:
 			var icon_rect := TextureRect.new()
 			icon_rect.texture = icon_tex
@@ -139,25 +272,24 @@ func _create_label_spinbox(label_text: String, min_val: float, max_val: float, s
 	return row
 
 
-func _get_selected_type() -> ShipCatalog.ShipType:
-	if _available_types.is_empty() or _type_option == null:
-		return null
-	var idx := _type_option.selected
-	if idx < 0 or idx >= _available_types.size():
-		return null
-	return _available_types[idx]
-
-
-func _update_stats_and_button(carrier: CarrierData) -> void:
-	var st := _get_selected_type()
-	if st == null:
-		_stats_label.text = "No ships available."
-		_order_button.disabled = true
+func _update_cost_and_button(carrier: CarrierData) -> void:
+	if _selected_type == null:
 		return
 	var qty := int(_qty_spin.value) if _qty_spin else 1
-	var total_cost := st.cost * qty
-	_stats_label.text = "Cost: §%d x %d = §%d | Cap: %d | Range: %.1f ly | %s %s | Build: %d turns" % [st.cost, qty, total_cost, st.max_capacity, st.range, ThemeBuilder.fuel_bb(), st.get_efficiency_rating(), st.build_turns]
+	var total_cost := _selected_type.cost * qty
+	_cost_label.text = "Total: §%d × %d = §%d" % [_selected_type.cost, qty, total_cost]
 	_order_button.disabled = carrier.cash < total_cost
+
+
+func _on_back_pressed() -> void:
+	_current_step = 0
+	_selected_type = null
+	_build_selection_step()
+
+
+func _clear_content() -> void:
+	for child in _content.get_children():
+		child.queue_free()
 
 
 # ---------------------------------------------------------------------------
@@ -165,10 +297,9 @@ func _update_stats_and_button(carrier: CarrierData) -> void:
 # ---------------------------------------------------------------------------
 
 func get_form_state() -> Dictionary:
-	var st := _get_selected_type()
 	return {
-		"type_id": st.id if st else "",
-		"type_name": st.name if st else "",
+		"type_id": _selected_type.id if _selected_type else "",
+		"type_name": _selected_type.name if _selected_type else "",
 		"passenger_capacity": int(_pax_spin.value) if _pax_spin else 0,
 		"cargo_capacity": int(_cargo_spin.value) if _cargo_spin else 0,
 		"quantity": int(_qty_spin.value) if _qty_spin else 1,
@@ -177,9 +308,10 @@ func get_form_state() -> Dictionary:
 
 
 func select_type(index: int) -> void:
-	if _type_option and index >= 0 and index < _available_types.size():
-		_type_option.select(index)
-		_on_type_selected(index)
+	if index >= 0 and index < _available_types.size():
+		_selected_type = _available_types[index]
+		_current_step = 1
+		_build_customization_step()
 
 
 func set_passenger_capacity(value: int) -> void:
@@ -195,52 +327,32 @@ func confirm_order() -> void:
 # Callbacks
 # ---------------------------------------------------------------------------
 
-func _on_type_selected(_index: int) -> void:
-	var st := _get_selected_type()
-	if st == null:
-		return
-	_updating_spinboxes = true
-	_pax_spin.max_value = st.max_capacity
-	_cargo_spin.max_value = st.max_capacity
-	_pax_spin.value = st.max_capacity / 2
-	_cargo_spin.value = st.max_capacity - st.max_capacity / 2
-	_updating_spinboxes = false
-	_update_stats_and_button(_game_state.get_player_carrier())
-
-
 func _on_pax_changed(value: float) -> void:
-	if _updating_spinboxes:
-		return
-	var st := _get_selected_type()
-	if st == null:
+	if _updating_spinboxes or _selected_type == null:
 		return
 	_updating_spinboxes = true
-	_cargo_spin.value = st.max_capacity - int(value)
+	_cargo_spin.value = _selected_type.max_capacity - int(value)
 	_updating_spinboxes = false
 
 
 func _on_cargo_changed(value: float) -> void:
-	if _updating_spinboxes:
-		return
-	var st := _get_selected_type()
-	if st == null:
+	if _updating_spinboxes or _selected_type == null:
 		return
 	_updating_spinboxes = true
-	_pax_spin.value = st.max_capacity - int(value)
+	_pax_spin.value = _selected_type.max_capacity - int(value)
 	_updating_spinboxes = false
 
 
 func _on_qty_changed(_value: float) -> void:
 	if _game_state:
-		_update_stats_and_button(_game_state.get_player_carrier())
+		_update_cost_and_button(_game_state.get_player_carrier())
 
 
 func _on_order_pressed() -> void:
-	var st := _get_selected_type()
-	if st == null:
+	if _selected_type == null:
 		return
 	var qty := int(_qty_spin.value) if _qty_spin else 1
 	for i in range(qty):
-		_player_controller.add_ship_order(st.id, int(_pax_spin.value), int(_cargo_spin.value))
+		_player_controller.add_ship_order(_selected_type.id, int(_pax_spin.value), int(_cargo_spin.value))
 	ship_ordered.emit()
 	close()
