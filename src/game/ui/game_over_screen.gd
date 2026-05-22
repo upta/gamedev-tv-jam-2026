@@ -6,6 +6,8 @@ signal play_again_requested()
 const GOLD_COLOR := Color(1, 0.85, 0)
 const PLAYER_HIGHLIGHT_COLOR := Color(0.24, 0.92, 0.67) # matches ThemeBuilder.ACCENT
 const HEADER_LABELS: Array[String] = ["Rank", "Name", "Score", "Cash", "Ship Value", "Slot Value", "Route Value"]
+const COLUMN_WIDTHS: Array[int] = [40, 140, 80, 80, 80, 80, 90]
+const RIGHT_ALIGNED_COLUMNS: Array[int] = [2, 3, 4, 5, 6]
 
 @onready var _turn_label: Label = $CenterContainer/VBoxContainer/TurnLabel
 @onready var _winner_label: Label = $CenterContainer/VBoxContainer/WinnerLabel
@@ -23,18 +25,33 @@ func _apply_style() -> void:
 	color = Color(0.04, 0.055, 0.055, 0.85)
 	var font_heading = load("res://assets/fonts/SpaceGrotesk-Bold.ttf") as Font
 
-	# Style "GAME OVER" label
 	var game_over_label: Label = $CenterContainer/VBoxContainer/GameOverLabel
 	if font_heading:
 		game_over_label.add_theme_font_override("font", font_heading)
 	game_over_label.add_theme_color_override("font_color", ThemeBuilder.ACCENT)
 
-	# Style turn label
 	_turn_label.add_theme_color_override("font_color", ThemeBuilder.MUTED)
 
-	# Style winner label
 	if font_heading:
 		_winner_label.add_theme_font_override("font", font_heading)
+
+	_rankings_grid.add_theme_constant_override("h_separation", 12)
+	_rankings_grid.add_theme_constant_override("v_separation", 4)
+
+	var btn_style := StyleBoxFlat.new()
+	btn_style.bg_color = ThemeBuilder.ACCENT.darkened(0.6)
+	btn_style.border_color = ThemeBuilder.ACCENT
+	btn_style.set_border_width_all(2)
+	btn_style.set_corner_radius_all(4)
+	btn_style.content_margin_left = 24
+	btn_style.content_margin_right = 24
+	btn_style.content_margin_top = 10
+	btn_style.content_margin_bottom = 10
+	_play_again_button.add_theme_stylebox_override("normal", btn_style)
+	_play_again_button.add_theme_color_override("font_color", ThemeBuilder.ACCENT)
+	var btn_hover := btn_style.duplicate()
+	btn_hover.bg_color = ThemeBuilder.ACCENT.darkened(0.4)
+	_play_again_button.add_theme_stylebox_override("hover", btn_hover)
 
 
 func show_results(rankings: Array, turns_played: int, player_carrier_id: String) -> void:
@@ -45,15 +62,13 @@ func show_results(rankings: Array, turns_played: int, player_carrier_id: String)
 		var player_won: bool = (winner["carrier_id"] == player_carrier_id)
 		_winner_label.add_theme_color_override("font_color", GOLD_COLOR)
 		if player_won:
-			_winner_label.text = "%s wins with score %d!" % [winner["carrier_name"], int(winner["score"])]
+			_winner_label.text = "You win!"
 		else:
-			var player_rank := _find_player_rank(rankings, player_carrier_id)
-			_winner_label.text = "%s wins with score %d! (You placed #%d)" % [
-				winner["carrier_name"], int(winner["score"]), player_rank
-			]
+			_winner_label.text = "%s wins!" % [winner["carrier_name"]]
 
 	_clear_grid()
 	_add_header_row()
+	_add_spacer_row()
 	for entry: Dictionary in rankings:
 		_add_ranking_row(entry, entry["carrier_id"] == player_carrier_id)
 
@@ -80,29 +95,49 @@ func _clear_grid() -> void:
 
 
 func _add_header_row() -> void:
-	for header_text: String in HEADER_LABELS:
+	for i: int in HEADER_LABELS.size():
 		var label := Label.new()
-		label.text = header_text
-		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.text = HEADER_LABELS[i]
+		label.custom_minimum_size.x = COLUMN_WIDTHS[i]
+		if i in RIGHT_ALIGNED_COLUMNS:
+			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		elif i == 1:
+			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		else:
+			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		label.add_theme_color_override("font_color", ThemeBuilder.MUTED)
+		label.add_theme_font_size_override("font_size", 12)
 		_rankings_grid.add_child(label)
+
+
+func _add_spacer_row() -> void:
+	for i: int in HEADER_LABELS.size():
+		var spacer := Control.new()
+		spacer.custom_minimum_size.y = 4
+		_rankings_grid.add_child(spacer)
 
 
 func _add_ranking_row(entry: Dictionary, is_player: bool) -> void:
 	var values: Array[String] = [
 		str(entry["rank"]),
 		entry["carrier_name"],
-		str(int(entry["score"])),
-		str(int(entry["cash_score"])),
-		str(int(entry["ship_score"])),
-		str(int(entry["slot_score"])),
-		str(int(entry["route_score"])),
+		FormatHelpers.format_cash(entry["score"]),
+		FormatHelpers.format_cash(entry["cash_score"]),
+		FormatHelpers.format_cash(entry["ship_score"]),
+		FormatHelpers.format_cash(entry["slot_score"]),
+		FormatHelpers.format_cash(entry["route_score"]),
 	]
 
-	for value: String in values:
+	for i: int in values.size():
 		var label := Label.new()
-		label.text = value
-		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.text = values[i]
+		label.custom_minimum_size.x = COLUMN_WIDTHS[i]
+		if i in RIGHT_ALIGNED_COLUMNS:
+			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		elif i == 1:
+			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		else:
+			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		if is_player:
 			label.add_theme_color_override("font_color", PLAYER_HIGHLIGHT_COLOR)
 		_rankings_grid.add_child(label)

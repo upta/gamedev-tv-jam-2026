@@ -35,9 +35,7 @@ func _refresh_header() -> void:
 	var carrier := _game_state.get_carrier(_carrier_id)
 	if carrier == null:
 		return
-	var score_data := ScoreCalculator.calculate_score(carrier, _game_state.catalog, _game_state.galaxy)
-	var score: int = int(score_data["total"])
-	_header.text = "%s | §%d | Score: %d" % [carrier.carrier_name, int(carrier.cash), score]
+	_header.text = "%s | %s" % [carrier.carrier_name, FormatHelpers.format_cash(carrier.cash)]
 
 
 func _refresh_fleet() -> void:

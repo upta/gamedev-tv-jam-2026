@@ -15,7 +15,6 @@ const TOOLBAR_BUTTONS: Array[Array] = [
 
 @onready var _turn_label: Label = %TurnLabel
 @onready var _cash_label: Label = %CashLabel
-@onready var _score_label: Label = %ScoreLabel
 @onready var _next_turn_button: Button = %NextTurnButton
 @onready var _toolbar_container: HBoxContainer = %ToolbarContainer
 
@@ -65,9 +64,6 @@ func refresh() -> void:
 		return
 
 	_cash_label.text = _format_cash(carrier.cash)
-
-	var score_data: Dictionary = ScoreCalculator.calculate_score(carrier, _game_state.catalog, _game_state.galaxy)
-	_score_label.text = "Score: %d" % int(score_data["total"])
 
 
 func set_turn_in_progress(in_progress: bool) -> void:
@@ -135,10 +131,9 @@ func _apply_top_bar_style() -> void:
 	bar_style.border_width_bottom = 2
 	add_theme_stylebox_override("panel", bar_style)
 
-	# Stat label colors: turn is muted, cash/score/rank are bright
+	# Stat label colors: turn is muted, cash is bright
 	_turn_label.add_theme_color_override("font_color", ThemeBuilder.MUTED)
 	_cash_label.add_theme_color_override("font_color", ThemeBuilder.ACCENT)
-	_score_label.add_theme_color_override("font_color", ThemeBuilder.TEXT)
 
 	# Next Turn button accent styling
 	var btn_style := StyleBoxFlat.new()

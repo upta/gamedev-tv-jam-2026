@@ -162,7 +162,12 @@ func _show_turn_notifications(result: TurnPipeline.TurnResult) -> void:
 		_toast_manager.show_toast(desc, "warning")
 
 	for carrier_id: String in result.bankruptcies:
-		_toast_manager.show_toast("%s went bankrupt!" % carrier_id, "danger")
+		var carrier_name: String = carrier_id
+		for carrier: CarrierData in _session.game_state.carriers:
+			if carrier.id == carrier_id:
+				carrier_name = carrier.carrier_name
+				break
+		_toast_manager.show_toast("%s went bankrupt!" % carrier_name, "danger")
 
 
 func _on_toolbar_pressed(modal_name: String) -> void:

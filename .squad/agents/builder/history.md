@@ -2,6 +2,25 @@
 
 ## Recent Sessions
 
+### Session: Scoreboard UI Cleanup + Scoring Fixes + Bankruptcy (2025-07-27)
+
+**Deliverables:**
+1. **Game over screen cleanup:** Simplified winner text ("You win!" / "X wins!"), added column widths/right-alignment for numeric columns, § formatting on all values, muted header row, spacer between header and data, player row highlighting, larger Play Again button with styled padding, VBox spacing.
+2. **Removed score from top bar:** Deleted `ScoreLabel` node + `VSeparator2` from `top_bar.tscn`, removed `_score_label` onready + score calculation + color styling from `top_bar.gd`.
+3. **Removed score from dashboard:** Dashboard header now shows `Name | §cash` instead of `Name | §cash | Score: N`. Uses `FormatHelpers.format_cash()`.
+4. **Standings panel shows rank:** Replaced raw score number with `#N Name` format. Removed score label column entirely.
+5. **FormatHelpers utility:** Extracted cash formatting to `FormatHelpers.format_cash()` static class for reuse across UI scripts.
+6. **Bankruptcy elimination:** Bankrupt carriers now have routes disabled and pending orders cleared. NPC controller already returns empty intent. Game continues until turn 30 (soft bankruptcy — see decision doc).
+7. **Bankruptcy toast fix:** Shows carrier display name instead of raw ID.
+
+**Decision:** Soft bankruptcy — eliminated carriers stay on scoreboard but game doesn't end (deviates from DESIGN.md). See `.squad/decisions/inbox/builder-bankruptcy-soft.md`.
+
+**Files changed:** `game_over_screen.gd`, `game_over_screen.tscn`, `top_bar.gd`, `top_bar.tscn`, `dashboard_panel.gd`, `scoreboard_panel.gd`, `turn_pipeline.gd`, `main.gd`, `format_helpers.gd` (new)
+
+**Testing:** Headless launch clean. GUT tests pass. 42/42 validation scenarios pass.
+
+---
+
 ### Session: Economy Rebalance — Monetary Scale & Fuel Costs (2026-05-22)
 
 **Deliverables:**

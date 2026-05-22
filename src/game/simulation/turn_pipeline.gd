@@ -62,6 +62,14 @@ static func resolve_turn(game_state: GameState, intents: Array) -> TurnResult:
 		if summary.get("bankrupt", false):
 			result.bankruptcies.append(carrier.id)
 
+	# Eliminate bankrupt carriers — disable routes, clear pending orders
+	for bankrupt_id: String in result.bankruptcies:
+		for carrier: CarrierData in game_state.carriers:
+			if carrier.id == bankrupt_id:
+				for route: CarrierData.Route in carrier.routes:
+					route.active = false
+				carrier.pending_orders.clear()
+
 	# 7. EVENTS — generate, apply, tick
 	var new_events: Array = EventSystem.generate_events(
 		game_state.current_turn, game_state.galaxy, game_state.rng, game_state.events

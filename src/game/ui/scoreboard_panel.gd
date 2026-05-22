@@ -58,11 +58,11 @@ func refresh() -> void:
 
 	for entry: Dictionary in rankings:
 		var is_player: bool = entry["carrier_id"] == _carrier_id
-		var row := _create_row(entry["carrier_name"], int(entry["score"]), is_player, entry["carrier_id"])
+		var row := _create_row(entry["rank"], entry["carrier_name"], is_player, entry["carrier_id"])
 		_rows_container.add_child(row)
 
 
-func _create_row(carrier_name: String, score: int, is_player: bool, carrier_id: String) -> HBoxContainer:
+func _create_row(rank: int, carrier_name: String, is_player: bool, carrier_id: String) -> HBoxContainer:
 	var carrier_color: Color = ThemeBuilder.CARRIER_COLORS.get(carrier_id, ThemeBuilder.MUTED)
 
 	var row := HBoxContainer.new()
@@ -77,21 +77,12 @@ func _create_row(carrier_name: String, score: int, is_player: bool, carrier_id: 
 	row.add_child(indicator)
 
 	var name_label := Label.new()
-	name_label.text = carrier_name
+	name_label.text = "#%d  %s" % [rank, carrier_name]
 	name_label.add_theme_font_size_override("font_size", 12)
 	name_label.add_theme_color_override("font_color", carrier_color)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(name_label)
-
-	var score_label := Label.new()
-	score_label.text = str(score)
-	score_label.add_theme_font_size_override("font_size", 12)
-	score_label.add_theme_color_override("font_color", ThemeBuilder.MUTED)
-	score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	score_label.custom_minimum_size.x = 40
-	score_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(score_label)
 
 	return row
 
