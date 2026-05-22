@@ -140,6 +140,28 @@ static func build_theme() -> Theme:
 	# --- RichTextLabel ---
 	theme.set_color("default_color", "RichTextLabel", TEXT)
 
+	# --- HSlider ---
+	var slider_track := StyleBoxFlat.new()
+	slider_track.bg_color = SURFACE.lightened(0.1)
+	slider_track.border_color = BORDER
+	slider_track.set_border_width_all(1)
+	slider_track.set_corner_radius_all(2)
+	slider_track.set_content_margin_all(0)
+	slider_track.content_margin_top = 2
+	slider_track.content_margin_bottom = 2
+	theme.set_stylebox("slider", "HSlider", slider_track)
+
+	var grabber_normal := StyleBoxFlat.new()
+	grabber_normal.bg_color = ACCENT
+	grabber_normal.set_corner_radius_all(8)
+	grabber_normal.set_content_margin_all(0)
+	theme.set_stylebox("grabber_area", "HSlider", slider_track)
+	theme.set_stylebox("grabber_area_highlight", "HSlider", slider_track)
+
+	theme.set_icon("grabber", "HSlider", _make_slider_grabber(16, ACCENT))
+	theme.set_icon("grabber_highlight", "HSlider", _make_slider_grabber(16, ACCENT.lightened(0.2)))
+	theme.set_icon("grabber_disabled", "HSlider", _make_slider_grabber(16, MUTED))
+
 	return theme
 
 
@@ -181,6 +203,23 @@ static func _make_radio_icon(size: int, color: Color, filled: bool) -> ImageText
 					if dist > outer_r - 0.5:
 						alpha = minf(alpha, clampf(outer_r + 0.5 - dist, 0.0, 1.0))
 					img.set_pixel(x, y, Color(color.r, color.g, color.b, alpha))
+	return ImageTexture.create_from_image(img)
+
+
+## Creates a circular grabber icon for HSlider.
+static func _make_slider_grabber(size: int, color: Color) -> ImageTexture:
+	var img := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	img.fill(Color.TRANSPARENT)
+	var center := Vector2(size / 2.0, size / 2.0)
+	var radius := size / 2.0 - 1.0
+	for y in size:
+		for x in size:
+			var dist := Vector2(x + 0.5, y + 0.5).distance_to(center)
+			if dist <= radius - 0.5:
+				img.set_pixel(x, y, color)
+			elif dist <= radius + 0.5:
+				var alpha := clampf(radius + 0.5 - dist, 0.0, 1.0)
+				img.set_pixel(x, y, Color(color.r, color.g, color.b, alpha))
 	return ImageTexture.create_from_image(img)
 
 

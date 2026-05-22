@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://game/main.gd" id="1"]
 [ext_resource type="PackedScene" path="res://game/ui/top_bar.tscn" id="2"]
@@ -17,6 +17,7 @@
 [ext_resource type="PackedScene" path="res://game/ui/modals/manage_slots_modal.tscn" id="16"]
 [ext_resource type="PackedScene" path="res://game/ui/turn_presentation_overlay.tscn" id="17"]
 [ext_resource type="PackedScene" path="res://game/ui/welcome_overlay.tscn" id="18"]
+[ext_resource type="PackedScene" path="res://game/ui/settings_menu.tscn" id="20"]
 
 [node name="GameScene" type="Control"]
 layout_mode = 3
@@ -91,4 +92,7 @@ visible = false
 unique_name_in_owner = true
 
 [node name="WelcomeOverlay" parent="." instance=ExtResource("18")]
+unique_name_in_owner = true
+
+[node name="SettingsMenu" parent="." instance=ExtResource("20")]
 unique_name_in_owner = true

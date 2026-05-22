@@ -27,6 +27,7 @@ var _slots_modal_from_map: bool = false
 @onready var _manage_slots_modal: ManageSlotsModal = %ManageSlotsModal
 @onready var _turn_presentation: TurnPresentationOverlay = %TurnPresentationOverlay
 @onready var _welcome_overlay: WelcomeOverlay = %WelcomeOverlay
+@onready var _settings_menu: SettingsMenu = %SettingsMenu
 
 
 func _ready() -> void:
@@ -47,6 +48,7 @@ func _ready() -> void:
 	_bind_all()
 	_connect_signals()
 	_show_welcome()
+	_start_music()
 
 
 func _show_welcome() -> void:
@@ -55,9 +57,24 @@ func _show_welcome() -> void:
 	_welcome_overlay.show_tutorial()
 
 
+func _start_music() -> void:
+	if OS.has_feature("headless") or OS.get_cmdline_user_args().has("--test-mode"):
+		return
+	var audio_manager := _get_audio_manager()
+	if audio_manager:
+		audio_manager.play_music(Audio.load_music_menu())
+
+
+func _get_audio_manager() -> Node:
+	return get_node_or_null("/root/AudioManager")
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_F12:
+		if event.keycode == KEY_ESCAPE:
+			_settings_menu.toggle()
+			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_F12:
 			_save_debug_state()
 
 
@@ -100,6 +117,10 @@ func _connect_signals() -> void:
 
 
 func _on_next_turn() -> void:
+	var audio_manager := _get_audio_manager()
+	if audio_manager:
+		audio_manager.play_sfx(Audio.load_sfx_beep_high())
+
 	_top_bar.set_turn_in_progress(true)
 
 	# Capture pre-turn state
