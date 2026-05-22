@@ -74,7 +74,7 @@ func _build_pages() -> void:
 			"content": (
 				"You begin with:\n\n"
 				+ "  •  %s in cash\n" % _hl("$30,000")
-				+ "  •  %s %s\n" % [_hl("1 shuttle"), _muted("(SD-100 — 40 capacity, passengers + cargo)")]
+				+ "  •  %s\n" % _hl("1 ship")
 				+ "  •  %s at Earth and Mars\n\n" % _hl("2 landing slots")
 				+ _section("Slots") + "\n"
 				+ "Landing slots give you the right to operate at a planet. "
@@ -117,7 +117,10 @@ func _build_pages() -> void:
 				+ "map to buy a slot directly.\n\n"
 				+ _section("Ships") + "\n"
 				+ "Order new ships to increase capacity. Bigger ships unlock at later turns "
-				+ "and take several turns to build."
+					+ "and take several turns to build. Each ship has three key stats:\n\n"
+					+ "  •  %s %s — seats for travelers between planets\n" % [ThemeBuilder.pax_bb(16), _hl("Passengers")]
+					+ "  •  %s %s — freight hauled alongside passengers\n" % [ThemeBuilder.cargo_bb(16), _hl("Cargo")]
+					+ "  •  %s %s — how efficiently the ship burns fuel; affects operating costs" % [ThemeBuilder.fuel_bb(16), _hl("Fuel")]
 			),
 		},
 		{
