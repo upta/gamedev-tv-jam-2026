@@ -421,8 +421,9 @@ func _open_ship_selector() -> void:
 		if ship_type.range >= lane.distance:
 			in_range.append({
 				"id": ship.id,
-				"label": "%s (Pax:%d Cargo:%d)%s" % [
+				"label": "%s (Pax:%d Cargo:%d Eff:%s)%s" % [
 					type_name, ship.passenger_capacity, ship.cargo_capacity,
+					ship_type.get_efficiency_rating(),
 					" *" if already_selected else "",
 				],
 				"selectable": true,
@@ -620,6 +621,7 @@ func _update_create_button_state() -> void:
 	var any_ships := not _selected_ship_ids.is_empty()
 	var has_slots := true
 	var missing_slot_planets: Array[String] = []
+	var has_duplicate_route := false
 
 	if not _origin_id.is_empty() and not _dest_id.is_empty():
 		var carrier := _game_state.get_player_carrier()
@@ -627,10 +629,26 @@ func _update_create_button_state() -> void:
 			missing_slot_planets = _get_missing_slot_planet_names(carrier)
 			has_slots = missing_slot_planets.is_empty()
 
-	_create_btn.disabled = not any_ships or not has_slots
+			if not _edit_mode:
+				var new_lane_id := GalaxyData.derive_lane_id(_origin_id, _dest_id)
+				for route: CarrierData.Route in carrier.routes:
+					if route.lane_id == new_lane_id:
+						has_duplicate_route = true
+						break
+				if not has_duplicate_route:
+					for rc: Dictionary in _player_controller.pending_intent.route_creates:
+						var pending_lane_id := GalaxyData.derive_lane_id(rc["origin_id"], rc["dest_id"])
+						if pending_lane_id == new_lane_id:
+							has_duplicate_route = true
+							break
+
+	_create_btn.disabled = not any_ships or not has_slots or has_duplicate_route
 
 	if _create_status_label:
-		if not has_slots and any_ships:
+		if has_duplicate_route:
+			_create_status_label.text = "You already have a route on this lane. Edit the existing route instead."
+			_create_status_label.visible = true
+		elif not has_slots and any_ships:
 			_create_status_label.text = "Need slots at %s to create this route." % " and ".join(missing_slot_planets)
 			_create_status_label.visible = true
 		else:

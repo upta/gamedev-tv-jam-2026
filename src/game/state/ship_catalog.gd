@@ -19,6 +19,13 @@ class ShipType:
 	var build_turns: int
 	var unlock_turn: int
 
+	func get_efficiency_rating() -> String:
+		if efficiency >= 1.0: return "A"
+		if efficiency >= 0.7: return "B"
+		if efficiency >= 0.5: return "C"
+		if efficiency >= 0.35: return "D"
+		return "E"
+
 	func _init(
 		p_id: String = "",
 		p_name: String = "",
