@@ -14,6 +14,14 @@ const NEGATIVE := Color(1.0, 0.35, 0.35)           # #FF5959
 const WARNING := Color(1.0, 0.78, 0.24)            # #FFC73D
 const CLEAR_COLOR := Color(0.04, 0.055, 0.055)     # #0A0E0E
 
+# Carrier identity colors — single source of truth for map, slots, and scoreboard
+const CARRIER_COLORS := {
+	"player": Color(0.24, 0.92, 0.67),            # teal-green (matches ACCENT)
+	"npc_1": Color(0.85, 0.45, 0.42),             # muted coral
+	"npc_2": Color(0.55, 0.65, 0.90),             # soft lavender-blue
+	"npc_3": Color(0.90, 0.72, 0.35),             # warm amber
+}
+
 static func build_theme() -> Theme:
 	var theme := Theme.new()
 

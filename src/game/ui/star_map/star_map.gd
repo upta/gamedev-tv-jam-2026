@@ -5,12 +5,7 @@ extends Control
 
 signal planet_selected(planet_id: String)
 
-const CARRIER_COLORS := {
-	"player": Color(0.24, 0.92, 0.67),
-	"npc_1": Color(0.9, 0.3, 0.3),
-	"npc_2": Color(0.3, 0.7, 0.9),
-	"npc_3": Color(0.9, 0.7, 0.2),
-}
+const CARRIER_COLORS := ThemeBuilder.CARRIER_COLORS
 const PLAYER_ROUTE_WIDTH := 4.0
 const NPC_ROUTE_WIDTH := 2.0
 

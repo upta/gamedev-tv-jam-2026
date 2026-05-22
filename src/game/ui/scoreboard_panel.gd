@@ -58,18 +58,20 @@ func refresh() -> void:
 
 	for entry: Dictionary in rankings:
 		var is_player: bool = entry["carrier_id"] == _carrier_id
-		var row := _create_row(entry["carrier_name"], int(entry["score"]), is_player)
+		var row := _create_row(entry["carrier_name"], int(entry["score"]), is_player, entry["carrier_id"])
 		_rows_container.add_child(row)
 
 
-func _create_row(carrier_name: String, score: int, is_player: bool) -> HBoxContainer:
+func _create_row(carrier_name: String, score: int, is_player: bool, carrier_id: String) -> HBoxContainer:
+	var carrier_color: Color = ThemeBuilder.CARRIER_COLORS.get(carrier_id, ThemeBuilder.MUTED)
+
 	var row := HBoxContainer.new()
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_theme_constant_override("separation", 6)
 
 	var indicator := Label.new()
-	indicator.text = "●" if is_player else "○"
-	indicator.add_theme_color_override("font_color", ThemeBuilder.ACCENT if is_player else ThemeBuilder.MUTED.darkened(0.3))
+	indicator.text = "●"
+	indicator.add_theme_color_override("font_color", carrier_color)
 	indicator.add_theme_font_size_override("font_size", 10)
 	indicator.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(indicator)
@@ -77,7 +79,7 @@ func _create_row(carrier_name: String, score: int, is_player: bool) -> HBoxConta
 	var name_label := Label.new()
 	name_label.text = carrier_name
 	name_label.add_theme_font_size_override("font_size", 12)
-	name_label.add_theme_color_override("font_color", ThemeBuilder.ACCENT if is_player else ThemeBuilder.TEXT)
+	name_label.add_theme_color_override("font_color", carrier_color)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(name_label)

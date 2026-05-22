@@ -9,12 +9,7 @@ const SYSTEM_COLORS := {
 	"wolf_359": Color(0.9, 0.3, 0.3),
 	"tau_ceti": Color(0.9, 0.9, 0.3),
 }
-const CARRIER_COLORS := {
-	"player": Color(0.2, 0.6, 1.0),
-	"npc_1": Color(0.9, 0.3, 0.3),
-	"npc_2": Color(0.3, 0.9, 0.3),
-	"npc_3": Color(0.9, 0.7, 0.2),
-}
+const CARRIER_COLORS := ThemeBuilder.CARRIER_COLORS
 const SLOT_DOT_RADIUS := 3.0
 
 var planet_id: String
