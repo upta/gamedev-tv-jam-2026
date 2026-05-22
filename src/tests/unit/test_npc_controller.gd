@@ -20,8 +20,14 @@ func _setup_npc_with_route(gs: GameState, carrier_id: String = "npc_1") -> Carri
 	var c := gs.get_carrier(carrier_id)
 	var sid: String = c.ships[0].id
 	var tids: Array[String] = [sid]
+	# Use the carrier's actual second planet (first non-earth slot)
+	var dest := "europa"
+	for pid: String in c.slots.keys():
+		if pid != "earth":
+			dest = pid
+			break
 	var r := CarrierData.Route.new(
-		carrier_id + "-route-0", "earth", "centauri_prime",
+		carrier_id + "-route-0", "earth", dest,
 		tids, 5.0, 4.0, 1, true
 	)
 	c.routes.append(r)
@@ -271,6 +277,15 @@ func test_cautious_npc_buys_range_capable_ship_for_new_lane() -> void:
 	controller.ship_eagerness = 0.3
 	var carrier := game_state.get_carrier("npc_3")
 	carrier.cash = 100000.0
+	# Give extra earth slot so one remains available after the route
+	carrier.slots["earth"] = 2
+	# Give NPC_3 a route on earth↔mars so its slots there are consumed
+	var sid: String = carrier.ships[0].id
+	var tids: Array[String] = [sid]
+	carrier.routes.append(CarrierData.Route.new(
+		"npc_3-route-0", "earth", "mars", tids, 5.0, 4.0, 1, true
+	))
+	# Add a far-away slot — only reachable by FW-10 (range 10.0)
 	carrier.slots["centauri_prime"] = 1
 	var intent := controller.generate_intent(game_state, "npc_3")
 	assert_true(intent.ship_orders.size() > 0, "Cautious NPC should order a ship when a reachable new lane exists")
@@ -402,19 +417,19 @@ func test_npc_cancels_route_after_loss_streak() -> void:
 		"slot_upkeep": 30.0, "net": 2.0,
 		"cash_after": 30000.0, "bankrupt": false,
 	}
-	# Run 4 turns with losses (building streak to 4)
-	for turn in range(4):
+	# Run 2 turns with losses (building streak to 2)
+	for turn in range(2):
 		game_state.current_turn = turn + 1
 		game_state.last_turn_financials["npc_1"] = loss_financials
 		controller.generate_intent(game_state, "npc_1")
-	assert_eq(controller._route_loss_streak.get(route.id, 0), 4)
+	assert_eq(controller._route_loss_streak.get(route.id, 0), 2)
 
-	# On the 5th loss turn, streak hits 5 and route should be cancelled
-	game_state.current_turn = 5
+	# On the 3rd loss turn, streak hits 3 and route should be cancelled
+	game_state.current_turn = 3
 	game_state.last_turn_financials["npc_1"] = loss_financials
 	var intent := controller.generate_intent(game_state, "npc_1")
 	assert_true(intent.route_cancellations.has(route.id),
-		"NPC should cancel route after 5 consecutive unprofitable turns")
+		"NPC should cancel route after 3 consecutive unprofitable turns")
 
 
 func test_npc_resets_loss_streak_on_profit() -> void:

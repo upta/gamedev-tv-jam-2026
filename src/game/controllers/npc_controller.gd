@@ -11,8 +11,8 @@ var route_preference: float = 0.5   # 0.0 = few expensive routes, 1.0 = many che
 var ship_eagerness: float = 0.5     # 0.0 = only when all deployed, 1.0 = proactive ordering
 
 
-const RESERVE_BUFFER_TURNS: int = 8
-const MIN_CASH_RESERVE: float = 12000.0
+const RESERVE_BUFFER_TURNS: int = 4
+const MIN_CASH_RESERVE: float = 5000.0
 const SLOT_GRACE_PERIOD: int = 5
 
 # Ephemeral state (persists across turns on the same controller instance)
@@ -52,7 +52,10 @@ func _estimate_cash_reserve(carrier: CarrierData, game_state: GameState) -> floa
 			route, carrier, game_state.catalog, game_state.galaxy
 		)
 	var slot_upkeep := FinancialCalculator.calculate_slot_upkeep(carrier)
-	return maxf((route_costs + slot_upkeep) * RESERVE_BUFFER_TURNS, MIN_CASH_RESERVE)
+	var cost_based := (route_costs + slot_upkeep) * RESERVE_BUFFER_TURNS
+	# Cap reserve at 40% of cash to prevent deadlocks where reserve exceeds income
+	var cash_cap := carrier.cash * 0.4
+	return maxf(minf(cost_based, cash_cap), MIN_CASH_RESERVE)
 
 
 # ---------------------------------------------------------------------------
@@ -70,16 +73,43 @@ func _consider_slot_bids(
 	)
 
 	# Max planets scales with aggression: low=3, mid=4, high=6
-	# But count planets with AVAILABLE slots — consumed slots don't count toward the cap
 	var max_planets := 3 + int(slot_aggression * 3.0)
 	var available_slot_planets := carrier.slots.keys().filter(
 		func(pid: String) -> bool: return carrier.get_available_slots_at(pid) > 0
 	)
-	if planets_with_slots.size() >= max_planets and available_slot_planets.size() >= 2:
+
+	# Override: allow bidding when idle ships exist but no usable slot pairs
+	var idle_ships := carrier.get_available_ships()
+	var has_usable_pair := false
+	if not idle_ships.is_empty():
+		for i in range(available_slot_planets.size()):
+			for j in range(i + 1, available_slot_planets.size()):
+				var d := game_state.galaxy.calculate_distance(
+					available_slot_planets[i], available_slot_planets[j])
+				for ship: ShipCatalog.ShipInstance in idle_ships:
+					var st := game_state.catalog.get_type(ship.type_id)
+					if st != null and st.range >= d:
+						has_usable_pair = true
+						break
+				if has_usable_pair:
+					break
+			if has_usable_pair:
+				break
+
+	var force_bid := not idle_ships.is_empty() and not has_usable_pair
+
+	if not force_bid and planets_with_slots.size() >= max_planets and available_slot_planets.size() >= 2:
 		return
 
-	# Find reachable planets where we don't already have slots
+	# Find planets where we don't already have slots
+	# Prefer planets reachable by owned ships
 	var candidates: Array = []
+	var max_ship_range := 0.0
+	for ship: ShipCatalog.ShipInstance in carrier.ships:
+		var st := game_state.catalog.get_type(ship.type_id)
+		if st != null and st.range > max_ship_range:
+			max_ship_range = st.range
+
 	for planet_id: String in planets_with_slots:
 		for planet: GalaxyData.Planet in game_state.galaxy.planets:
 			if planet.id == planet_id:
@@ -92,13 +122,18 @@ func _consider_slot_bids(
 					already = true
 					break
 			if not already:
+				var dist := game_state.galaxy.calculate_distance(planet_id, planet.id)
+				var reachable := dist <= max_ship_range
 				candidates.append({
 					"planet_id": planet.id,
 					"total_slots": planet.total_slots,
+					"reachable": reachable,
 				})
 
-	# Prioritize bigger markets
+	# Sort: reachable planets first, then by market size
 	candidates.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		if a["reachable"] != b["reachable"]:
+			return a["reachable"]  # true before false
 		return a["total_slots"] > b["total_slots"]
 	)
 
@@ -106,7 +141,6 @@ func _consider_slot_bids(
 	var bid_count := mini(candidates.size(), maxi(1, int(slot_aggression * 3.0)))
 	var cumulative_cost := 0.0
 	for i in range(bid_count):
-		# Price scales with aggression (aggressive NPCs bid higher to win)
 		var base_price := 1200.0 + slot_aggression * 600.0
 		var price := base_price + game_state.rng.randf_range(-300.0, 300.0)
 		if carrier.cash - cumulative_cost - price <= reserve:
@@ -252,17 +286,17 @@ func _consider_route_creation(
 		cargo_price *= 1.0 + game_state.rng.randf_range(-0.1, 0.1)
 
 		# Estimate profitability before committing
-		# Revenue estimate: price × (capacity/2 passengers) at ~50% fill
+		# Revenue estimate at ~70% fill (new routes with unmet demand fill quickly)
 		var pax_cap := ship_type.max_capacity / 2
 		var cargo_cap := ship_type.max_capacity - pax_cap
-		var est_revenue := (passenger_price * pax_cap + cargo_price * cargo_cap) * 0.5
+		var est_revenue := (passenger_price * pax_cap + cargo_price * cargo_cap) * 0.7
 		var est_op_cost: float = (
 			pow(distance, 1.2)
 			* ship_type.max_capacity
 			* FinancialCalculator.FUEL_COST_PER_UNIT
 			/ ship_type.efficiency
 		)
-		if est_revenue < est_op_cost * 1.1:
+		if est_revenue < est_op_cost:
 			continue  # skip routes that won't break even
 
 		# New routes start at a personality-driven frequency
@@ -306,6 +340,10 @@ func _consider_ship_orders(
 		if losing_routes > 0:
 			return  # fix unprofitable routes before buying more ships
 
+	# Cap pending orders to prevent over-spending while waiting for deliveries
+	if carrier.pending_orders.size() >= 2:
+		return
+
 	var total_ships := carrier.ships.size()
 	var available_ships := carrier.get_available_ships()
 	var assigned_count := total_ships - available_ships.size()
@@ -332,25 +370,43 @@ func _consider_ship_orders(
 	if utilization < util_threshold and not has_unrouted_pair:
 		return
 
-	# Don't order if we already have 2+ idle ships (use what you have first)
-	if available_ships.size() >= 2:
+	# Don't order if we already have 2+ idle ships that can reach an unserved pair
+	var _target_dist := _get_shortest_unserved_pair_distance(carrier, game_state)
+	var idle_ships_in_range := 0
+	for ship: ShipCatalog.ShipInstance in available_ships:
+		var st := game_state.catalog.get_type(ship.type_id)
+		if st != null and (_target_dist <= 0.0 or st.range >= _target_dist):
+			idle_ships_in_range += 1
+	if idle_ships_in_range >= 2:
 		return
 
 	var available_types := game_state.catalog.get_available_types(game_state.current_turn)
 	if available_types.is_empty():
 		return
 
+	# All personalities consider range for unserved pairs
+	var target_distance := _get_shortest_unserved_pair_distance(carrier, game_state)
+
 	# Pick ship type based on personality
 	var best_type: ShipCatalog.ShipType = null
 	if ship_eagerness >= 0.55:
-		# Aggressive: prefer higher capacity, but cap spending at 40% of cash
+		# Aggressive: prefer higher capacity that can reach unserved pairs
 		var max_spend := carrier.cash * 0.4
 		for st: ShipCatalog.ShipType in available_types:
 			if st.cost > max_spend:
 				continue
+			if target_distance > 0.0 and st.range < target_distance:
+				continue
 			if best_type == null or st.max_capacity > best_type.max_capacity:
 				best_type = st
-		# Fallback: if nothing in budget, pick cheapest
+		# Fallback: relax budget but keep range requirement
+		if best_type == null and target_distance > 0.0:
+			for st: ShipCatalog.ShipType in available_types:
+				if st.range < target_distance:
+					continue
+				if best_type == null or st.cost < best_type.cost:
+					best_type = st
+		# Last resort: cheapest anything
 		if best_type == null:
 			for st: ShipCatalog.ShipType in available_types:
 				if best_type == null or st.cost < best_type.cost:
@@ -358,7 +414,6 @@ func _consider_ship_orders(
 	elif ship_eagerness < 0.45:
 		# Cautious: prefer the most efficient affordable ship that can unlock a route.
 		var max_spend := carrier.cash * 0.4
-		var target_distance := _get_shortest_unserved_pair_distance(carrier, game_state)
 		var best_efficiency := 0.0
 		for st: ShipCatalog.ShipType in available_types:
 			if st.cost > max_spend:
@@ -368,28 +423,33 @@ func _consider_ship_orders(
 			if best_type == null or st.efficiency > best_efficiency:
 				best_efficiency = st.efficiency
 				best_type = st
-		if best_type == null:
+		# Fallback: relax budget but keep range requirement
+		if best_type == null and target_distance > 0.0:
+			best_efficiency = 0.0
 			for st: ShipCatalog.ShipType in available_types:
-				if st.cost > max_spend:
+				if st.range < target_distance:
 					continue
 				if best_type == null or st.efficiency > best_efficiency:
 					best_efficiency = st.efficiency
 					best_type = st
+		# Last resort: cheapest anything
 		if best_type == null:
 			for st: ShipCatalog.ShipType in available_types:
 				if best_type == null or st.cost < best_type.cost:
 					best_type = st
 	else:
 		# Balanced: pick best value (capacity × efficiency / cost) among
-		# ships that can reach current routes
-		var max_route_distance := 0.0
+		# ships that can reach unserved pairs or existing routes
+		var min_range := 0.0
 		for route: CarrierData.Route in carrier.get_active_routes():
 			var d := game_state.galaxy.calculate_distance(route.origin_id, route.dest_id)
-			if d > max_route_distance:
-				max_route_distance = d
+			if d > min_range:
+				min_range = d
+		if target_distance > 0.0 and target_distance > min_range:
+			min_range = target_distance
 		var best_value := 0.0
 		for st: ShipCatalog.ShipType in available_types:
-			if st.range < max_route_distance:
+			if st.range < min_range:
 				continue
 			var value := float(st.max_capacity) * st.efficiency / float(st.cost)
 			if value > best_value:
@@ -426,10 +486,6 @@ func _consider_slot_sales(
 	game_state: GameState,
 	reserve: float,
 ) -> void:
-	# Only sell under financial pressure
-	if carrier.cash >= reserve * 0.5:
-		return
-
 	var planets_with_slots: Array = carrier.slots.keys().filter(
 		func(pid: String) -> bool: return carrier.get_slot_count(pid) > 0
 	)
@@ -440,13 +496,11 @@ func _consider_slot_sales(
 
 	var active_routes := carrier.get_active_routes()
 
+	# Phase 1: Always sell unreachable/useless slots (no route potential, no active route)
 	for planet_id: String in planets_with_slots:
-		# Grace period: don't sell recently-bid slots
 		if _slot_bid_turns.has(planet_id):
 			if game_state.current_turn - _slot_bid_turns[planet_id] < SLOT_GRACE_PERIOD:
 				continue
-
-		# Don't sell if a route uses this planet
 		var has_route := false
 		for route: CarrierData.Route in active_routes:
 			if route.origin_id == planet_id or route.dest_id == planet_id:
@@ -454,16 +508,32 @@ func _consider_slot_sales(
 				break
 		if has_route:
 			continue
-
-		# Don't sell if this slot could pair with another planet for a future route
 		if _has_route_potential(planet_id, carrier, game_state):
 			continue
+		intent.slot_sales.append({"planet_id": planet_id, "count": 1})
+		return  # sell at most 1 per turn
 
-		intent.slot_sales.append({
-			"planet_id": planet_id,
-			"count": 1,
-		})
-		# Sell at most 1 per turn
+	# Phase 2: Under financial pressure, sell idle slots even with potential
+	# But still don't sell if the slot has a reachable route pair
+	if carrier.cash >= reserve * 0.5:
+		return
+
+	for planet_id: String in planets_with_slots:
+		if _slot_bid_turns.has(planet_id):
+			if game_state.current_turn - _slot_bid_turns[planet_id] < SLOT_GRACE_PERIOD:
+				continue
+		var has_route := false
+		for route: CarrierData.Route in active_routes:
+			if route.origin_id == planet_id or route.dest_id == planet_id:
+				has_route = true
+				break
+		if has_route:
+			continue
+		# Under pressure, still check if a route could be created
+		if _has_route_potential(planet_id, carrier, game_state):
+			continue
+		intent.slot_sales.append({"planet_id": planet_id, "count": 1})
+		return
 		return
 
 
@@ -482,6 +552,9 @@ func _consider_route_modifications(
 		return
 
 	var active_routes := carrier.get_active_routes()
+
+	# Check if there are unserved pairs that need ships — don't hoard ships on existing routes
+	var has_unserved_pairs := _get_shortest_unserved_pair_distance(carrier, game_state) > 0.0
 
 	for summary: Dictionary in route_summaries:
 		var route_id: String = summary.get("route_id", "")
@@ -527,45 +600,48 @@ func _consider_route_modifications(
 		var modified := false
 
 		if avg_load > 0.85:
-			# Overloaded — add ships to expand capacity (any personality)
-			var available_ships: Array = carrier.get_available_ships()
-			var distance := game_state.galaxy.calculate_distance(route.origin_id, route.dest_id)
-			for ship: ShipCatalog.ShipInstance in available_ships:
-				var ship_type := game_state.catalog.get_type(ship.type_id)
-				if ship_type != null and ship_type.range >= distance:
-					new_ship_ids.append(ship.id)
-					new_frequency = _choose_frequency(new_ship_ids, carrier, game_state, distance)
-					modified = true
-					break
-			if not modified:
-				# No ships available: raise prices
+			if has_unserved_pairs:
+				# Don't absorb ships — save them for new routes; raise prices instead
 				new_pax_price *= 1.10
 				new_cargo_price *= 1.10
 				modified = true
+			else:
+				# No unserved pairs — safe to add ships to expand capacity
+				var available_ships: Array = carrier.get_available_ships()
+				var distance := game_state.galaxy.calculate_distance(route.origin_id, route.dest_id)
+				for ship: ShipCatalog.ShipInstance in available_ships:
+					var ship_type := game_state.catalog.get_type(ship.type_id)
+					if ship_type != null and ship_type.range >= distance:
+						new_ship_ids.append(ship.id)
+						new_frequency = _choose_frequency(new_ship_ids, carrier, game_state, distance)
+						modified = true
+						break
+				if not modified:
+					new_pax_price *= 1.10
+					new_cargo_price *= 1.10
+					modified = true
 			# Also try increasing frequency if ships support it
 			var max_freq := RouteValidator.calculate_max_frequency(
-				new_ship_ids, carrier, game_state.catalog, distance
+				new_ship_ids, carrier, game_state.catalog,
+				game_state.galaxy.calculate_distance(route.origin_id, route.dest_id)
 			)
 			if max_freq > new_frequency:
 				new_frequency = mini(new_frequency + 1, max_freq)
 				modified = true
 		elif avg_load < 0.4:
 			if total_rev < op_cost:
-				# Losing money AND underloaded — raise prices to reduce losses
 				new_pax_price *= 1.08
 				new_cargo_price *= 1.08
 			else:
-				# Profitable but underloaded — reduce prices to attract demand
 				new_pax_price *= 0.92
 				new_cargo_price *= 0.92
 			modified = true
-			# Also reduce frequency to cut operating costs
 			if new_frequency > 1:
 				new_frequency -= 1
 				modified = true
 
-		# Only add idle ships to profitable, high-demand routes (not any route)
-		if not modified and avg_load > 0.6 and total_rev > op_cost * 1.2:
+		# Only add idle ships when no unserved pairs need them
+		if not modified and not has_unserved_pairs and avg_load > 0.6 and total_rev > op_cost * 1.2:
 			var idle_ships: Array = carrier.get_available_ships()
 			if not idle_ships.is_empty():
 				var distance := game_state.galaxy.calculate_distance(route.origin_id, route.dest_id)
@@ -612,19 +688,25 @@ func _count_competitors_on_lane(lane_id: String, own_carrier_id: String, game_st
 
 
 func _has_route_potential(planet_id: String, carrier: CarrierData, game_state: GameState) -> bool:
-	## Returns true if this planet could pair with another slot-planet to form a route.
+	## Returns true if this planet could pair with another slot-planet to form a route
+	## using any owned ship OR any purchasable ship type from the catalog.
 	var slot_planets: Array = carrier.slots.keys().filter(
 		func(pid: String) -> bool: return carrier.get_slot_count(pid) > 0 and pid != planet_id
 	)
+	var available_types := game_state.catalog.get_available_types(game_state.current_turn)
 	for other_pid: String in slot_planets:
 		var lane_id := GalaxyData.derive_lane_id(planet_id, other_pid)
 		if not _has_route_on_lane(carrier, lane_id):
-			# Check if any ship (including pending) could reach
 			var distance := game_state.galaxy.calculate_distance(planet_id, other_pid)
 			if distance > 0.0:
+				# Check owned ships
 				for ship: ShipCatalog.ShipInstance in carrier.ships:
 					var ship_type := game_state.catalog.get_type(ship.type_id)
 					if ship_type != null and ship_type.range >= distance:
+						return true
+				# Check catalog ships (could buy one that reaches)
+				for st: ShipCatalog.ShipType in available_types:
+					if st.range >= distance:
 						return true
 	return false
 

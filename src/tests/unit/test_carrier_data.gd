@@ -63,9 +63,9 @@ func test_default_npcs_share_earth_and_unique_home_slots() -> void:
 	var catalog := ShipCatalog.create_default_catalog()
 	var carriers := CarrierData.create_default_carriers(catalog)
 	var expected_slots := {
-		"npc_1": ["earth", "centauri_prime"],
+		"npc_1": ["earth", "europa"],
 		"npc_2": ["earth", "titan"],
-		"npc_3": ["earth", "wolf_station"],
+		"npc_3": ["earth", "mars"],
 	}
 	for carrier: CarrierData in carriers:
 		if not expected_slots.has(carrier.id):

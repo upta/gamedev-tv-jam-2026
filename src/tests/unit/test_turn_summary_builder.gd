@@ -146,7 +146,7 @@ func test_ship_orders_appear_in_summary() -> void:
 
 	assert_eq(npc_summary.ships_ordered.size(), 1)
 	assert_eq(npc_summary.ships_ordered[0]["type_id"], "sd-100")
-	assert_string_contains(npc_summary.actions[0], "Ordered 1 sd-100")
+	assert_string_contains(npc_summary.actions[0], "Ordered 1 SD-100")
 
 
 func test_ship_deliveries_appear_in_summary() -> void:

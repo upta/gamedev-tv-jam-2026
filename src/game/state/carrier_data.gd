@@ -107,15 +107,17 @@ func total_ship_count() -> int:
 static func create_default_carriers(catalog: ShipCatalog) -> Array:
 	var carriers: Array = []
 
+	# All second planets must be within SD-100 range (5.0) of Earth so NPCs
+	# can create routes immediately with their starting ship.
 	var defs: Array = [
 		{ "id": "player", "name": "Player Corp",
 		  "planets": ["earth", "mars"] },
 		{ "id": "npc_1", "name": "Nova Transit",
-		  "planets": ["earth", "centauri_prime"] },
+		  "planets": ["earth", "europa"] },
 		{ "id": "npc_2", "name": "Stellar Lines",
 		  "planets": ["earth", "titan"] },
 		{ "id": "npc_3", "name": "Frontier Express",
-		  "planets": ["earth", "wolf_station"] },
+		  "planets": ["earth", "mars"] },
 	]
 
 	for def_data: Dictionary in defs:

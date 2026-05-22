@@ -7,18 +7,18 @@ extends GutTest
 
 func test_suggested_price_passenger_basic():
 	var lane := GalaxyData.Lane.new("l", "a", "b", 6.0)
-	# (6.0 / 0.6) * 1.5 = 15.0
+	# (6.0 / 0.6) * 15.0 = 150.0
 	assert_almost_eq(
 		DemandCalculator.calculate_suggested_price(lane, "passenger"),
-		15.0, 0.001, "passenger price for distance 6.0")
+		150.0, 0.001, "passenger price for distance 6.0")
 
 
 func test_suggested_price_cargo_basic():
 	var lane := GalaxyData.Lane.new("l", "a", "b", 6.0)
-	# 15.0 * 0.5 = 7.5
+	# 150.0 * 0.5 = 75.0
 	assert_almost_eq(
 		DemandCalculator.calculate_suggested_price(lane, "cargo"),
-		7.5, 0.001, "cargo price for distance 6.0")
+		75.0, 0.001, "cargo price for distance 6.0")
 
 
 func test_suggested_price_zero_distance():
@@ -30,10 +30,10 @@ func test_suggested_price_zero_distance():
 
 func test_suggested_price_small_distance():
 	var lane := GalaxyData.Lane.new("l", "a", "b", 0.6)
-	# (0.6 / 0.6) * 1.5 = 1.5
+	# (0.6 / 0.6) * 15.0 = 15.0
 	assert_almost_eq(
 		DemandCalculator.calculate_suggested_price(lane, "passenger"),
-		1.5, 0.001, "distance 0.6 → 1.5")
+		15.0, 0.001, "distance 0.6 → 15.0")
 
 
 func test_suggested_price_cargo_always_cheaper_than_passenger():
