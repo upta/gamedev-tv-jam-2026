@@ -446,7 +446,7 @@ func _generate_star_field() -> void:
 	var area := size
 	for _i: int in range(star_count):
 		_star_positions.append(Vector2(rng.randf() * area.x, rng.randf() * area.y))
-		_star_alphas.append(rng.randf_range(0.05, 0.25))
+		_star_alphas.append(rng.randf_range(0.12, 0.45))
 	queue_redraw()
 
 
@@ -454,5 +454,5 @@ func _draw() -> void:
 	var dim_color := ThemeBuilder.TEXT
 	for i: int in range(_star_positions.size()):
 		var star_color := Color(dim_color.r, dim_color.g, dim_color.b, _star_alphas[i])
-		var radius: float = 0.5 + _star_alphas[i] * 2.0  # 0.6 to 1.0 px
+		var radius: float = 0.5 + _star_alphas[i] * 1.5
 		draw_circle(_star_positions[i], radius, star_color)
