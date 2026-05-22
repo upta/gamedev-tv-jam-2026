@@ -4,10 +4,10 @@ extends Area2D
 ## Interactive planet marker on the star map.
 
 const SYSTEM_COLORS := {
-	"sol": Color(0.55, 0.60, 0.75),
-	"alpha_centauri": Color(0.55, 0.70, 0.60),
-	"wolf_359": Color(0.72, 0.55, 0.55),
-	"tau_ceti": Color(0.72, 0.72, 0.55),
+	"sol": Color(0.45, 0.55, 0.88),
+	"alpha_centauri": Color(0.45, 0.80, 0.55),
+	"wolf_359": Color(0.82, 0.45, 0.45),
+	"tau_ceti": Color(0.85, 0.82, 0.40),
 }
 const CARRIER_COLORS := ThemeBuilder.CARRIER_COLORS
 const SLOT_DOT_RADIUS := 3.0
@@ -36,7 +36,7 @@ func setup(planet: GalaxyData.Planet) -> void:
 	_label.text = planet_name
 	_label.position = Vector2(-_label.size.x * 0.5, _get_radius() + 2.0)
 	_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_label.add_theme_constant_override("outline_size", 3)
+	_label.add_theme_constant_override("outline_size", 2)
 	_label.add_theme_color_override("font_outline_color", Color.BLACK)
 
 	input_pickable = false
