@@ -70,8 +70,10 @@ The player **reviews** the galaxy state (demand, competitors, finances), **decid
 - When multiple carriers serve the same (lane, direction), demand splits by (capacity × price_factor)
 - Price factor: `clamp(1.0 - (price - suggested_price) / suggested_price, 0.0, 1.5)`
 - Price factor also caps absolute demand served — high prices reduce the number of willing travelers, not just competitive market share.
-- Suggested price: `(distance / 0.6) × 15.0` for passengers, `× 0.8` for cargo
+- Suggested price: `(distance / 0.6) × 15.0` for passengers, `× 0.5` for cargo
+- Cargo has ~3× the demand volume of passengers but thinner margins — strategic choice between premium passenger routes (fewer travelers, higher per-unit revenue) and volume cargo routes (need large-capacity ships to capture)
 - Revenue = passengers_served × passenger_price + cargo_served × cargo_price
+- Service quality: total flight frequency on a lane unlocks more of the available demand — `min(1.0, 0.6 + 0.1 × total_freq)`. A single freq-1 route captures only 70% of demand; freq 4+ unlocks 100%
 
 **Frequency**
 - Integer round-trips per turn on a route
@@ -108,6 +110,9 @@ The player **reviews** the galaxy state (demand, competitors, finances), **decid
 ### Difficulty
 - NPCs have tunable personality weights (slot_aggression, route_preference, ship_eagerness)
 - 3 distinct NPC personalities: balanced (0.5), aggressive (0.8/0.7/0.6), cautious (0.3/0.4/0.4)
+- All carriers share Earth as a starting planet (forcing early competition) plus one unique second planet
+- NPC pricing strategies vary widely by personality: aggressive undercuts deeply (×0.73), balanced is moderate (×0.85), cautious prices premium (×0.93)
+- Cautious NPCs prefer fuel-efficient ships; aggressive NPCs prefer high-capacity ships
 - Ship catalog unlocks create a natural tech progression curve
 - Events add unpredictability mid-game (no events in first 2 turns for ramp-up)
 
