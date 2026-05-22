@@ -16,7 +16,7 @@ func _make_galaxy() -> GalaxyData:
 func _make_catalog() -> ShipCatalog:
 	var c := ShipCatalog.new()
 	c.add_type(ShipCatalog.ShipType.new(
-		"sd-100", "SD-100", "Sol Dynamics", 20.0, 40, 0.8, 500, 2, 0))
+		"sd-100", "SD-100", "Sol Dynamics", 20.0, 40, 0.8, 5000, 2, 0))
 	return c
 
 
@@ -24,7 +24,7 @@ func _make_ship(id: String) -> ShipCatalog.ShipInstance:
 	return ShipCatalog.ShipInstance.new(id, "sd-100", 20, 20, "", 0)
 
 
-func _make_carrier(id: String, cname: String, cash: float = 3000.0) -> CarrierData:
+func _make_carrier(id: String, cname: String, cash: float = 30000.0) -> CarrierData:
 	var c := CarrierData.new()
 	c.id = id
 	c.carrier_name = cname
@@ -168,7 +168,7 @@ func test_state_after_captures_carrier_data() -> void:
 	# Verify player state
 	assert_true(state_after.has("player"), "Should have player state")
 	var player_state: Dictionary = state_after["player"]
-	assert_eq(player_state["cash"], 3000.0)
+	assert_eq(player_state["cash"], 30000.0)
 	assert_true(player_state.has("slots"), "Should have slots")
 	assert_true(player_state.has("routes"), "Should have routes")
 	assert_true(player_state.has("ships"), "Should have ships")
@@ -186,4 +186,4 @@ func test_state_after_captures_carrier_data() -> void:
 
 	# Verify NPC state exists too
 	assert_true(state_after.has("npc_1"), "Should have npc_1 state")
-	assert_eq(state_after["npc_1"]["cash"], 3000.0)
+	assert_eq(state_after["npc_1"]["cash"], 30000.0)

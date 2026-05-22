@@ -130,14 +130,14 @@ static func create_default_catalog() -> ShipCatalog:
 	var catalog := ShipCatalog.new()
 
 	# Sol Dynamics — reliable, balanced
-	catalog.add_type(ShipType.new("sd-100", "Shuttle SD-100", "Sol Dynamics", 5.0, 40, 0.8, 500, 2, 0))
-	catalog.add_type(ShipType.new("sd-300", "Freighter SD-300", "Sol Dynamics", 8.0, 80, 0.5, 1200, 3, 0))
-	catalog.add_type(ShipType.new("sd-500", "Cruiser SD-500", "Sol Dynamics", 12.0, 120, 0.6, 2000, 4, 8))
-	catalog.add_type(ShipType.new("sd-900", "Titan SD-900", "Sol Dynamics", 15.0, 200, 0.4, 4000, 5, 20))
+	catalog.add_type(ShipType.new("sd-100", "Shuttle SD-100", "Sol Dynamics", 5.0, 40, 0.8, 5000, 2, 0))
+	catalog.add_type(ShipType.new("sd-300", "Freighter SD-300", "Sol Dynamics", 8.0, 80, 0.5, 12000, 3, 0))
+	catalog.add_type(ShipType.new("sd-500", "Cruiser SD-500", "Sol Dynamics", 12.0, 120, 0.6, 20000, 4, 8))
+	catalog.add_type(ShipType.new("sd-900", "Titan SD-900", "Sol Dynamics", 15.0, 200, 0.4, 40000, 5, 20))
 
 	# Frontier Works — specialized, extreme stats
-	catalog.add_type(ShipType.new("fw-10", "Scout FW-10", "Frontier Works", 10.0, 20, 0.6, 250, 2, 0))
-	catalog.add_type(ShipType.new("fw-50", "Hauler FW-50", "Frontier Works", 6.0, 150, 0.3, 1800, 4, 12))
-	catalog.add_type(ShipType.new("fw-70", "Express FW-70", "Frontier Works", 10.0, 60, 1.2, 1500, 3, 16))
+	catalog.add_type(ShipType.new("fw-10", "Scout FW-10", "Frontier Works", 10.0, 20, 0.6, 2500, 2, 0))
+	catalog.add_type(ShipType.new("fw-50", "Hauler FW-50", "Frontier Works", 6.0, 150, 0.3, 18000, 4, 12))
+	catalog.add_type(ShipType.new("fw-70", "Express FW-70", "Frontier Works", 10.0, 60, 1.2, 15000, 3, 16))
 
 	return catalog

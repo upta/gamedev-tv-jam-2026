@@ -12,7 +12,7 @@ var ship_eagerness: float = 0.5     # 0.0 = only when all deployed, 1.0 = proact
 
 
 const RESERVE_BUFFER_TURNS: int = 8
-const MIN_CASH_RESERVE: float = 1200.0
+const MIN_CASH_RESERVE: float = 12000.0
 const SLOT_GRACE_PERIOD: int = 5
 
 # Ephemeral state (persists across turns on the same controller instance)
@@ -107,8 +107,8 @@ func _consider_slot_bids(
 	var cumulative_cost := 0.0
 	for i in range(bid_count):
 		# Price scales with aggression (aggressive NPCs bid higher to win)
-		var base_price := 120.0 + slot_aggression * 60.0
-		var price := base_price + game_state.rng.randf_range(-30.0, 30.0)
+		var base_price := 1200.0 + slot_aggression * 600.0
+		var price := base_price + game_state.rng.randf_range(-300.0, 300.0)
 		if carrier.cash - cumulative_cost - price <= reserve:
 			break
 		var planet_id: String = candidates[i]["planet_id"]
@@ -223,7 +223,12 @@ func _consider_route_creation(
 		var ship_type := game_state.catalog.get_type(chosen_ship.type_id)
 		if ship_type != null:
 			var npc_freq := _choose_frequency([chosen_ship.id], carrier, game_state, distance)
-			var new_route_cost: float = (distance / ship_type.efficiency) * npc_freq
+			var new_route_cost: float = (
+				pow(distance, 1.2)
+				* ship_type.max_capacity
+				* FinancialCalculator.FUEL_COST_PER_UNIT
+				/ ship_type.efficiency
+			) * npc_freq
 			var new_reserve := reserve + new_route_cost * RESERVE_BUFFER_TURNS
 			if carrier.cash <= new_reserve:
 				continue
@@ -232,11 +237,11 @@ func _consider_route_creation(
 		var lane_parts: PackedStringArray = candidate["lane_id"].split("::")
 		var price_direction := "forward" if origin_id == lane_parts[0] else "reverse"
 		var demand_entry := game_state.demand_table.get_entry(candidate["lane_id"], price_direction)
-		var passenger_price := 5.0
-		var cargo_price := 4.0
+		var passenger_price := 50.0
+		var cargo_price := 40.0
 		if demand_entry != null:
-			passenger_price = demand_entry.base_demand_passenger * 0.08
-			cargo_price = demand_entry.base_demand_cargo * 0.06
+			passenger_price = demand_entry.base_demand_passenger * 0.8
+			cargo_price = demand_entry.base_demand_cargo * 0.6
 		# ±20% variance
 		passenger_price *= 1.0 + game_state.rng.randf_range(-0.2, 0.2)
 		cargo_price *= 1.0 + game_state.rng.randf_range(-0.2, 0.2)

@@ -1,7 +1,7 @@
 {
   "scenario_id": "sim_financials",
   "version": 3,
-  "description": "Verify financial processing runs — player has a route and cash changes from initial 3000",
+  "description": "Verify financial processing runs — player has a route and cash changes from initial 30000",
   "harness_scene": "res://validation/harnesses/simulation_harness.tscn",
   "done_contract": {},
   "artifact_contract": {
@@ -34,7 +34,7 @@
       "checkpoint": "after_turns",
       "path": "harness_state.carriers.player.cash",
       "comparator": "neq",
-      "expected": 3000.0
+      "expected": 30000.0
     },
     {
       "op": "assert_value",

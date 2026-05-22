@@ -114,7 +114,7 @@ func test_low_cash_npc_does_not_order_ships() -> void:
 func test_wealthy_npc_still_bids_and_orders() -> void:
 	controller.slot_aggression = 1.0
 	var carrier := game_state.get_carrier("npc_1")
-	carrier.cash = 10000.0
+	carrier.cash = 100000.0
 	var intent := controller.generate_intent(game_state, "npc_1")
 	assert_true(intent.slot_bids.size() > 0, "Wealthy NPC should bid on slots")
 
@@ -162,7 +162,7 @@ func test_no_sell_slot_with_route_potential() -> void:
 func test_wealthy_npc_never_sells_slots() -> void:
 	## Wealthy NPCs should not sell slots (no financial pressure).
 	var carrier := game_state.get_carrier("npc_1")
-	carrier.cash = 10000.0
+	carrier.cash = 100000.0
 	carrier.slots["earth"] = 1  # Give a third planet with no route
 	var intent := controller.generate_intent(game_state, "npc_1")
 	assert_eq(intent.slot_sales.size(), 0, "Wealthy NPC should never sell slots")
@@ -213,7 +213,7 @@ func test_eager_npc_orders_ship_before_all_deployed() -> void:
 	## With high eagerness, NPC orders ships even with idle ships (if utilization is high).
 	controller.ship_eagerness = 1.0  # threshold = 1.0 - 1.0*0.6 = 0.4
 	var carrier := game_state.get_carrier("npc_1")
-	carrier.cash = 10000.0
+	carrier.cash = 100000.0
 	# Add 3 ships total, assign 2 to a route (67% utilization > 40% threshold)
 	carrier.slots["centauri_prime"] = 1
 	var ship2 := game_state.catalog.create_ship_instance("sd-100", 20, 20, "npc_1", -2)
@@ -235,7 +235,7 @@ func test_eager_npc_orders_ship_before_all_deployed() -> void:
 func test_npc_creates_multiple_routes() -> void:
 	## NPC should create multiple routes in a single turn when possible.
 	var carrier := game_state.get_carrier("npc_1")
-	carrier.cash = 10000.0
+	carrier.cash = 100000.0
 	# Give NPC slots at 3 planets (2 per planet so multiple routes can share an endpoint)
 	carrier.slots["proxima_b"] = 2
 	carrier.slots["haven"] = 2
@@ -254,7 +254,7 @@ func test_ship_capacity_reflects_demand() -> void:
 	## NPC should bias ship capacity toward passenger or cargo based on route performance.
 	controller.ship_eagerness = 1.0
 	var carrier := _setup_npc_with_route(game_state)
-	carrier.cash = 10000.0
+	carrier.cash = 100000.0
 	# Simulate financials where passengers heavily outweigh cargo
 	game_state.last_turn_financials["npc_1"] = {
 		"routes": [{
@@ -270,7 +270,7 @@ func test_ship_capacity_reflects_demand() -> void:
 		"total_costs": 20.0,
 		"slot_upkeep": 30.0,
 		"net": 60.0,
-		"cash_after": 10000.0,
+		"cash_after": 100000.0,
 		"bankrupt": false,
 	}
 	var intent := controller.generate_intent(game_state, "npc_1")
@@ -305,7 +305,7 @@ func test_npc_reduces_price_on_underloaded_route() -> void:
 		}],
 		"total_revenue": 8.0, "total_costs": 5.0,
 		"slot_upkeep": 30.0, "net": -27.0,
-		"cash_after": 3000.0, "bankrupt": false,
+		"cash_after": 30000.0, "bankrupt": false,
 	}
 	var intent := controller.generate_intent(game_state, "npc_1")
 	if intent.route_modifications.size() > 0:
@@ -334,7 +334,7 @@ func test_npc_raises_price_on_overloaded_route() -> void:
 		}],
 		"total_revenue": 90.0, "total_costs": 20.0,
 		"slot_upkeep": 30.0, "net": 40.0,
-		"cash_after": 3000.0, "bankrupt": false,
+		"cash_after": 30000.0, "bankrupt": false,
 	}
 	var intent := controller.generate_intent(game_state, "npc_1")
 	if intent.route_modifications.size() > 0:
@@ -372,7 +372,7 @@ func test_npc_cancels_route_after_loss_streak() -> void:
 		],
 		"total_revenue": 102.0, "total_costs": 70.0,
 		"slot_upkeep": 30.0, "net": 2.0,
-		"cash_after": 3000.0, "bankrupt": false,
+		"cash_after": 30000.0, "bankrupt": false,
 	}
 	# Run 4 turns with losses (building streak to 4)
 	for turn in range(4):
@@ -402,7 +402,7 @@ func test_npc_resets_loss_streak_on_profit() -> void:
 			"passenger_capacity": 40, "cargo_capacity": 40}],
 		"total_revenue": 2.0, "total_costs": 50.0,
 		"slot_upkeep": 30.0, "net": -78.0,
-		"cash_after": 3000.0, "bankrupt": false,
+		"cash_after": 30000.0, "bankrupt": false,
 	}
 	for turn in range(2):
 		game_state.current_turn = turn + 1
@@ -419,7 +419,7 @@ func test_npc_resets_loss_streak_on_profit() -> void:
 			"passenger_capacity": 20, "cargo_capacity": 20}],
 		"total_revenue": 100.0, "total_costs": 20.0,
 		"slot_upkeep": 30.0, "net": 50.0,
-		"cash_after": 3000.0, "bankrupt": false,
+		"cash_after": 30000.0, "bankrupt": false,
 	}
 	controller.generate_intent(game_state, "npc_1")
 	assert_eq(controller._route_loss_streak.get(route.id, 0), 0,

@@ -22,11 +22,11 @@ func test_default_carrier_ids() -> void:
 	assert_true(ids.has("npc_3"), "Should have npc_3 carrier")
 
 
-func test_default_carriers_each_have_3000_cash() -> void:
+func test_default_carriers_each_have_30000_cash() -> void:
 	var catalog := ShipCatalog.create_default_catalog()
 	var carriers := CarrierData.create_default_carriers(catalog)
 	for carrier: CarrierData in carriers:
-		assert_almost_eq(carrier.cash, 3000.0, 0.01, "%s should have 3000 cash" % carrier.id)
+		assert_almost_eq(carrier.cash, 30000.0, 0.01, "%s should have 30000 cash" % carrier.id)
 
 
 func test_default_carriers_each_have_2_slots() -> void:

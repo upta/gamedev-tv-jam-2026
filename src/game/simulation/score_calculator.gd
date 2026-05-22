@@ -4,7 +4,7 @@ extends RefCounted
 ## Static utility for computing composite company value.
 ## Score = cash + ship_assets + slot_value + route_value (D002: symmetric across all carriers).
 
-const BASE_SLOT_VALUE := 200.0
+const BASE_SLOT_VALUE := 2000.0
 const ROUTE_MULTIPLIER := 5.0
 const ESTIMATED_FILL_RATE := 0.5
 

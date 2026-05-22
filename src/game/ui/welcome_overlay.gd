@@ -61,7 +61,7 @@ func _build_pages() -> void:
 			"title": "Your Starting Assets",
 			"content": (
 				"You begin with:\n\n"
-				+ "  -  [b]$3,000[/b] in cash\n"
+				+ "  -  [b]$30,000[/b] in cash\n"
 				+ "  -  [b]1 shuttle[/b] (SD-100 -- 40 capacity, split between passengers and cargo)\n"
 				+ "  -  [b]2 landing slots[/b] at Earth and Mars\n\n"
 				+ "Landing slots give you the right to operate at a planet. "

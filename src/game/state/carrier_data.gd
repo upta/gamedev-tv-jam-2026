@@ -122,7 +122,7 @@ static func create_default_carriers(catalog: ShipCatalog) -> Array:
 		var carrier := CarrierData.new()
 		carrier.id = def_data["id"]
 		carrier.carrier_name = def_data["name"]
-		carrier.cash = 3000.0
+		carrier.cash = 30000.0
 
 		for planet_id: String in def_data["planets"]:
 			carrier.slots[planet_id] = 1

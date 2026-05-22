@@ -41,7 +41,7 @@
       "checkpoint": "initial",
       "path": "harness_state.player_cash",
       "comparator": "eq",
-      "expected": 3000.0
+      "expected": 30000.0
     },
     {
       "op": "assert_value",

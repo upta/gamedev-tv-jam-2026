@@ -2,6 +2,27 @@
 
 ## Recent Sessions
 
+### Session: Economy Rebalance — Monetary Scale & Fuel Costs (2026-05-22)
+
+**Deliverables:**
+1. **10x economy scale:** Starting cash, default ship costs, slot upkeep, slot UI bid defaults, score slot value, suggested route prices, and NPC price/bid heuristics all moved to the new §10x scale.
+2. **Operating cost rebalance:** Route fuel cost now scales with `distance^1.2`, ship `max_capacity`, and efficiency via `FUEL_COST_PER_UNIT`, making long routes and inefficient ships materially riskier.
+3. **Validation updates:** Updated `sim_financials` and `ui_game_starts` expectations to §30000, refreshed economy-aligned unit fixtures, and updated the welcome overlay to show the new starting cash.
+4. **Protected-doc note:** `DESIGN.md` is now stale on starting cash, ship prices, and slot value, but was left untouched per project protection rules.
+
+**Testing:** Headless launch clean. GUT unit suite passes. Full validation suite passes.
+
+---
+
+### Session: Star Map Visual Polish (2025-07-26)
+
+Three visual fixes to the star map:
+1. **Route z-ordering**: Replaced fragile `move_child` hack with `z_index = -1` on route Line2Ds. Planets (z_index 0) now always render on top. Also set LaneLine `z_index = -2`.
+2. **Label outlines**: Added black outline (size 3) to planet name labels via theme overrides for readability when routes pass underneath.
+3. **Desaturated system colors**: Muted planet system colors (steel-blue, sage, dusty rose, khaki) so they don't compete with carrier route colors.
+
+Files changed: `star_map.gd`, `planet_node.gd`, `lane_line.gd`. All validation scenarios pass. 3 pre-existing GUT failures (separator theming, ship name casing) unrelated.
+
 ### Session: UI Display Name Cleanup (2025-07-25)
 
 **Deliverables:**

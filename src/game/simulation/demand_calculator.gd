@@ -6,7 +6,7 @@ extends RefCounted
 
 
 static func calculate_suggested_price(lane: GalaxyData.Lane, demand_type: String) -> float:
-	var base := (lane.distance / 0.6) * 1.5
+	var base := (lane.distance / 0.6) * 15.0
 	if demand_type == "cargo":
 		return base * 0.8  # cargo priced slightly below passenger
 	return base

@@ -189,22 +189,22 @@ func test_operating_cost_single_ship():
 	var catalog := _make_catalog()
 	var galaxy := _make_galaxy_with_lane(6.0)
 
-	# distance=6.0, efficiency=0.8, freq=1 → 6.0/0.8 × 1 = 7.5
+	var expected := pow(6.0, 1.2) * 40.0 * FinancialCalculator.FUEL_COST_PER_UNIT / 0.8
 	var cost := FinancialCalculator.calculate_route_operating_cost(route, carrier, catalog, galaxy)
-	assert_almost_eq(cost, 7.5, 0.001, "6.0 / 0.8 × 1 = 7.5")
+	assert_almost_eq(cost, expected, 0.001, "distance^1.2 × capacity × fuel / efficiency")
 
 
 func test_operating_cost_multiple_ships():
-	var ship_a := _make_ship("s1", "test_type")   # eff 0.8
-	var ship_b := _make_ship("s2", "slow_type")   # eff 0.5
+	var ship_a := _make_ship("s1", "test_type")   # cap 40, eff 0.8
+	var ship_b := _make_ship("s2", "slow_type")   # cap 60, eff 0.5
 	var carrier := _make_carrier("c1", [ship_a, ship_b])
 	var route := _make_route("r1", ["s1", "s2"] as Array[String])
 	var catalog := _make_catalog()
 	var galaxy := _make_galaxy_with_lane(6.0)
 
-	# (6.0/0.8 + 6.0/0.5) × freq 1 = 7.5 + 12.0 = 19.5
+	var expected := pow(6.0, 1.2) * FinancialCalculator.FUEL_COST_PER_UNIT * ((40.0 / 0.8) + (60.0 / 0.5))
 	var cost := FinancialCalculator.calculate_route_operating_cost(route, carrier, catalog, galaxy)
-	assert_almost_eq(cost, 19.5, 0.001, "sum of per-ship costs × freq 1")
+	assert_almost_eq(cost, expected, 0.001, "sum of capacity-scaled per-ship costs")
 
 
 func test_operating_cost_no_lane_returns_zero():
@@ -235,18 +235,17 @@ func test_operating_cost_scales_with_frequency():
 	var catalog := _make_catalog()
 	var galaxy := _make_galaxy_with_lane(6.0)
 
-	# Freq 1: 6.0/0.8 × 1 = 7.5
 	var route1 := _make_route("r1", ["s1"] as Array[String])
 	route1.frequency = 1
 	var cost1 := FinancialCalculator.calculate_route_operating_cost(route1, carrier, catalog, galaxy)
 
-	# Freq 3: 6.0/0.8 × 3 = 22.5
 	var route3 := _make_route("r3", ["s1"] as Array[String])
 	route3.frequency = 3
 	var cost3 := FinancialCalculator.calculate_route_operating_cost(route3, carrier, catalog, galaxy)
 
-	assert_almost_eq(cost1, 7.5, 0.001, "freq 1 cost")
-	assert_almost_eq(cost3, 22.5, 0.001, "freq 3 cost = 3× freq 1")
+	var expected_cost1 := pow(6.0, 1.2) * 40.0 * FinancialCalculator.FUEL_COST_PER_UNIT / 0.8
+	assert_almost_eq(cost1, expected_cost1, 0.001, "freq 1 cost")
+	assert_almost_eq(cost3, expected_cost1 * 3.0, 0.001, "freq 3 cost = 3× freq 1")
 	assert_almost_eq(cost3, cost1 * 3.0, 0.001, "cost scales linearly with frequency")
 
 
@@ -258,15 +257,15 @@ func test_slot_upkeep_single_planet():
 	var carrier := _make_carrier("c1", [], { "earth": 2 })
 	assert_almost_eq(
 		FinancialCalculator.calculate_slot_upkeep(carrier),
-		20.0, 0.001, "2 slots × 10.0")
+		200.0, 0.001, "2 slots × 100.0")
 
 
 func test_slot_upkeep_multiple_planets():
 	var carrier := _make_carrier("c1", [], { "earth": 2, "mars": 3, "titan": 1 })
-	# (2 + 3 + 1) × 10.0 = 60.0
+	# (2 + 3 + 1) × 100.0 = 600.0
 	assert_almost_eq(
 		FinancialCalculator.calculate_slot_upkeep(carrier),
-		60.0, 0.001, "6 total slots × 10.0")
+		600.0, 0.001, "6 total slots × 100.0")
 
 
 func test_slot_upkeep_no_slots():

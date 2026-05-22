@@ -65,20 +65,20 @@ func test_cash_only_carrier() -> void:
 
 func test_ship_assets_from_fleet() -> void:
 	var carrier := _make_carrier("fleet", 0.0)
-	_add_ship(carrier, "sd-100")  # cost = 500
-	_add_ship(carrier, "sd-300", 40, 40)  # cost = 1200
+	_add_ship(carrier, "sd-100")  # cost = 5000
+	_add_ship(carrier, "sd-300", 40, 40)  # cost = 12000
 
 	var score := ScoreCalculator.calculate_score(carrier, catalog)
-	assert_almost_eq(score["ship_assets"], 1700.0, 0.01, "500 + 1200")
+	assert_almost_eq(score["ship_assets"], 17000.0, 0.01, "5000 + 12000")
 
 
 func test_ship_assets_includes_pending_orders() -> void:
 	var carrier := _make_carrier("pending", 0.0)
-	_add_ship(carrier, "sd-100")        # cost = 500
-	_add_pending_order(carrier, "sd-300", 40, 40)  # cost = 1200
+	_add_ship(carrier, "sd-100")        # cost = 5000
+	_add_pending_order(carrier, "sd-300", 40, 40)  # cost = 12000
 
 	var score := ScoreCalculator.calculate_score(carrier, catalog)
-	assert_almost_eq(score["ship_assets"], 1700.0, 0.01, "fleet + pending")
+	assert_almost_eq(score["ship_assets"], 17000.0, 0.01, "fleet + pending")
 
 
 func test_slot_value() -> void:
@@ -87,8 +87,8 @@ func test_slot_value() -> void:
 	carrier.slots["mars"] = 2
 
 	var score := ScoreCalculator.calculate_score(carrier, catalog)
-	# 5 slots × 200 = 1000
-	assert_almost_eq(score["slot_value"], 1000.0, 0.01, "5 slots × 200")
+	# 5 slots × 2000 = 10000
+	assert_almost_eq(score["slot_value"], 10000.0, 0.01, "5 slots × 2000")
 
 
 func test_route_value_single_active_route() -> void:
@@ -131,9 +131,9 @@ func test_route_value_with_frequency() -> void:
 
 func test_total_is_sum_of_components() -> void:
 	var carrier := _make_carrier("total", 2000.0)
-	carrier.slots["earth"] = 2  # 400
-	_add_ship(carrier, "sd-100")  # 500
-	# total = 2000 + 500 + 400 + 0(no routes) = 2900
+	carrier.slots["earth"] = 2  # 4000
+	_add_ship(carrier, "sd-100")  # 5000
+	# total = 2000 + 5000 + 4000 + 0(no routes) = 11000
 	var score := ScoreCalculator.calculate_score(carrier, catalog)
 	var expected_total: float = score["cash"] + score["ship_assets"] + score["slot_value"] + score["route_value"]
 	assert_almost_eq(score["total"], expected_total, 0.01, "total = sum of components")
@@ -164,10 +164,10 @@ func test_determine_winner_higher_cash_wins() -> void:
 
 
 func test_determine_winner_considers_all_components() -> void:
-	var c1 := _make_carrier("cash_heavy", 3000.0)
+	var c1 := _make_carrier("cash_heavy", 30000.0)
 	var c2 := _make_carrier("asset_heavy", 0.0)
-	_add_ship(c2, "sd-900", 100, 100)  # cost = 4000
-	# c1 total = 3000, c2 total = 4000 (ship assets)
+	_add_ship(c2, "sd-900", 100, 100)  # cost = 40000
+	# c1 total = 30000, c2 total = 40000 (ship assets)
 	var winner := ScoreCalculator.determine_winner([c1, c2], catalog)
 	assert_eq(winner.id, "asset_heavy", "ship assets counted")
 

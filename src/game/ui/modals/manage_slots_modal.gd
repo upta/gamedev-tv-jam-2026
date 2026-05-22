@@ -190,10 +190,10 @@ func _build_popup() -> void:
 	price_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_popup_price_row.add_child(price_label)
 	_popup_price_spin = SpinBox.new()
-	_popup_price_spin.min_value = 50
-	_popup_price_spin.max_value = 10000
+	_popup_price_spin.min_value = 500
+	_popup_price_spin.max_value = 100000
 	_popup_price_spin.step = 1
-	_popup_price_spin.value = 50
+	_popup_price_spin.value = 500
 	_popup_price_spin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_popup_price_row.add_child(_popup_price_spin)
 	vbox.add_child(_popup_price_row)
@@ -242,7 +242,7 @@ func _show_buy_popup(planet_id: String) -> void:
 	_popup_qty_spin.max_value = maxi(available, 1)
 	_popup_qty_spin.value = 1
 	_popup_price_row.visible = true
-	_popup_price_spin.value = 50
+	_popup_price_spin.value = 500
 	_popup_overlay.visible = true
 
 

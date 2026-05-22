@@ -17,7 +17,7 @@ func _make_galaxy() -> GalaxyData:
 func _make_catalog() -> ShipCatalog:
 	var c := ShipCatalog.new()
 	c.add_type(ShipCatalog.ShipType.new(
-		"sd-100", "SD-100", "Sol Dynamics", 20.0, 40, 0.8, 500, 2, 0))
+		"sd-100", "SD-100", "Sol Dynamics", 20.0, 40, 0.8, 5000, 2, 0))
 	return c
 
 
@@ -25,7 +25,7 @@ func _make_ship(id: String, type_id: String = "sd-100") -> ShipCatalog.ShipInsta
 	return ShipCatalog.ShipInstance.new(id, type_id, 20, 20, "", 0)
 
 
-func _make_carrier(id: String, name: String, cash: float = 3000.0) -> CarrierData:
+func _make_carrier(id: String, name: String, cash: float = 30000.0) -> CarrierData:
 	var c := CarrierData.new()
 	c.id = id
 	c.carrier_name = name
@@ -62,7 +62,7 @@ func _make_empty_turn_result(turn: int = 1) -> TurnPipeline.TurnResult:
 func test_build_summaries_returns_all_carriers() -> void:
 	var gs := _make_game_state()
 	var result := _make_empty_turn_result()
-	var cash_before := {"player": 3000.0, "npc_1": 3000.0}
+	var cash_before := {"player": 30000.0, "npc_1": 30000.0}
 
 	var summaries := TurnSummaryBuilder.build_summaries(result, gs, cash_before, {})
 
@@ -73,21 +73,21 @@ func test_build_summaries_returns_all_carriers() -> void:
 func test_cash_before_after_captured() -> void:
 	var gs := _make_game_state()
 	# Modify carrier cash to simulate post-turn state
-	gs.get_carrier("player").cash = 3200.0
+	gs.get_carrier("player").cash = 30200.0
 	var result := _make_empty_turn_result()
-	var cash_before := {"player": 3000.0, "npc_1": 3000.0}
+	var cash_before := {"player": 30000.0, "npc_1": 30000.0}
 
 	var summaries := TurnSummaryBuilder.build_summaries(result, gs, cash_before, {})
 	var player_summary: TurnSummaryBuilder.CarrierTurnSummary = summaries["player"]
 
-	assert_eq(player_summary.cash_before, 3000.0)
-	assert_eq(player_summary.cash_after, 3200.0)
+	assert_eq(player_summary.cash_before, 30000.0)
+	assert_eq(player_summary.cash_after, 30200.0)
 
 
 func test_carrier_with_no_actions_has_empty_actions_array() -> void:
 	var gs := _make_game_state()
 	var result := _make_empty_turn_result()
-	var cash_before := {"player": 3000.0, "npc_1": 3000.0}
+	var cash_before := {"player": 30000.0, "npc_1": 30000.0}
 
 	var summaries := TurnSummaryBuilder.build_summaries(result, gs, cash_before, {})
 	var npc_summary: TurnSummaryBuilder.CarrierTurnSummary = summaries["npc_1"]
@@ -102,7 +102,7 @@ func test_slot_wins_appear_in_summary() -> void:
 		"awards": [{"carrier_id": "player", "planet_id": "mars", "slots_won": 2, "cost": 100.0}],
 		"rejections": [],
 	}
-	var cash_before := {"player": 3000.0, "npc_1": 3000.0}
+	var cash_before := {"player": 30000.0, "npc_1": 30000.0}
 
 	var summaries := TurnSummaryBuilder.build_summaries(result, gs, cash_before, {})
 	var player_summary: TurnSummaryBuilder.CarrierTurnSummary = summaries["player"]
@@ -123,7 +123,7 @@ func test_route_creation_appears_in_summary() -> void:
 
 	var result := _make_empty_turn_result()
 	result.route_changes = [{"type": "created", "carrier_id": "player", "route_id": "player-route-0"}]
-	var cash_before := {"player": 3000.0, "npc_1": 3000.0}
+	var cash_before := {"player": 30000.0, "npc_1": 30000.0}
 
 	var summaries := TurnSummaryBuilder.build_summaries(result, gs, cash_before, {})
 	var player_summary: TurnSummaryBuilder.CarrierTurnSummary = summaries["player"]
@@ -138,8 +138,8 @@ func test_route_creation_appears_in_summary() -> void:
 func test_ship_orders_appear_in_summary() -> void:
 	var gs := _make_game_state()
 	var result := _make_empty_turn_result()
-	result.ship_orders = [{"carrier_id": "npc_1", "ship_id": "npc_1-sd-100-0002", "type_id": "sd-100", "cost": 500.0}]
-	var cash_before := {"player": 3000.0, "npc_1": 3000.0}
+	result.ship_orders = [{"carrier_id": "npc_1", "ship_id": "npc_1-sd-100-0002", "type_id": "sd-100", "cost": 5000.0}]
+	var cash_before := {"player": 30000.0, "npc_1": 30000.0}
 
 	var summaries := TurnSummaryBuilder.build_summaries(result, gs, cash_before, {})
 	var npc_summary: TurnSummaryBuilder.CarrierTurnSummary = summaries["npc_1"]
@@ -153,7 +153,7 @@ func test_ship_deliveries_appear_in_summary() -> void:
 	var gs := _make_game_state()
 	var result := _make_empty_turn_result()
 	result.deliveries = [{"carrier_id": "player", "ship_id": "player-sd-100-0002", "type_id": "sd-100"}]
-	var cash_before := {"player": 3000.0, "npc_1": 3000.0}
+	var cash_before := {"player": 30000.0, "npc_1": 30000.0}
 
 	var summaries := TurnSummaryBuilder.build_summaries(result, gs, cash_before, {})
 	var player_summary: TurnSummaryBuilder.CarrierTurnSummary = summaries["player"]
@@ -185,7 +185,7 @@ func test_route_financials_extraction() -> void:
 			"total_costs": 50.0,
 			"slot_upkeep": 40.0,
 			"net": 210.0,
-			"cash_after": 3210.0,
+			"cash_after": 30210.0,
 			"bankrupt": false,
 		},
 		"npc_1": {
@@ -194,11 +194,11 @@ func test_route_financials_extraction() -> void:
 			"total_costs": 0.0,
 			"slot_upkeep": 40.0,
 			"net": -40.0,
-			"cash_after": 2960.0,
+			"cash_after": 29960.0,
 			"bankrupt": false,
 		},
 	}
-	var cash_before := {"player": 3000.0, "npc_1": 3000.0}
+	var cash_before := {"player": 30000.0, "npc_1": 30000.0}
 
 	var summaries := TurnSummaryBuilder.build_summaries(result, gs, cash_before, {})
 	var player_summary: TurnSummaryBuilder.CarrierTurnSummary = summaries["player"]
@@ -225,7 +225,7 @@ func test_route_financials_extraction() -> void:
 func test_carrier_name_set_correctly() -> void:
 	var gs := _make_game_state()
 	var result := _make_empty_turn_result()
-	var cash_before := {"player": 3000.0, "npc_1": 3000.0}
+	var cash_before := {"player": 30000.0, "npc_1": 30000.0}
 
 	var summaries := TurnSummaryBuilder.build_summaries(result, gs, cash_before, {})
 
@@ -237,7 +237,7 @@ func test_slot_sales_appear_in_summary() -> void:
 	var gs := _make_game_state()
 	var result := _make_empty_turn_result()
 	result.slot_sales = [{"carrier_id": "player", "planet_id": "earth", "count": 1}]
-	var cash_before := {"player": 3000.0, "npc_1": 3000.0}
+	var cash_before := {"player": 30000.0, "npc_1": 30000.0}
 
 	var summaries := TurnSummaryBuilder.build_summaries(result, gs, cash_before, {})
 	var player_summary: TurnSummaryBuilder.CarrierTurnSummary = summaries["player"]
@@ -261,7 +261,7 @@ func test_route_cancelled_shows_planet_names() -> void:
 		"origin_id": "earth",
 		"dest_id": "mars",
 	}]
-	var cash_before := {"player": 3000.0, "npc_1": 3000.0}
+	var cash_before := {"player": 30000.0, "npc_1": 30000.0}
 
 	var summaries := TurnSummaryBuilder.build_summaries(result, gs, cash_before, {})
 	var player_summary: TurnSummaryBuilder.CarrierTurnSummary = summaries["player"]
@@ -293,7 +293,7 @@ func test_route_modified_shows_price_changes() -> void:
 		"old_frequency": 1,
 		"new_frequency": 1,
 	}]
-	var cash_before := {"player": 3000.0, "npc_1": 3000.0}
+	var cash_before := {"player": 30000.0, "npc_1": 30000.0}
 
 	var summaries := TurnSummaryBuilder.build_summaries(result, gs, cash_before, {})
 	var player_summary: TurnSummaryBuilder.CarrierTurnSummary = summaries["player"]
@@ -326,7 +326,7 @@ func test_route_modified_shows_ship_and_frequency_changes() -> void:
 		"old_frequency": 1,
 		"new_frequency": 2,
 	}]
-	var cash_before := {"player": 3000.0, "npc_1": 3000.0}
+	var cash_before := {"player": 30000.0, "npc_1": 30000.0}
 
 	var summaries := TurnSummaryBuilder.build_summaries(result, gs, cash_before, {})
 	var player_summary: TurnSummaryBuilder.CarrierTurnSummary = summaries["player"]

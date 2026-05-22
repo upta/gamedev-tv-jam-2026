@@ -4,7 +4,8 @@ extends RefCounted
 ## Static utility for route revenue, operating costs, and carrier financials.
 ## No state — all methods are static.
 
-const SLOT_UPKEEP_COST: float = 10.0  # per slot per turn
+const SLOT_UPKEEP_COST: float = 100.0  # per slot per turn
+const FUEL_COST_PER_UNIT: float = 3.0
 
 
 static func deliver_pending_ships(carriers: Array, current_turn: int) -> Array:
@@ -70,7 +71,12 @@ static func calculate_route_operating_cost(
 		var ship_type := catalog.get_type(ship.type_id)
 		if ship_type == null:
 			continue
-		total_cost += (lane.distance / ship_type.efficiency) * route.frequency
+		total_cost += (
+			pow(lane.distance, 1.2)
+			* ship_type.max_capacity
+			* FUEL_COST_PER_UNIT
+			/ ship_type.efficiency
+		) * route.frequency
 
 	return total_cost
 

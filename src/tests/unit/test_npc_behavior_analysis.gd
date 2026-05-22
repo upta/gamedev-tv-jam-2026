@@ -248,8 +248,8 @@ func test_at_least_one_npc_profitable_by_end() -> void:
 	for cid in ["npc_1", "npc_2", "npc_3"]:
 		var final_state: Dictionary = last_turn.get("state_after", {}).get(cid, {})
 		var final_cash: float = final_state.get("cash", 0.0)
-		# Starting cash is 3000. If cash > 2500 after 30 turns, NPC at least broke close to even.
-		if final_cash > 2500.0:
+		# Starting cash is 30000. If cash > 25000 after 30 turns, NPC at least broke close to even.
+		if final_cash > 25000.0:
 			profitable_npcs += 1
 
 	assert_gte(profitable_npcs, 1,
