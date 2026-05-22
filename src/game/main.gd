@@ -60,9 +60,9 @@ func _show_welcome() -> void:
 func _start_music() -> void:
 	if OS.has_feature("headless") or OS.get_cmdline_user_args().has("--test-mode"):
 		return
-	var audio_manager := _get_audio_manager()
-	if audio_manager:
-		audio_manager.play_music(Audio.load_music_menu())
+	var am := _get_audio_manager()
+	if am:
+		am.play_music(am.MUSIC_MENU)
 
 
 func _get_audio_manager() -> Node:
@@ -117,9 +117,9 @@ func _connect_signals() -> void:
 
 
 func _on_next_turn() -> void:
-	var audio_manager := _get_audio_manager()
-	if audio_manager:
-		audio_manager.play_sfx(Audio.load_sfx_beep_high())
+	var am := _get_audio_manager()
+	if am:
+		am.play_sfx(am.SFX_BEEP_HIGH)
 
 	_top_bar.set_turn_in_progress(true)
 

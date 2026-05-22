@@ -6,6 +6,9 @@ const SETTINGS_PATH := "user://settings.cfg"
 const SFX_POOL_SIZE := 8
 const BUS_NAMES := ["Master", "Music", "Sfx"]
 
+const MUSIC_MENU := preload("res://assets/music/menu_chill.ogg")
+const SFX_BEEP_HIGH := preload("res://assets/sfx/beep_high.wav")
+
 var _config := ConfigFile.new()
 var _bus_values: Dictionary = {}
 var _music_player: AudioStreamPlayer
@@ -44,6 +47,8 @@ func play_sfx(stream: AudioStream) -> void:
 
 
 func play_music(stream: AudioStream) -> void:
+	if stream is AudioStreamOggVorbis:
+		stream.loop = true
 	_music_player.stream = stream
 	_music_player.play()
 
