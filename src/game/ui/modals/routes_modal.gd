@@ -20,7 +20,7 @@ func _ready() -> void:
 	_content = VBoxContainer.new()
 	_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_content.add_theme_constant_override("separation", 6)
+	_content.add_theme_constant_override("separation", 10)
 	scroll.add_child(_content)
 
 
@@ -241,5 +241,21 @@ func _build_create_button() -> void:
 	var create_btn := Button.new()
 	create_btn.text = "Create Route"
 	create_btn.pressed.connect(func() -> void: create_route_requested.emit())
+
+	var btn_style := StyleBoxFlat.new()
+	btn_style.bg_color = ThemeBuilder.ACCENT.darkened(0.6)
+	btn_style.border_color = ThemeBuilder.ACCENT
+	btn_style.set_border_width_all(1)
+	btn_style.set_corner_radius_all(4)
+	btn_style.set_content_margin_all(6)
+	btn_style.content_margin_left = 20
+	btn_style.content_margin_right = 20
+	create_btn.add_theme_stylebox_override("normal", btn_style)
+	create_btn.add_theme_color_override("font_color", ThemeBuilder.ACCENT)
+
+	var btn_hover := btn_style.duplicate()
+	btn_hover.bg_color = ThemeBuilder.ACCENT.darkened(0.4)
+	create_btn.add_theme_stylebox_override("hover", btn_hover)
+
 	btn_row.add_child(create_btn)
 	_content.add_child(btn_row)
