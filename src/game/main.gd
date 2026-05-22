@@ -62,7 +62,7 @@ func _start_music() -> void:
 		return
 	var am := _get_audio_manager()
 	if am:
-		am.play_music(am.MUSIC_MENU)
+		am.play_music(am.MUSIC_SPACE)
 
 
 func _get_audio_manager() -> Node:
@@ -72,6 +72,7 @@ func _get_audio_manager() -> Node:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_ESCAPE:
+			_play_sfx_switch()
 			_settings_menu.toggle()
 			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_F12:
@@ -117,9 +118,7 @@ func _connect_signals() -> void:
 
 
 func _on_next_turn() -> void:
-	var am := _get_audio_manager()
-	if am:
-		am.play_sfx(am.SFX_BEEP_HIGH)
+	_play_sfx_click()
 
 	_top_bar.set_turn_in_progress(true)
 
@@ -193,6 +192,7 @@ func _show_turn_notifications(result: TurnPipeline.TurnResult) -> void:
 
 func _on_toolbar_pressed(modal_name: String) -> void:
 	_star_map.cancel_guide_mode()
+	_play_sfx_switch()
 
 	# Close create route modal if open
 	if _create_route_modal.visible:
@@ -257,6 +257,7 @@ func _save_debug_state() -> void:
 
 
 func _on_create_route_requested() -> void:
+	_play_sfx_click()
 	_routes_modal.close()
 	_create_route_modal.open()
 
@@ -267,6 +268,7 @@ func _on_edit_route_requested(route: CarrierData.Route) -> void:
 
 
 func _on_star_map_route_requested(origin_id: String, dest_id: String) -> void:
+	_play_sfx_click()
 	# Close any active modal
 	if not _active_modal.is_empty():
 		_modals[_active_modal].close()
@@ -308,6 +310,7 @@ func _on_route_modified() -> void:
 
 
 func _on_order_ship_requested() -> void:
+	_play_sfx_click()
 	_ships_modal.close()
 	_order_ship_modal.open()
 
@@ -324,6 +327,7 @@ func _on_ship_ordered() -> void:
 
 
 func _on_manage_slots_requested() -> void:
+	_play_sfx_click()
 	_slots_modal.close()
 	_manage_slots_modal.open()
 
@@ -338,6 +342,7 @@ func _on_manage_slots_modal_closed() -> void:
 
 
 func _on_star_map_slot_purchase_requested(planet_id: String) -> void:
+	_play_sfx_click()
 	_star_map.cancel_guide_mode()
 	if not _active_modal.is_empty():
 		_modals[_active_modal].close()
@@ -356,3 +361,15 @@ func _on_intent_changed_refresh_top_bar(_intent: TurnPipeline.CarrierIntent) -> 
 	_top_bar.refresh()
 	_scoreboard.refresh()
 	_pending_actions.refresh()
+
+
+func _play_sfx_click() -> void:
+	var am := _get_audio_manager()
+	if am:
+		am.play_sfx(am.SFX_CLICK)
+
+
+func _play_sfx_switch() -> void:
+	var am := _get_audio_manager()
+	if am:
+		am.play_sfx(am.SFX_SWITCH)

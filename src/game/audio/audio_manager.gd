@@ -6,8 +6,10 @@ const SETTINGS_PATH := "user://settings.cfg"
 const SFX_POOL_SIZE := 8
 const BUS_NAMES := ["Master", "Music", "Sfx"]
 
-const MUSIC_MENU := preload("res://assets/music/menu_chill.ogg")
-const SFX_BEEP_HIGH := preload("res://assets/sfx/beep_high.wav")
+const MUSIC_SPACE := preload("res://assets/music/space_ambient.ogg")
+const SFX_CLICK := preload("res://assets/sfx/click.ogg")
+const SFX_SWITCH := preload("res://assets/sfx/switch.ogg")
+const SFX_ROLLOVER := preload("res://assets/sfx/rollover.ogg")
 
 var _config := ConfigFile.new()
 var _bus_values: Dictionary = {}
