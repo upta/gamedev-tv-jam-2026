@@ -180,10 +180,11 @@ func _build_pending_actions() -> void:
 		has_any = true
 		var rm: Dictionary = intent.route_modifications[i]
 		var route_id: String = rm.get("route_id", "")
+		var route_display := _resolve_route_display(route_id)
 		var row := HBoxContainer.new()
 		var rtl := ThemeBuilder.make_icon_label()
 		rtl.text = "Modify: %s (%s §%d %s §%d Freq: %d)" % [
-			route_id,
+			route_display,
 			ThemeBuilder.pax_bb(), int(rm.get("passenger_price", 0)),
 			ThemeBuilder.cargo_bb(), int(rm.get("cargo_price", 0)), rm.get("frequency", 1),
 		]
@@ -201,9 +202,10 @@ func _build_pending_actions() -> void:
 	for i: int in range(intent.route_cancellations.size()):
 		has_any = true
 		var route_id: String = intent.route_cancellations[i]
+		var route_display := _resolve_route_display(route_id)
 		var row := HBoxContainer.new()
 		var label := Label.new()
-		label.text = "Cancel route: %s" % route_id
+		label.text = "Cancel route: %s" % route_display
 		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(label)
 
@@ -230,6 +232,19 @@ func _on_remove_route_cancellation(index: int) -> void:
 
 func _on_remove_route_modification(index: int) -> void:
 	_player_controller.remove_route_modification(index)
+
+
+func _resolve_route_display(route_id: String) -> String:
+	var carrier := _game_state.get_player_carrier()
+	if carrier:
+		for route: CarrierData.Route in carrier.routes:
+			if route.id == route_id:
+				var origin := _game_state.galaxy.get_planet(route.origin_id)
+				var dest := _game_state.galaxy.get_planet(route.dest_id)
+				var origin_name: String = origin.name if origin else route.origin_id
+				var dest_name: String = dest.name if dest else route.dest_id
+				return "%s -> %s" % [origin_name, dest_name]
+	return route_id
 
 
 # ---------------------------------------------------------------------------

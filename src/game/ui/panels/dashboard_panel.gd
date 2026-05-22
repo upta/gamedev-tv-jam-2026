@@ -51,7 +51,11 @@ func _refresh_fleet() -> void:
 	for route: CarrierData.Route in carrier.routes:
 		if route.active:
 			for ship_id: String in route.ship_ids:
-				ship_route_map[ship_id] = route.lane_id
+				var origin := _game_state.galaxy.get_planet(route.origin_id)
+				var dest := _game_state.galaxy.get_planet(route.dest_id)
+				var origin_name: String = origin.name if origin else route.origin_id
+				var dest_name: String = dest.name if dest else route.dest_id
+				ship_route_map[ship_id] = "%s → %s" % [origin_name, dest_name]
 
 	for ship: ShipCatalog.ShipInstance in carrier.ships:
 		var type_name := ship.type_id
@@ -60,8 +64,8 @@ func _refresh_fleet() -> void:
 			type_name = ship_type.name
 		var assignment: String = ship_route_map.get(ship.id, "Idle")
 		var rtl := ThemeBuilder.make_icon_label()
-		rtl.text = "%s (%s) - %s%d %s%d - %s" % [
-			type_name, ship.type_id,
+		rtl.text = "%s - %s%d %s%d - %s" % [
+			type_name,
 			ThemeBuilder.pax_bb(), ship.passenger_capacity,
 			ThemeBuilder.cargo_bb(), ship.cargo_capacity,
 			assignment,
@@ -69,8 +73,10 @@ func _refresh_fleet() -> void:
 		_fleet_list.add_child(rtl)
 
 	for order: ShipCatalog.ShipInstance in carrier.pending_orders:
+		var order_type := _game_state.catalog.get_type(order.type_id)
+		var order_name: String = order_type.name if order_type else order.type_id
 		var label := Label.new()
-		label.text = "(Building) %s - Ready turn %d" % [order.type_id, order.available_turn]
+		label.text = "(Building) %s - Ready turn %d" % [order_name, order.available_turn]
 		_fleet_list.add_child(label)
 
 

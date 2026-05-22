@@ -236,10 +236,14 @@ static func _build_actions(summary: CarrierTurnSummary, game_state: GameState) -
 			actions.append("Modified %s -> %s: %s" % [origin_name, dest_name, ", ".join(details)])
 
 	for order: Dictionary in summary.ships_ordered:
-		actions.append("Ordered 1 %s" % order.get("type_id", "ship"))
+		var type_id: String = order.get("type_id", "ship")
+		var ship_name := _get_ship_name(game_state, type_id)
+		actions.append("Ordered 1 %s" % ship_name)
 
 	for delivery: Dictionary in summary.ships_delivered:
-		actions.append("Ship delivered: %s" % delivery.get("type_id", ""))
+		var type_id: String = delivery.get("type_id", "")
+		var ship_name := _get_ship_name(game_state, type_id)
+		actions.append("Ship delivered: %s" % ship_name)
 
 	return actions
 
@@ -249,6 +253,14 @@ static func _get_planet_name(game_state: GameState, planet_id: String) -> String
 	if planet:
 		return planet.name
 	return planet_id
+
+
+static func _get_ship_name(game_state: GameState, type_id: String) -> String:
+	if game_state.catalog:
+		var ship_type := game_state.catalog.get_type(type_id)
+		if ship_type:
+			return ship_type.name
+	return type_id
 
 
 static func _find_route_by_id(carrier: CarrierData, route_id: String) -> CarrierData.Route:

@@ -73,6 +73,7 @@ func _bind_all() -> void:
 	_create_route_modal.bind(_player_controller, _session.game_state)
 	_order_ship_modal.bind(_player_controller, _session.game_state)
 	_manage_slots_modal.bind(_player_controller, _session.game_state)
+	_turn_log_modal.set_game_state(_session.game_state)
 
 
 func _connect_signals() -> void:

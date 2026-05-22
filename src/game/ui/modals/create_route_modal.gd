@@ -230,7 +230,9 @@ func _rebuild_route_details(carrier: CarrierData) -> void:
 		var ship_list: Array = []
 		for type_id in ships_by_type.keys():
 			var count: int = ships_by_type[type_id]
-			ship_list.append("%s (x%d)" % [type_id, count])
+			var ship_type := _game_state.catalog.get_type(type_id)
+			var display_name: String = ship_type.name if ship_type else type_id
+			ship_list.append("%s (x%d)" % [display_name, count])
 		range_label.text = "Ships in range: " + ", ".join(ship_list)
 		range_label.modulate = Color(0.6, 0.8, 0.6)
 	_details_section.add_child(range_label)

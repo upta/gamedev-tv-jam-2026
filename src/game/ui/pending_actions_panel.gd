@@ -94,10 +94,11 @@ func refresh() -> void:
 		ship_counts[type_id] = ship_counts.get(type_id, 0) + 1
 	for type_id: String in ship_counts:
 		var count: int = ship_counts[type_id]
+		var display_name := _ship_display_name(type_id)
 		if count > 1:
-			ship_items.append("Order|%s (%d)" % [type_id, count])
+			ship_items.append("Order|%s (%d)" % [display_name, count])
 		else:
-			ship_items.append("Order|%s" % type_id)
+			ship_items.append("Order|%s" % display_name)
 	if not ship_items.is_empty():
 		has_anything = true
 		_add_section("SHIPS", ship_items)
@@ -206,6 +207,14 @@ func _planet_name(planet_id: String) -> String:
 		if planet:
 			return planet.name
 	return planet_id
+
+
+func _ship_display_name(type_id: String) -> String:
+	if _game_state and _game_state.catalog:
+		var ship_type := _game_state.catalog.get_type(type_id)
+		if ship_type:
+			return ship_type.name
+	return type_id
 
 
 func _find_route(route_id: String) -> CarrierData.Route:

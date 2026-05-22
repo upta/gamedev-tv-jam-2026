@@ -9,6 +9,10 @@ func _ready() -> void:
 	set_title("Turn Log")
 
 
+func set_game_state(game_state: GameState) -> void:
+	_turn_log_panel.set_game_state(game_state)
+
+
 func add_turn_result(turn_number: int, result: TurnPipeline.TurnResult, carrier_id: String) -> void:
 	_turn_log_panel.add_turn_result(turn_number, result, carrier_id)
 

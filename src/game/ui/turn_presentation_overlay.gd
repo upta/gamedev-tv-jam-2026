@@ -299,7 +299,8 @@ func _build_player_content(summary: TurnSummaryBuilder.CarrierTurnSummary) -> St
 	# Other section
 	var other_lines: Array[String] = []
 	for delivery: Dictionary in summary.ships_delivered:
-		other_lines.append("- Ship delivered: %s" % delivery.get("type_id", ""))
+		var ship_name := _get_ship_name(delivery.get("type_id", ""))
+		other_lines.append("- Ship delivered: %s" % ship_name)
 	for slot: Dictionary in summary.slots_won:
 		var pname := _get_planet_name(slot.get("planet_id", ""))
 		other_lines.append("- Won %d slot%s at %s" % [
@@ -309,7 +310,8 @@ func _build_player_content(summary: TurnSummaryBuilder.CarrierTurnSummary) -> St
 		var pname := _get_planet_name(slot.get("planet_id", ""))
 		other_lines.append("- Lost bid at %s" % pname)
 	for order: Dictionary in summary.ships_ordered:
-		other_lines.append("- Ordered %s" % order.get("type_id", ""))
+		var ship_name := _get_ship_name(order.get("type_id", ""))
+		other_lines.append("- Ordered %s" % ship_name)
 
 	if other_lines.size() > 0:
 		lines.append("[b]Other:[/b]")
@@ -325,6 +327,14 @@ func _get_planet_name(planet_id: String) -> String:
 		if planet:
 			return planet.name
 	return planet_id
+
+
+func _get_ship_name(type_id: String) -> String:
+	if _game_state and _game_state.catalog:
+		var ship_type := _game_state.catalog.get_type(type_id)
+		if ship_type:
+			return ship_type.name
+	return type_id
 
 
 func _on_continue_pressed() -> void:

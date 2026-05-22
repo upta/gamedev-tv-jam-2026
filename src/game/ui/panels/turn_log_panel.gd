@@ -7,12 +7,18 @@ const COLOR_POSITIVE := "#3DEAAB"
 const COLOR_NEGATIVE := "#FF5959"
 const COLOR_EVENT := "#FFC73D"
 
+var _game_state: GameState
+
 @onready var _log_entries: VBoxContainer = $MarginContainer/VBoxContainer/ScrollContainer/LogEntries
 @onready var _scroll_container: ScrollContainer = $MarginContainer/VBoxContainer/ScrollContainer
 
 
 func _ready() -> void:
 	pass
+
+
+func set_game_state(game_state: GameState) -> void:
+	_game_state = game_state
 
 
 func add_turn_result(turn_number: int, result: TurnPipeline.TurnResult, carrier_id: String) -> void:
@@ -52,8 +58,8 @@ func _build_turn_bbcode(turn_number: int, result: TurnPipeline.TurnResult, carri
 	# Financials
 	var fin: Dictionary = result.financials.get(carrier_id, {})
 	if not fin.is_empty():
-		var revenue: float = fin.get("revenue", 0.0)
-		var costs: float = fin.get("costs", 0.0)
+		var revenue: float = fin.get("total_revenue", 0.0)
+		var costs: float = fin.get("total_costs", 0.0)
 		var net: float = fin.get("net", 0.0)
 		var net_color: String = COLOR_POSITIVE if net >= 0 else COLOR_NEGATIVE
 		var net_sign: String = "+" if net >= 0 else ""
@@ -72,7 +78,7 @@ func _build_turn_bbcode(turn_number: int, result: TurnPipeline.TurnResult, carri
 	for delivery: Dictionary in result.deliveries:
 		if delivery.get("carrier_id", "") == carrier_id:
 			var type_id: String = delivery.get("type_id", "ship")
-			lines.append("[color=%s]Ship %s delivered![/color]" % [COLOR_POSITIVE, type_id])
+			lines.append("[color=%s]Ship %s delivered![/color]" % [COLOR_POSITIVE, _get_ship_name(type_id)])
 
 	# Events
 	for desc: String in result.event_descriptions:
@@ -98,9 +104,25 @@ func _append_auction_lines(result: TurnPipeline.TurnResult, carrier_id: String, 
 		if award.get("carrier_id", "") == carrier_id:
 			var planet_id: String = award.get("planet_id", "")
 			var slots_won: int = award.get("slots_won", 0)
-			lines.append("[color=%s]Won %d slot(s) at %s[/color]" % [COLOR_POSITIVE, slots_won, planet_id])
+			lines.append("[color=%s]Won %d slot(s) at %s[/color]" % [COLOR_POSITIVE, slots_won, _get_planet_name(planet_id)])
 
 	for rejection: Dictionary in auction.get("rejections", []):
 		if rejection.get("carrier_id", "") == carrier_id:
 			var planet_id: String = rejection.get("planet_id", "")
-			lines.append("[color=%s]Lost bid at %s[/color]" % [COLOR_NEGATIVE, planet_id])
+			lines.append("[color=%s]Lost bid at %s[/color]" % [COLOR_NEGATIVE, _get_planet_name(planet_id)])
+
+
+func _get_ship_name(type_id: String) -> String:
+	if _game_state and _game_state.catalog:
+		var ship_type := _game_state.catalog.get_type(type_id)
+		if ship_type:
+			return ship_type.name
+	return type_id
+
+
+func _get_planet_name(planet_id: String) -> String:
+	if _game_state and _game_state.galaxy:
+		var planet := _game_state.galaxy.get_planet(planet_id)
+		if planet:
+			return planet.name
+	return planet_id

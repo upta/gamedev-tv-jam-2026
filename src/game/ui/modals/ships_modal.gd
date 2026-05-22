@@ -57,7 +57,11 @@ func _build_fleet_section(carrier: CarrierData) -> void:
 	for route: CarrierData.Route in carrier.routes:
 		if route.active:
 			for ship_id: String in route.ship_ids:
-				ship_route_map[ship_id] = route.lane_id
+				var origin := _game_state.galaxy.get_planet(route.origin_id)
+				var dest := _game_state.galaxy.get_planet(route.dest_id)
+				var origin_name: String = origin.name if origin else route.origin_id
+				var dest_name: String = dest.name if dest else route.dest_id
+				ship_route_map[ship_id] = "%s → %s" % [origin_name, dest_name]
 
 	if carrier.ships.is_empty() and carrier.pending_orders.is_empty():
 		var empty_label := Label.new()
@@ -73,8 +77,10 @@ func _build_fleet_section(carrier: CarrierData) -> void:
 			_content_vbox.add_child(rtl)
 
 		for ship: ShipCatalog.ShipInstance in carrier.pending_orders:
+			var pending_type := _game_state.catalog.get_type(ship.type_id)
+			var pending_name: String = pending_type.name if pending_type else ship.type_id
 			var label := Label.new()
-			label.text = "(Building) %s - Delivered turn %d" % [ship.type_id, ship.available_turn]
+			label.text = "(Building) %s - Delivered turn %d" % [pending_name, ship.available_turn]
 			_content_vbox.add_child(label)
 
 	_content_vbox.add_child(HSeparator.new())
@@ -97,8 +103,10 @@ func _build_pending_orders_section() -> void:
 		for i in range(orders.size()):
 			var order: Dictionary = orders[i]
 			var row := HBoxContainer.new()
+			var order_type := _game_state.catalog.get_type(order["type_id"])
+			var order_name: String = order_type.name if order_type else order["type_id"]
 			var rtl := ThemeBuilder.make_icon_label()
-			rtl.text = "%s - %s%d %s%d" % [order["type_id"], ThemeBuilder.pax_bb(), order["passenger_capacity"], ThemeBuilder.cargo_bb(), order["cargo_capacity"]]
+			rtl.text = "%s - %s%d %s%d" % [order_name, ThemeBuilder.pax_bb(), order["passenger_capacity"], ThemeBuilder.cargo_bb(), order["cargo_capacity"]]
 			rtl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			row.add_child(rtl)
 
