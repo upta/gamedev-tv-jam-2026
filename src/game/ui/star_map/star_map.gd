@@ -678,11 +678,13 @@ func _dismiss_context_menu() -> void:
 	if _context_menu:
 		_context_menu.visible = false
 	_context_menu_planet_id = ""
-	# Restore hover if mouse is over a planet
-	if _hovered_planet_id != "":
-		# Re-trigger hover display for the planet under cursor
-		var planet_pos: Vector2 = _planet_positions.get(_hovered_planet_id, Vector2.ZERO)
-		_on_planet_hovered(_hovered_planet_id, planet_pos)
+	# Re-check actual mouse position — _hovered_planet_id may be stale
+	var mouse_pos := get_local_mouse_position()
+	var planet_under := _get_planet_at(mouse_pos)
+	if planet_under != "":
+		_update_hover(planet_under, mouse_pos)
+	else:
+		_update_hover("", mouse_pos)
 
 
 func _on_context_buy_slots() -> void:

@@ -14,6 +14,7 @@ var _slots_modal_from_map: bool = false
 @onready var _top_bar: TopBar = %TopBar
 @onready var _star_map = %StarMap
 @onready var _scoreboard = %ScoreboardPanel
+@onready var _pending_actions: PendingActionsPanel = %PendingActionsPanel
 @onready var _toast_manager = %ToastManager
 @onready var _game_over_screen = %GameOverScreen
 @onready var _dashboard_modal: DashboardModal = %DashboardModal
@@ -64,6 +65,8 @@ func _bind_all() -> void:
 	_top_bar.bind(_session.game_state, _carrier_id)
 	_star_map.bind(_session.game_state)
 	_scoreboard.bind(_session.game_state, _carrier_id)
+	_pending_actions.bind(_player_controller, _session.game_state, _carrier_id)
+	_pending_actions.set_scoreboard(_scoreboard)
 	_dashboard_modal.bind(_session.game_state, _carrier_id)
 	_ships_modal.bind(_player_controller, _session.game_state)
 	_slots_modal.bind(_player_controller, _session.game_state)
@@ -124,6 +127,7 @@ func _on_next_turn() -> void:
 	_star_map.refresh(_session.game_state)
 	_top_bar.refresh()
 	_scoreboard.refresh()
+	_pending_actions.refresh()
 	_top_bar.set_turn_in_progress(false)
 	_turn_log_modal.add_turn_result(result.turn_number, result, _carrier_id)
 
@@ -325,3 +329,4 @@ func _on_slot_action_submitted() -> void:
 func _on_intent_changed_refresh_top_bar(_intent: TurnPipeline.CarrierIntent) -> void:
 	_top_bar.refresh()
 	_scoreboard.refresh()
+	_pending_actions.refresh()
