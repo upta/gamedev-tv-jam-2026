@@ -305,13 +305,9 @@ func _rebuild_route_details(carrier: CarrierData) -> void:
 	_details_section.add_child(cargo_row)
 	_cargo_spin = cargo_row.get_child(1)
 
-	# Bottom buttons
+	# Bottom buttons — primary action on left (Windows convention)
 	var btn_row := HBoxContainer.new()
 	btn_row.alignment = BoxContainer.ALIGNMENT_END
-	var cancel_btn := Button.new()
-	cancel_btn.text = "Cancel"
-	cancel_btn.pressed.connect(close)
-	btn_row.add_child(cancel_btn)
 	_create_btn = Button.new()
 	if _edit_mode:
 		_create_btn.text = "Save Changes"
@@ -319,7 +315,12 @@ func _rebuild_route_details(carrier: CarrierData) -> void:
 	else:
 		_create_btn.text = "Create"
 		_create_btn.pressed.connect(_on_create_route)
+	ThemeBuilder.style_primary_button(_create_btn)
 	btn_row.add_child(_create_btn)
+	var cancel_btn := Button.new()
+	cancel_btn.text = "Cancel"
+	cancel_btn.pressed.connect(close)
+	btn_row.add_child(cancel_btn)
 	_details_section.add_child(btn_row)
 
 	_create_status_label = Label.new()
@@ -570,6 +571,7 @@ func _show_selection_popup(
 		done_row.alignment = BoxContainer.ALIGNMENT_END
 		var done_btn := Button.new()
 		done_btn.text = "Done"
+		ThemeBuilder.style_primary_button(done_btn)
 		done_btn.pressed.connect(_close_selection_popup)
 		done_row.add_child(done_btn)
 		vbox.add_child(done_row)

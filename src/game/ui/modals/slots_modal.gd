@@ -125,6 +125,7 @@ func _build_manage_button() -> void:
 	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	var manage_btn := Button.new()
 	manage_btn.text = "Buy / Sell Slots"
+	ThemeBuilder.style_primary_button(manage_btn)
 	manage_btn.pressed.connect(func() -> void: manage_slots_requested.emit())
 	btn_row.add_child(manage_btn)
 	_content_vbox.add_child(btn_row)

@@ -259,6 +259,28 @@ static func make_icon_label() -> RichTextLabel:
 	return rtl
 
 
+## Applies the primary (green accent) style to a button for main actions.
+static func style_primary_button(btn: Button) -> void:
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = ACCENT.darkened(0.6)
+	normal.border_color = ACCENT
+	normal.set_border_width_all(1)
+	normal.set_corner_radius_all(4)
+	normal.set_content_margin_all(6)
+	normal.content_margin_left = 20
+	normal.content_margin_right = 20
+	btn.add_theme_stylebox_override("normal", normal)
+	btn.add_theme_color_override("font_color", ACCENT)
+
+	var hover := normal.duplicate()
+	hover.bg_color = ACCENT.darkened(0.4)
+	btn.add_theme_stylebox_override("hover", hover)
+
+	var pressed := normal.duplicate()
+	pressed.bg_color = ACCENT.darkened(0.3)
+	btn.add_theme_stylebox_override("pressed", pressed)
+
+
 ## Creates a styled section header label (uppercase, accent-colored, with top spacing).
 static func make_section_header(text: String) -> Label:
 	var header := Label.new()

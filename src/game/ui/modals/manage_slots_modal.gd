@@ -203,6 +203,7 @@ func _build_popup() -> void:
 	btn_row.alignment = BoxContainer.ALIGNMENT_END
 	var confirm_btn := Button.new()
 	confirm_btn.text = "Confirm"
+	ThemeBuilder.style_primary_button(confirm_btn)
 	confirm_btn.pressed.connect(_on_popup_confirm)
 	btn_row.add_child(confirm_btn)
 	var cancel_btn := Button.new()

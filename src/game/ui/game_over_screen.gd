@@ -38,20 +38,7 @@ func _apply_style() -> void:
 	_rankings_grid.add_theme_constant_override("h_separation", 12)
 	_rankings_grid.add_theme_constant_override("v_separation", 4)
 
-	var btn_style := StyleBoxFlat.new()
-	btn_style.bg_color = ThemeBuilder.ACCENT.darkened(0.6)
-	btn_style.border_color = ThemeBuilder.ACCENT
-	btn_style.set_border_width_all(2)
-	btn_style.set_corner_radius_all(4)
-	btn_style.content_margin_left = 24
-	btn_style.content_margin_right = 24
-	btn_style.content_margin_top = 10
-	btn_style.content_margin_bottom = 10
-	_play_again_button.add_theme_stylebox_override("normal", btn_style)
-	_play_again_button.add_theme_color_override("font_color", ThemeBuilder.ACCENT)
-	var btn_hover := btn_style.duplicate()
-	btn_hover.bg_color = ThemeBuilder.ACCENT.darkened(0.4)
-	_play_again_button.add_theme_stylebox_override("hover", btn_hover)
+	ThemeBuilder.style_primary_button(_play_again_button)
 
 
 func show_results(rankings: Array, turns_played: int, player_carrier_id: String) -> void:

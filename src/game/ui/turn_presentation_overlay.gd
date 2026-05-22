@@ -50,24 +50,7 @@ func _ready() -> void:
 	_skip_hint.add_theme_color_override("font_color", ThemeBuilder.MUTED)
 
 	# Continue button: accent styling (matches Next Turn button pattern)
-	var btn_style := StyleBoxFlat.new()
-	btn_style.bg_color = ThemeBuilder.ACCENT.darkened(0.6)
-	btn_style.border_color = ThemeBuilder.ACCENT
-	btn_style.set_border_width_all(2)
-	btn_style.set_corner_radius_all(4)
-	btn_style.set_content_margin_all(6)
-	btn_style.content_margin_left = 16
-	btn_style.content_margin_right = 16
-	_continue_button.add_theme_stylebox_override("normal", btn_style)
-	_continue_button.add_theme_color_override("font_color", ThemeBuilder.ACCENT)
-
-	var btn_hover := btn_style.duplicate()
-	btn_hover.bg_color = ThemeBuilder.ACCENT.darkened(0.4)
-	_continue_button.add_theme_stylebox_override("hover", btn_hover)
-
-	var btn_pressed := btn_style.duplicate()
-	btn_pressed.bg_color = ThemeBuilder.ACCENT.darkened(0.3)
-	_continue_button.add_theme_stylebox_override("pressed", btn_pressed)
+	ThemeBuilder.style_primary_button(_continue_button)
 
 
 func _process(delta: float) -> void:

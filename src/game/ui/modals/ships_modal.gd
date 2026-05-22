@@ -129,6 +129,7 @@ func _build_order_button() -> void:
 	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	var order_btn := Button.new()
 	order_btn.text = "Order Ship"
+	ThemeBuilder.style_primary_button(order_btn)
 	order_btn.pressed.connect(func() -> void: order_ship_requested.emit())
 	btn_row.add_child(order_btn)
 	_content_vbox.add_child(btn_row)

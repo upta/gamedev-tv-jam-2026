@@ -120,19 +120,7 @@ func _make_ship_card(st: ShipCatalog.ShipType) -> PanelContainer:
 	btn_row.alignment = BoxContainer.ALIGNMENT_END
 	var select_btn := Button.new()
 	select_btn.text = "Select"
-	var btn_style := StyleBoxFlat.new()
-	btn_style.bg_color = ThemeBuilder.ACCENT.darkened(0.6)
-	btn_style.border_color = ThemeBuilder.ACCENT
-	btn_style.set_border_width_all(1)
-	btn_style.set_corner_radius_all(4)
-	btn_style.set_content_margin_all(4)
-	btn_style.content_margin_left = 16
-	btn_style.content_margin_right = 16
-	select_btn.add_theme_stylebox_override("normal", btn_style)
-	select_btn.add_theme_color_override("font_color", ThemeBuilder.ACCENT)
-	var btn_hover := btn_style.duplicate()
-	btn_hover.bg_color = ThemeBuilder.ACCENT.darkened(0.4)
-	select_btn.add_theme_stylebox_override("hover", btn_hover)
+	ThemeBuilder.style_primary_button(select_btn)
 	select_btn.pressed.connect(_on_card_selected.bind(st))
 	btn_row.add_child(select_btn)
 	vbox.add_child(btn_row)
@@ -223,28 +211,16 @@ func _build_customization_step() -> void:
 	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	btn_row.add_theme_constant_override("separation", 12)
 
+	_order_button = Button.new()
+	_order_button.text = "Order"
+	ThemeBuilder.style_primary_button(_order_button)
+	_order_button.pressed.connect(_on_order_pressed)
+	btn_row.add_child(_order_button)
+
 	var back_button := Button.new()
 	back_button.text = "Back"
 	back_button.pressed.connect(_on_back_pressed)
 	btn_row.add_child(back_button)
-
-	_order_button = Button.new()
-	_order_button.text = "Order"
-	var order_style := StyleBoxFlat.new()
-	order_style.bg_color = ThemeBuilder.ACCENT.darkened(0.6)
-	order_style.border_color = ThemeBuilder.ACCENT
-	order_style.set_border_width_all(2)
-	order_style.set_corner_radius_all(4)
-	order_style.set_content_margin_all(6)
-	order_style.content_margin_left = 20
-	order_style.content_margin_right = 20
-	_order_button.add_theme_stylebox_override("normal", order_style)
-	_order_button.add_theme_color_override("font_color", ThemeBuilder.ACCENT)
-	var order_hover := order_style.duplicate()
-	order_hover.bg_color = ThemeBuilder.ACCENT.darkened(0.4)
-	_order_button.add_theme_stylebox_override("hover", order_hover)
-	_order_button.pressed.connect(_on_order_pressed)
-	btn_row.add_child(_order_button)
 
 	_content.add_child(btn_row)
 
