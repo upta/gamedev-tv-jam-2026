@@ -49,7 +49,7 @@ func _apply_modal_style() -> void:
 	panel_style.border_color = ThemeBuilder.BORDER
 	panel_style.set_border_width_all(2)
 	panel_style.set_corner_radius_all(6)
-	panel_style.set_content_margin_all(12)
+	panel_style.set_content_margin_all(16)
 	_panel.add_theme_stylebox_override("panel", panel_style)
 
 	# Title styling

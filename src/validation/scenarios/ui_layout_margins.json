@@ -1,0 +1,103 @@
+{
+  "scenario_id": "ui_layout_margins",
+  "version": 3,
+  "description": "Verify top bar and modal content margins produce visible padding — assert on measured pixel values and capture screenshots for visual verification",
+  "harness_scene": "res://validation/harnesses/ui_layout_harness.tscn",
+  "done_contract": {},
+  "artifact_contract": {
+    "required_files": ["summary.json", "event_log.json", "scene_tree.json", "console.log"],
+    "missing_file_is_failure": true
+  },
+  "exit_codes": {
+    "pass": 0,
+    "assertion_failure": 1,
+    "runtime_error": 2,
+    "timeout": 3,
+    "artifact_generation_error": 4
+  },
+  "cli_contract": {
+    "command_template": "godot --path <project> -- --test-mode --scenario <path> --artifacts <dir>"
+  },
+  "steps": [
+    { "op": "load_harness" },
+    { "op": "wait_frames", "frames": 20 },
+    { "op": "checkpoint", "name": "topbar_initial" },
+
+    {
+      "op": "assert_value",
+      "checkpoint": "topbar_initial",
+      "path": "harness_state.top_bar_height",
+      "comparator": "gte",
+      "expected": 50
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "topbar_initial",
+      "path": "harness_state.top_bar_margin_top",
+      "comparator": "gte",
+      "expected": 16
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "topbar_initial",
+      "path": "harness_state.top_bar_margin_bottom",
+      "comparator": "gte",
+      "expected": 16
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "topbar_initial",
+      "path": "harness_state.top_bar_margin_left",
+      "comparator": "gte",
+      "expected": 20
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "topbar_initial",
+      "path": "harness_state.top_bar_margin_right",
+      "comparator": "gte",
+      "expected": 20
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "topbar_initial",
+      "path": "harness_state.first_label_offset_y",
+      "comparator": "gte",
+      "expected": 16
+    },
+
+    { "op": "wait_frames", "frames": 25 },
+    { "op": "checkpoint", "name": "routes_modal" },
+
+    {
+      "op": "assert_value",
+      "checkpoint": "routes_modal",
+      "path": "harness_state.active_modal",
+      "comparator": "eq",
+      "expected": "routes"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "routes_modal",
+      "path": "harness_state.modal_content_margin_top",
+      "comparator": "gte",
+      "expected": 12
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "routes_modal",
+      "path": "harness_state.modal_content_margin_left",
+      "comparator": "gte",
+      "expected": 16
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "routes_modal",
+      "path": "harness_state.modal_vbox_separation",
+      "comparator": "gte",
+      "expected": 10
+    },
+
+    { "op": "quit" }
+  ]
+}
