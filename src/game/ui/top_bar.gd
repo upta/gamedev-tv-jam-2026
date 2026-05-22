@@ -16,8 +16,6 @@ const TOOLBAR_BUTTONS: Array[Array] = [
 @onready var _turn_label: Label = %TurnLabel
 @onready var _cash_label: Label = %CashLabel
 @onready var _score_label: Label = %ScoreLabel
-@onready var _rank_label: Label = %RankLabel
-@onready var _events_label: Label = %EventsLabel
 @onready var _next_turn_button: Button = %NextTurnButton
 @onready var _toolbar_container: HBoxContainer = %ToolbarContainer
 
@@ -70,17 +68,6 @@ func refresh() -> void:
 
 	var score_data: Dictionary = ScoreCalculator.calculate_score(carrier, _game_state.catalog, _game_state.galaxy)
 	_score_label.text = "Score: %d" % int(score_data["total"])
-
-	var rankings: Array = ScoreCalculator.get_rankings(_game_state.carriers, _game_state.catalog, _game_state.galaxy)
-	var rank := 1
-	var total_carriers := rankings.size()
-	for entry: Dictionary in rankings:
-		if entry["carrier_id"] == _carrier_id:
-			rank = entry["rank"]
-			break
-	_rank_label.text = "Rank: %d/%d" % [rank, total_carriers]
-
-	_events_label.text = "Events: %d" % _game_state.events.size()
 
 
 func set_turn_in_progress(in_progress: bool) -> void:
@@ -152,8 +139,6 @@ func _apply_top_bar_style() -> void:
 	_turn_label.add_theme_color_override("font_color", ThemeBuilder.MUTED)
 	_cash_label.add_theme_color_override("font_color", ThemeBuilder.ACCENT)
 	_score_label.add_theme_color_override("font_color", ThemeBuilder.TEXT)
-	_rank_label.add_theme_color_override("font_color", ThemeBuilder.TEXT)
-	_events_label.add_theme_color_override("font_color", ThemeBuilder.MUTED)
 
 	# Next Turn button accent styling
 	var btn_style := StyleBoxFlat.new()

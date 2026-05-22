@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://game/main.gd" id="1"]
 [ext_resource type="PackedScene" path="res://game/ui/top_bar.tscn" id="2"]
 [ext_resource type="PackedScene" path="res://game/ui/star_map/star_map.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://game/ui/scoreboard_panel.tscn" id="4"]
 [ext_resource type="PackedScene" path="res://game/ui/notifications/toast_manager.tscn" id="7"]
 [ext_resource type="PackedScene" path="res://game/ui/game_over_screen.tscn" id="8"]
 [ext_resource type="PackedScene" path="res://game/ui/modals/dashboard_modal.tscn" id="9"]
@@ -41,6 +42,9 @@ layout_mode = 2
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
+
+[node name="ScoreboardPanel" parent="VBoxContainer/StarMap" instance=ExtResource("4")]
+unique_name_in_owner = true
 
 [node name="ToastManager" parent="." instance=ExtResource("7")]
 unique_name_in_owner = true
