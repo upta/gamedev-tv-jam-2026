@@ -39,30 +39,30 @@ The player **reviews** the galaxy state (demand, competitors, finances), **decid
 
 **Carriers**
 - 4 carriers: 1 player + 3 NPCs, all identical in rules (D002)
-- Starting cash: §3,000
+- Starting cash: §30,000
 - Starting assets: 1 shuttle (SD-100), 1 slot at each of 2 home planets
 - Home systems: Player (Sol/Earth+Mars), NPC1 (Alpha Centauri), NPC2 (Sol/Titan+Europa), NPC3 (Wolf 359)
 
 **Ships** (7 types, 2 manufacturers)
 | Type | Manufacturer | Range | Capacity | Efficiency | Cost | Build Time | Unlocks |
 |------|-------------|-------|----------|------------|------|------------|---------|
-| SD-100 Shuttle | Sol Dynamics | 5 | 40 | 0.8 | §500 | 2 turns | Turn 0 |
-| SD-300 Freighter | Sol Dynamics | 8 | 80 | 0.5 | §1,200 | 3 turns | Turn 0 |
-| FW-10 Scout | Frontier Works | 15 | 20 | 1.0 | §300 | 2 turns | Turn 0 |
-| SD-500 Cruiser | Sol Dynamics | 12 | 120 | 0.6 | §2,000 | 4 turns | Turn 8 |
-| FW-50 Hauler | Frontier Works | 6 | 150 | 0.3 | §1,800 | 4 turns | Turn 12 |
-| FW-70 Express | Frontier Works | 10 | 60 | 1.2 | §1,500 | 3 turns | Turn 16 |
-| SD-900 Titan | Sol Dynamics | 15 | 200 | 0.4 | §4,000 | 5 turns | Turn 20 |
+| SD-100 Shuttle | Sol Dynamics | 5 | 40 | 0.8 | §5,000 | 2 turns | Turn 0 |
+| SD-300 Freighter | Sol Dynamics | 8 | 80 | 0.5 | §12,000 | 3 turns | Turn 0 |
+| FW-10 Scout | Frontier Works | 10 | 20 | 0.6 | §2,500 | 2 turns | Turn 0 |
+| SD-500 Cruiser | Sol Dynamics | 12 | 120 | 0.6 | §20,000 | 4 turns | Turn 8 |
+| FW-50 Hauler | Frontier Works | 6 | 150 | 0.3 | §18,000 | 4 turns | Turn 12 |
+| FW-70 Express | Frontier Works | 10 | 60 | 1.2 | §15,000 | 3 turns | Turn 16 |
+| SD-900 Titan | Sol Dynamics | 15 | 200 | 0.4 | §40,000 | 5 turns | Turn 20 |
 
 - Capacity split (passenger vs. cargo) is set at order time and locked
 - Ships with range < lane distance cannot serve that lane
-- Efficiency affects operating cost: cost = distance / efficiency per ship
+- Efficiency affects operating cost: cost per ship = (distance^1.2 × capacity × fuel_rate / efficiency) × frequency, where fuel_rate = 3.0. Bigger ships and longer routes burn proportionally more fuel; high-efficiency ships offset this.
 
 **Slots & Auctions**
 - Slots are fungible operating permits at a planet
 - A route requires slots at both endpoints
 - Blind auction: all bids submitted simultaneously, highest price wins, ties broken by carrier index
-- Slot upkeep: §10 per slot per turn
+- Slot upkeep: §100 per slot per turn
 - Slots can be sold back (freed) if no active routes depend on them
 
 **Demand & Revenue**
@@ -70,7 +70,7 @@ The player **reviews** the galaxy state (demand, competitors, finances), **decid
 - When multiple carriers serve the same (lane, direction), demand splits by (capacity × price_factor)
 - Price factor: `clamp(1.0 - (price - suggested_price) / suggested_price, 0.0, 1.5)`
 - Price factor also caps absolute demand served — high prices reduce the number of willing travelers, not just competitive market share.
-- Suggested price: `(distance / 0.6) × 1.5` for passengers, `× 0.8` for cargo
+- Suggested price: `(distance / 0.6) × 15.0` for passengers, `× 0.8` for cargo
 - Revenue = passengers_served × passenger_price + cargo_served × cargo_price
 
 **Frequency**
@@ -97,7 +97,7 @@ The player **reviews** the galaxy state (demand, competitors, finances), **decid
 8. Report — calculate rankings, check for bankruptcy/game-over
 
 **Scoring**
-- Score = cash + ship_assets (purchase cost) + slot_value (§200/slot) + route_value (5× estimated revenue)
+- Score = cash + ship_assets (purchase cost) + slot_value (§2,000/slot) + route_value (5× estimated revenue)
 - Estimated revenue uses 50% fill rate assumption
 
 ### Win / Lose
