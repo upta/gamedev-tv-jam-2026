@@ -104,10 +104,17 @@ func _build_metrics() -> Dictionary:
 	var total_ships := 0
 	var total_routes := 0
 	var total_slots := 0
+	var carriers_with_active_routes := 0
+	var npcs_with_active_routes := 0
 	for carrier: CarrierData in session.game_state.carriers:
+		var active_route_count := carrier.get_active_routes().size()
 		total_ships += carrier.ships.size()
-		total_routes += carrier.get_active_routes().size()
+		total_routes += active_route_count
 		total_slots += _total_slots(carrier)
+		if active_route_count > 0:
+			carriers_with_active_routes += 1
+			if carrier.id != "player":
+				npcs_with_active_routes += 1
 
 	return {
 		"game_duration_turns": turns_completed,
@@ -115,6 +122,8 @@ func _build_metrics() -> Dictionary:
 		"total_ships_in_play": total_ships,
 		"total_active_routes": total_routes,
 		"total_slots_held": total_slots,
+		"carriers_with_active_routes": carriers_with_active_routes,
+		"npcs_with_active_routes": npcs_with_active_routes,
 		"events_generated": events_generated,
 	}
 

@@ -59,6 +59,7 @@ func _build_harness_state() -> Dictionary:
 			"ship_count": carrier.ships.size(),
 			"route_count": active_routes.size(),
 			"slot_count": _total_slots(carrier),
+			"slots": carrier.slots.duplicate(),
 			"score": score["total"],
 		}
 
@@ -114,6 +115,18 @@ func _build_metrics() -> Dictionary:
 	# Economy balance metrics
 	var price_factor_at_2x := DemandCalculator.calculate_price_factor(20.0, 10.0)
 	var price_factor_at_10x := DemandCalculator.calculate_price_factor(100.0, 10.0)
+	var earth_mars_lane := game_state_data.galaxy.get_lane("earth", "mars")
+	var earth_mars_passenger_price := 0.0
+	var earth_mars_cargo_price := 0.0
+	if earth_mars_lane != null:
+		earth_mars_passenger_price = DemandCalculator.calculate_suggested_price(earth_mars_lane, "passenger")
+		earth_mars_cargo_price = DemandCalculator.calculate_suggested_price(earth_mars_lane, "cargo")
+	var earth_mars_demand := game_state_data.demand_table.get_entry("earth::mars", "forward")
+	var earth_mars_passenger_demand := 0
+	var earth_mars_cargo_demand := 0
+	if earth_mars_demand != null:
+		earth_mars_passenger_demand = earth_mars_demand.base_demand_passenger
+		earth_mars_cargo_demand = earth_mars_demand.base_demand_cargo
 
 	return {
 		"player_cash": player.cash if player else 0.0,
@@ -122,6 +135,9 @@ func _build_metrics() -> Dictionary:
 		"total_active_routes": total_routes,
 		"price_factor_at_2x_suggested": price_factor_at_2x,
 		"price_factor_at_10x_suggested": price_factor_at_10x,
+		"earth_mars_forward_passenger_demand": earth_mars_passenger_demand,
+		"earth_mars_forward_cargo_demand": earth_mars_cargo_demand,
+		"earth_mars_cargo_price_ratio": earth_mars_cargo_price / earth_mars_passenger_price if earth_mars_passenger_price > 0.0 else 0.0,
 	}
 
 

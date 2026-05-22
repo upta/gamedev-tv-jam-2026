@@ -111,11 +111,11 @@ static func create_default_carriers(catalog: ShipCatalog) -> Array:
 		{ "id": "player", "name": "Player Corp",
 		  "planets": ["earth", "mars"] },
 		{ "id": "npc_1", "name": "Nova Transit",
-		  "planets": ["proxima_b", "haven"] },
+		  "planets": ["earth", "centauri_prime"] },
 		{ "id": "npc_2", "name": "Stellar Lines",
-		  "planets": ["titan", "europa"] },
+		  "planets": ["earth", "titan"] },
 		{ "id": "npc_3", "name": "Frontier Express",
-		  "planets": ["wolf_station", "forge"] },
+		  "planets": ["earth", "wolf_station"] },
 	]
 
 	for def_data: Dictionary in defs:

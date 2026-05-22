@@ -59,6 +59,21 @@ func test_default_player_carrier_slots_at_earth_and_mars() -> void:
 	assert_true(player.has_slots_at("mars"), "Player should have a slot at Mars")
 
 
+func test_default_npcs_share_earth_and_unique_home_slots() -> void:
+	var catalog := ShipCatalog.create_default_catalog()
+	var carriers := CarrierData.create_default_carriers(catalog)
+	var expected_slots := {
+		"npc_1": ["earth", "centauri_prime"],
+		"npc_2": ["earth", "titan"],
+		"npc_3": ["earth", "wolf_station"],
+	}
+	for carrier: CarrierData in carriers:
+		if not expected_slots.has(carrier.id):
+			continue
+		for planet_id: String in expected_slots[carrier.id]:
+			assert_true(carrier.has_slots_at(planet_id), "%s should have a slot at %s" % [carrier.id, planet_id])
+
+
 # ---------------------------------------------------------------------------
 # get_slot_count() / has_slots_at()
 # ---------------------------------------------------------------------------

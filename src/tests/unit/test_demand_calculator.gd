@@ -15,10 +15,10 @@ func test_suggested_price_passenger_basic():
 
 func test_suggested_price_cargo_basic():
 	var lane := GalaxyData.Lane.new("l", "a", "b", 6.0)
-	# 15.0 * 0.8 = 12.0
+	# 15.0 * 0.5 = 7.5
 	assert_almost_eq(
 		DemandCalculator.calculate_suggested_price(lane, "cargo"),
-		12.0, 0.001, "cargo price for distance 6.0")
+		7.5, 0.001, "cargo price for distance 6.0")
 
 
 func test_suggested_price_zero_distance():
@@ -160,7 +160,7 @@ func _suggested_pax(distance: float = 6.0) -> float:
 
 
 func _suggested_cargo(distance: float = 6.0) -> float:
-	return _suggested_pax(distance) * 0.8
+	return _suggested_pax(distance) * 0.5
 
 
 func test_demand_split_no_routes_returns_empty():
@@ -200,8 +200,8 @@ func test_demand_split_single_carrier_demand_below_capacity():
 		[route], "forward", demand, [carrier], catalog,
 		_suggested_pax(), _suggested_cargo(), "planet_a")
 
-	assert_eq(result["c1"]["passengers_served"], 10, "serves all demand when under capacity")
-	assert_eq(result["c1"]["cargo_served"], 5, "serves all cargo demand")
+	assert_eq(result["c1"]["passengers_served"], 7, "single-flight service exposes 70% of passenger demand")
+	assert_eq(result["c1"]["cargo_served"], 3, "single-flight service exposes 70% of cargo demand")
 
 
 func test_demand_split_two_carriers_proportional():
@@ -214,7 +214,7 @@ func test_demand_split_two_carriers_proportional():
 	var carrier_a := _make_carrier("ca", [ship_a], [route_a])
 	var carrier_b := _make_carrier("cb", [ship_b], [route_b])
 
-	# Demand fits exactly within total capacity (50 pax, 30 cargo)
+	# Total frequency 2 exposes 80% of demand before the proportional split.
 	var demand := _make_demand(50, 30)
 	var catalog := ShipCatalog.create_default_catalog()
 
@@ -223,12 +223,11 @@ func test_demand_split_two_carriers_proportional():
 		[carrier_a, carrier_b], catalog,
 		_suggested_pax(), _suggested_cargo(), "planet_a")
 
-	# At suggested prices, factors=1.0. Weights = capacity.
-	# pax: a=30/50*50=30, b=20/50*50=20. cargo: a=10/30*30=10, b=20/30*30=20.
-	assert_eq(result["ca"]["passengers_served"], 30)
-	assert_eq(result["cb"]["passengers_served"], 20)
-	assert_eq(result["ca"]["cargo_served"], 10)
-	assert_eq(result["cb"]["cargo_served"], 20)
+	# Effective demand is 40 pax and 24 cargo. At suggested prices, weights = capacity.
+	assert_eq(result["ca"]["passengers_served"], 24)
+	assert_eq(result["cb"]["passengers_served"], 16)
+	assert_eq(result["ca"]["cargo_served"], 8)
+	assert_eq(result["cb"]["cargo_served"], 16)
 
 
 func test_demand_split_inactive_route_ignored():
@@ -264,7 +263,7 @@ func test_demand_split_demand_modifier_scales_demand():
 	var ship := _make_ship("s1", 50, 50)
 	var route := _make_route("r1", "planet_a", "planet_b", ["s1"] as Array[String], _suggested_pax(), _suggested_cargo())
 	var carrier := _make_carrier("c1", [ship], [route])
-	# base 20 pax * modifier 2.0 = effective 40; base 10 cargo * modifier 3.0 = effective 30
+	# base 20 pax * modifier 2.0 = 40; base 10 cargo * modifier 3.0 = 30; single-flight service exposes 70%.
 	var demand := _make_demand(20, 10, 2.0, 3.0)
 	var catalog := ShipCatalog.create_default_catalog()
 
@@ -272,13 +271,34 @@ func test_demand_split_demand_modifier_scales_demand():
 		[route], "forward", demand, [carrier], catalog,
 		_suggested_pax(), _suggested_cargo(), "planet_a")
 
-	assert_eq(result["c1"]["passengers_served"], 40, "modifier doubles effective pax demand")
-	assert_eq(result["c1"]["cargo_served"], 30, "modifier triples effective cargo demand")
+	assert_eq(result["c1"]["passengers_served"], 28, "modifier and service quality should scale pax demand")
+	assert_eq(result["c1"]["cargo_served"], 21, "modifier and service quality should scale cargo demand")
 
 
 # ===========================================================================
 # Economy balance: monopoly pricing + price_factor floor
 # ===========================================================================
+
+func test_service_factor_reaches_full_demand_at_frequency_four() -> void:
+	var ship_a := _make_ship("sa", 20, 20)
+	var ship_b := _make_ship("sb", 20, 20)
+	var route_a := _make_route("ra", "planet_a", "planet_b", ["sa"] as Array[String], _suggested_pax(), _suggested_cargo(), 2)
+	var route_b := _make_route("rb", "planet_a", "planet_b", ["sb"] as Array[String], _suggested_pax(), _suggested_cargo(), 2)
+	var carrier_a := _make_carrier("ca", [ship_a], [route_a])
+	var carrier_b := _make_carrier("cb", [ship_b], [route_b])
+	var demand := _make_demand(40, 40)
+	var catalog := ShipCatalog.create_default_catalog()
+
+	var result := DemandCalculator.calculate_demand_split(
+		[route_a, route_b], "forward", demand,
+		[carrier_a, carrier_b], catalog,
+		_suggested_pax(), _suggested_cargo(), "planet_a")
+
+	assert_eq(result["ca"]["passengers_served"], 20)
+	assert_eq(result["cb"]["passengers_served"], 20)
+	assert_eq(result["ca"]["cargo_served"], 20)
+	assert_eq(result["cb"]["cargo_served"], 20)
+
 
 func test_monopoly_overpricing_reduces_demand():
 	# Single carrier, price = 10x suggested → factor = clamp(1 - 9, 0.0, 1.5) = 0.0

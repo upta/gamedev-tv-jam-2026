@@ -49,6 +49,96 @@
       "comparator": "eq",
       "expected": 4
     },
+    {
+      "op": "assert_value",
+      "checkpoint": "initial",
+      "path": "harness_state.carriers.player.slots.earth",
+      "comparator": "eq",
+      "expected": 1
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "initial",
+      "path": "harness_state.carriers.player.slots.mars",
+      "comparator": "eq",
+      "expected": 1
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "initial",
+      "path": "harness_state.carriers.npc_1.slots.earth",
+      "comparator": "eq",
+      "expected": 1
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "initial",
+      "path": "harness_state.carriers.npc_1.slots.centauri_prime",
+      "comparator": "eq",
+      "expected": 1
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "initial",
+      "path": "harness_state.carriers.npc_2.slots.earth",
+      "comparator": "eq",
+      "expected": 1
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "initial",
+      "path": "harness_state.carriers.npc_2.slots.titan",
+      "comparator": "eq",
+      "expected": 1
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "initial",
+      "path": "harness_state.carriers.npc_3.slots.earth",
+      "comparator": "eq",
+      "expected": 1
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "initial",
+      "path": "harness_state.carriers.npc_3.slots.wolf_station",
+      "comparator": "eq",
+      "expected": 1
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "initial",
+      "path": "harness_state.metrics.earth_mars_cargo_price_ratio",
+      "comparator": "eq",
+      "expected": 0.5
+    },
+    {
+      "op": "assert_pipeline",
+      "sources": {
+        "cargo": {
+          "kind": "checkpoint",
+          "checkpoint": "initial",
+          "path": "harness_state.metrics.earth_mars_forward_cargo_demand"
+        },
+        "passenger": {
+          "kind": "checkpoint",
+          "checkpoint": "initial",
+          "path": "harness_state.metrics.earth_mars_forward_passenger_demand"
+        }
+      },
+      "pipeline": [
+        {
+          "op": "subtract",
+          "inputs": ["cargo", "passenger"],
+          "as": "cargo_surplus"
+        }
+      ],
+      "assert": {
+        "actual": "cargo_surplus",
+        "comparator": "gt",
+        "expected": 0
+      }
+    },
     { "op": "quit" }
   ]
 }

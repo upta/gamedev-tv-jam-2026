@@ -16,13 +16,12 @@ func _create_game_state(seed_val: int = 42) -> GameState:
 
 
 func _setup_npc_with_route(gs: GameState, carrier_id: String = "npc_1") -> CarrierData:
-	## Helper: give an NPC a slot at centauri_prime and an active route there.
+	## Helper: give an NPC an active route on its default earth lane.
 	var c := gs.get_carrier(carrier_id)
-	c.slots["centauri_prime"] = 1
 	var sid: String = c.ships[0].id
 	var tids: Array[String] = [sid]
 	var r := CarrierData.Route.new(
-		carrier_id + "-route-0", "proxima_b", "centauri_prime",
+		carrier_id + "-route-0", "earth", "centauri_prime",
 		tids, 5.0, 4.0, 1, true
 	)
 	c.routes.append(r)
@@ -49,7 +48,6 @@ func test_returns_valid_intent() -> void:
 
 
 func test_npc_creates_route_when_possible() -> void:
-	game_state.get_carrier("npc_1").slots["centauri_prime"] = 1
 	var intent := controller.generate_intent(game_state, "npc_1")
 	assert_true(intent.route_creates.size() > 0, "NPC should create a route when it has slot pairs")
 
@@ -148,13 +146,13 @@ func test_no_sell_recently_bid_slot() -> void:
 func test_no_sell_slot_with_route_potential() -> void:
 	## NPC should not sell a slot if a route could be created using it.
 	var carrier := game_state.get_carrier("npc_1")
-	carrier.slots["centauri_prime"] = 1  # 3rd planet, no route
+	carrier.slots["mars"] = 1  # 3rd planet, no route
 	carrier.cash = 10.0  # Financial pressure
 	carrier.routes.clear()
 	game_state.current_turn = 100  # Past any grace period
 	var intent := controller.generate_intent(game_state, "npc_1")
-	# All 3 planets (proxima_b, haven, centauri_prime) can pair with each other
-	# so all have route potential — no sales should occur
+	# All 3 planets (earth, centauri_prime, mars) can pair with each other,
+	# so all have route potential — no sales should occur.
 	assert_eq(intent.slot_sales.size(), 0,
 		"NPC should not sell slots when they all have route potential")
 
@@ -163,7 +161,7 @@ func test_wealthy_npc_never_sells_slots() -> void:
 	## Wealthy NPCs should not sell slots (no financial pressure).
 	var carrier := game_state.get_carrier("npc_1")
 	carrier.cash = 100000.0
-	carrier.slots["earth"] = 1  # Give a third planet with no route
+	carrier.slots["mars"] = 1  # Give a third planet with no route
 	var intent := controller.generate_intent(game_state, "npc_1")
 	assert_eq(intent.slot_sales.size(), 0, "Wealthy NPC should never sell slots")
 
@@ -184,7 +182,7 @@ func test_cash_strapped_npc_sells_unused_slot() -> void:
 	game_state.current_turn = 200
 	var intent := controller.generate_intent(game_state, "npc_1")
 	# The NPC should consider selling — but only if new_eden has no route potential.
-	# new_eden CAN pair with proxima_b and haven, so it might still not sell.
+	# new_eden CAN pair with earth and centauri_prime, so it might still not sell.
 	# This test validates the financial pressure gate works.
 	# With cash=50 < reserve*0.5, the sale check runs.
 	assert_not_null(intent, "Intent should be generated even with very low cash")
@@ -215,14 +213,13 @@ func test_eager_npc_orders_ship_before_all_deployed() -> void:
 	var carrier := game_state.get_carrier("npc_1")
 	carrier.cash = 100000.0
 	# Add 3 ships total, assign 2 to a route (67% utilization > 40% threshold)
-	carrier.slots["centauri_prime"] = 1
 	var ship2 := game_state.catalog.create_ship_instance("sd-100", 20, 20, "npc_1", -2)
 	var ship3 := game_state.catalog.create_ship_instance("sd-100", 20, 20, "npc_1", -2)
 	carrier.ships.append(ship2)
 	carrier.ships.append(ship3)
 	var tids: Array[String] = [carrier.ships[0].id, ship2.id]
 	var r := CarrierData.Route.new(
-		"npc_1-route-0", "proxima_b", "centauri_prime",
+		"npc_1-route-0", "earth", "centauri_prime",
 		tids, 5.0, 4.0, 1, true
 	)
 	carrier.routes.append(r)
@@ -237,17 +234,48 @@ func test_npc_creates_multiple_routes() -> void:
 	var carrier := game_state.get_carrier("npc_1")
 	carrier.cash = 100000.0
 	# Give NPC slots at 3 planets (2 per planet so multiple routes can share an endpoint)
-	carrier.slots["proxima_b"] = 2
-	carrier.slots["haven"] = 2
+	carrier.slots["earth"] = 2
+	carrier.slots["mars"] = 2
 	carrier.slots["centauri_prime"] = 2
 	var ship2 := game_state.catalog.create_ship_instance("sd-100", 20, 20, "npc_1", -2)
 	var ship3 := game_state.catalog.create_ship_instance("sd-100", 20, 20, "npc_1", -2)
 	carrier.ships.append(ship2)
 	carrier.ships.append(ship3)
 	var intent := controller.generate_intent(game_state, "npc_1")
-	# With 3 planets (2 slots each) and 3 ships, up to 3 routes possible
+	# With 3 planets (2 slots each) and 3 ships, up to 3 routes are possible.
 	assert_true(intent.route_creates.size() >= 2,
 		"NPC with multiple ships and planet pairs should create multiple routes")
+
+
+func test_aggressive_npc_starts_new_routes_at_frequency_two() -> void:
+	controller.route_preference = 0.7
+	var carrier := game_state.get_carrier("npc_1")
+	carrier.cash = 100000.0
+	var intent := controller.generate_intent(game_state, "npc_1")
+	assert_true(intent.route_creates.size() > 0, "Aggressive route-focused NPC should create a route")
+	assert_eq(intent.route_creates[0]["frequency"], 2,
+		"Aggressive route-focused NPC should start new routes at frequency 2")
+
+
+func test_cautious_npc_prefers_efficient_affordable_ship() -> void:
+	controller.ship_eagerness = 0.3
+	var carrier := _setup_npc_with_route(game_state)
+	carrier.cash = 100000.0
+	var intent := controller.generate_intent(game_state, "npc_1")
+	assert_true(intent.ship_orders.size() > 0, "Cautious NPC should still order when fully utilized")
+	assert_eq(intent.ship_orders[0]["type_id"], "sd-100",
+		"Cautious NPC should favor the most efficient affordable ship")
+
+
+func test_cautious_npc_buys_range_capable_ship_for_new_lane() -> void:
+	controller.ship_eagerness = 0.3
+	var carrier := game_state.get_carrier("npc_3")
+	carrier.cash = 100000.0
+	carrier.slots["centauri_prime"] = 1
+	var intent := controller.generate_intent(game_state, "npc_3")
+	assert_true(intent.ship_orders.size() > 0, "Cautious NPC should order a ship when a reachable new lane exists")
+	assert_eq(intent.ship_orders[0]["type_id"], "fw-10",
+		"Cautious NPC should pick the most efficient affordable ship that can reach a new lane")
 
 
 func test_ship_capacity_reflects_demand() -> void:
@@ -347,11 +375,11 @@ func test_npc_cancels_route_after_loss_streak() -> void:
 	## NPC should cancel a route after 5 consecutive unprofitable turns.
 	var carrier := _setup_npc_with_route(game_state)
 	# Add a second route so cancellation is allowed (won't cancel last route)
-	carrier.slots["earth"] = 1
+	carrier.slots["mars"] = 1
 	var ship2 := game_state.catalog.create_ship_instance("sd-100", 20, 20, "npc_1", -2)
 	carrier.ships.append(ship2)
 	var tids2: Array[String] = [ship2.id]
-	var r2 := CarrierData.Route.new("npc_1-route-1", "proxima_b", "earth", tids2, 5.0, 4.0, 1, true)
+	var r2 := CarrierData.Route.new("npc_1-route-1", "earth", "mars", tids2, 5.0, 4.0, 1, true)
 	carrier.routes.append(r2)
 
 	var route: CarrierData.Route = carrier.routes[0]

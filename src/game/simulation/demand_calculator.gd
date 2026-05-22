@@ -8,7 +8,7 @@ extends RefCounted
 static func calculate_suggested_price(lane: GalaxyData.Lane, demand_type: String) -> float:
 	var base := (lane.distance / 0.6) * 15.0
 	if demand_type == "cargo":
-		return base * 0.8  # cargo priced slightly below passenger
+		return base * 0.5  # cargo: high volume, thin margins
 	return base
 
 
@@ -66,6 +66,7 @@ static func calculate_demand_split(
 				"cargo_cap": cargo_cap,
 				"pax_factor": pax_factor,
 				"cargo_factor": cargo_factor,
+				"frequency": route.frequency,
 			})
 
 	if route_data.is_empty():
@@ -73,6 +74,12 @@ static func calculate_demand_split(
 
 	var effective_pax := demand_entry.base_demand_passenger * demand_entry.modifier_passenger
 	var effective_cargo := demand_entry.base_demand_cargo * demand_entry.modifier_cargo
+	var total_freq := 0
+	for rd: Dictionary in route_data:
+		total_freq += rd.get("frequency", 1)
+	var service_factor := minf(1.0, 0.6 + 0.1 * total_freq)
+	effective_pax = int(float(effective_pax) * service_factor)
+	effective_cargo = int(float(effective_cargo) * service_factor)
 
 	for rd: Dictionary in route_data:
 		var cid: String = rd["carrier_id"]

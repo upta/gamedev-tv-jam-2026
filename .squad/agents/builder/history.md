@@ -2,6 +2,23 @@
 
 ## Recent Sessions
 
+### Session: Shared Earth Starts + NPC Competition Rebalance (2026-05-22)
+
+**Deliverables:**
+1. **Shared Earth starts:** Updated default carriers so all NPCs start with Earth plus one unique home planet, forcing immediate overlap around the core hub.
+2. **NPC strategy spread:** Widened route pricing, increased route-choice jitter, added personality-based starting frequency, and made cautious ship orders lane-aware so they buy efficient ships that can actually unlock new routes.
+3. **Demand accessibility:** Added lane service-quality scaling so low-frequency service only unlocks part of the demand pool while higher frequency exposes more total demand.
+4. **Validation refresh:** Expanded starting-state validation coverage for the new slot layout and relaxed the mid-game carrier-activity scenario to assert broad route activity instead of every NPC being live by turn 10.
+5. **Welcome overlay check:** Verified the player-facing starting-slots copy still reads correctly and left it unchanged.
+
+**Decision:** Validation should measure broad route activity at mid-game rather than require every NPC to be active by turn 10, because the cautious carrier now ramps through long-range expansion. See `.squad/decisions/inbox/builder-route-activity-validation.md`.
+
+**Files changed:** `carrier_data.gd`, `npc_controller.gd`, `demand_calculator.gd`, `test_carrier_data.gd`, `test_demand_calculator.gd`, `test_npc_controller.gd`, `sim_initial_state.json`, `session_all_carriers_active.json`, `simulation_harness_controller.gd`, `game_session_harness_controller.gd`
+
+**Testing:** Headless launch clean. GUT unit suite passes. Full validation suite passes.
+
+---
+
 ### Session: Scoreboard UI Cleanup + Scoring Fixes + Bankruptcy (2025-07-27)
 
 **Deliverables:**
