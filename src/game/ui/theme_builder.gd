@@ -107,6 +107,10 @@ static func build_theme() -> Theme:
 	theme.set_stylebox("labeled_separator_right", "PopupMenu", popup_sep)
 	theme.set_stylebox("separator", "PopupMenu", popup_sep)
 
+	# Radio button icons — default dark icons are invisible on dark backgrounds
+	theme.set_icon("radio_unchecked", "PopupMenu", _make_radio_icon(16, MUTED, false))
+	theme.set_icon("radio_checked", "PopupMenu", _make_radio_icon(16, ACCENT, true))
+
 	# --- SpinBox / LineEdit ---
 	var lineedit_normal := _flat_style(SURFACE.lightened(0.05), BORDER, 4, 4, 6)
 	var lineedit_focus := _flat_style(SURFACE.lightened(0.08), ACCENT, 4, 4, 6)
@@ -133,6 +137,36 @@ static func _flat_style(bg: Color, border: Color, border_w: int, radius: int, ma
 	style.set_corner_radius_all(radius)
 	style.set_content_margin_all(margin)
 	return style
+
+
+## Creates a radio button icon texture (circle outline or filled dot).
+static func _make_radio_icon(size: int, color: Color, filled: bool) -> ImageTexture:
+	var img := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	img.fill(Color.TRANSPARENT)
+	var center := Vector2(size / 2.0, size / 2.0)
+	var outer_r := size / 2.0 - 1.0
+	var inner_r := outer_r - 1.5
+	for y in size:
+		for x in size:
+			var dist := Vector2(x + 0.5, y + 0.5).distance_to(center)
+			if filled:
+				# Filled dot with antialiased edge
+				var dot_r := outer_r - 1.0
+				if dist <= dot_r - 0.5:
+					img.set_pixel(x, y, color)
+				elif dist <= dot_r + 0.5:
+					var alpha := clampf(dot_r + 0.5 - dist, 0.0, 1.0)
+					img.set_pixel(x, y, Color(color.r, color.g, color.b, alpha))
+			else:
+				# Ring outline with antialiased edges
+				if dist >= inner_r - 0.5 and dist <= outer_r + 0.5:
+					var alpha := 1.0
+					if dist < inner_r + 0.5:
+						alpha = clampf(dist - inner_r + 0.5, 0.0, 1.0)
+					if dist > outer_r - 0.5:
+						alpha = minf(alpha, clampf(outer_r + 0.5 - dist, 0.0, 1.0))
+					img.set_pixel(x, y, Color(color.r, color.g, color.b, alpha))
+	return ImageTexture.create_from_image(img)
 
 
 ## Creates a styled section header label (uppercase, accent-colored, with top spacing).
