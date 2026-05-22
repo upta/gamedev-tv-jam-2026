@@ -64,6 +64,7 @@ func refresh() -> void:
 	# Clear everything except the title label
 	var children := _content.get_children()
 	for i in range(children.size() - 1, 0, -1):
+		_content.remove_child(children[i])
 		children[i].queue_free()
 
 	var intent := _player_controller.pending_intent
@@ -99,6 +100,7 @@ func refresh() -> void:
 		_add_section_empty("ROUTES")
 
 	# --- SHIPS ---
+	_add_spacer()
 	var ship_items: Array[String] = []
 	var ship_counts: Dictionary = {}
 	for order: Dictionary in intent.ship_orders:
@@ -117,6 +119,7 @@ func refresh() -> void:
 		_add_section_empty("SHIPS")
 
 	# --- SLOTS ---
+	_add_spacer()
 	var slot_items: Array[String] = []
 	for bid: Dictionary in intent.slot_bids:
 		var planet := _planet_name(bid.get("planet_id", ""))
@@ -139,6 +142,13 @@ func refresh() -> void:
 		_add_section_empty("SLOTS")
 
 	_reposition()
+
+
+func _add_spacer() -> void:
+	var spacer := Control.new()
+	spacer.custom_minimum_size.y = 4
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_content.add_child(spacer)
 
 
 func _add_section(header_text: String, items: Array[String]) -> void:
