@@ -2,6 +2,23 @@
 
 ## Recent Sessions
 
+### Session: Star Map Context Menu (2026-05-22)
+
+**Deliverables:**
+1. **Right-Click Context Menu on StarMap:** Click planet → shows context menu with "Buy Slots" button
+2. **Button States:** "Buy Slots" (enabled when slots available), "No Slots" (disabled when all slots owned)
+3. **Dismissal Behavior:** Left-click anywhere or click outside → dismisses menu
+4. **Signal Wiring:** Context menu button emits `slot_purchase_requested(planet_id)` signal connected in main.gd to open manage_slots_modal
+5. **Hover Panel Integration:** Hover panel hides while context menu visible
+
+**Files changed:** `star_map.gd`, `manage_slots_modal.gd`, `main.gd`
+
+**Testing:** Headless launch clean. All tests pass. No regressions.
+
+**Commit:** bb3d62b
+
+---
+
 ### Session: Planet Selection Guide Line (2025-07-19)
 
 **Deliverables:**

@@ -543,3 +543,201 @@ Repurposes dead `_selected_planet_id` click behavior (nothing consumed the old `
 - Maintains signal-driven architecture (D001, D002)
 - No breaking changes to GameState, carrier model, or existing signals
 - Validation scenarios cover guide activation, snapping, cancellation paths, and edge cases
+
+---
+
+## D019: Star Map Resize-Aware Rebuild + CanvasLayer Theme Pattern
+
+**Date:** 2026-05-20  
+**Author:** Builder
+
+**Context:**
+- Star map bottom planets clipped after top bar grew
+- Star map lacked visual depth
+- Welcome overlay didn't use project theme
+
+**Decisions:**
+
+1. **Star Map Deferred Build via `resized` Signal** — The star map now connects to `resized` and rebuilds when the Control receives its actual post-layout size. Previously `_build_map()` ran at bind-time before VBoxContainer allocated space, causing stale dimensions.
+
+2. **Background Starfield** — 200 seeded (seed=42) random stars drawn in `_draw()` behind all map content. Alpha range 0.05–0.25 using ThemeBuilder.TEXT. Regenerated on resize.
+
+3. **CanvasLayer Theme Application** — Pattern: assign `ThemeBuilder.build_theme()` to a child Control (MarginContainer) in `_ready()`. Font/color overrides applied per-label via script.
+
+**Impact:**
+- Star map correctly fills available space regardless of top bar height
+- Starfield adds visual depth without distracting from gameplay
+- Welcome overlay matches the rest of the UI visually
+
+---
+
+## D020: ThemeBuilder Pattern for CanvasLayer Overlays
+
+**Date:** 2026-05-24  
+**By:** Builder
+
+**Context:** CanvasLayer nodes (layer 100+) don't inherit parent scene themes. Both WelcomeOverlay and TurnPresentationOverlay need explicit theme application.
+
+**Decision:** Standardized pattern: in `_ready()`, set `ThemeBuilder.build_theme()` on the MarginContainer child of the Overlay ColorRect, then apply per-node overrides (title font/color, hint colors, accent button styling). Background color uses SURFACE RGB with custom alpha as a literal in the `.tscn` file.
+
+**Implications:** Any future CanvasLayer-based overlay (game over screen, pause menu, etc.) should follow this same pattern. Consider extracting a helper method if more overlays are added.
+
+---
+
+## D021: Unicode Icon Glyphs & Card-Based Ship Selection
+
+**Date:** 2026-05-18  
+**Author:** Builder
+
+**Context:** UI used text labels "Pax", "Cargo", "Fuel". Ship selection was dropdown + stats line (hard to compare).
+
+**Decisions:**
+
+1. **Unicode Glyphs Replace SVG BBCode** — Replace `[img=WxH]res://path.svg[/img]` BBCode with colored Unicode glyphs: `●` (pax/#6bedc4), `◼` (cargo/#e8c56d), `◆` (fuel/#73948c). SVG `[img]` tags render as broken rectangles in RichTextLabel. Unicode shapes are universally supported and render reliably.
+
+2. **Two-Step Card-Based Order Ship Modal** — Step 0 shows all available ship types as browsable cards. Step 1 shows customization (capacity split, quantity, order). Card layout shows all stats at a glance for every ship type simultaneously.
+
+**Impact:**
+- `pax_bb()`, `cargo_bb()`, `fuel_bb()` return BBCode text strings
+- All existing call sites work unchanged
+- `load_icon_texture()` added for TextureRect usage
+- Removed OptionButton from OrderShipModal
+- Programmatic API preserved — `select_type(index)` triggers step transition internally
+
+---
+
+## D022: Scoreboard Panel as Star Map Overlay
+
+**By:** Builder  
+**Date:** 2026-05-22
+
+**Context:** Top bar had Rank and Events labels cluttering the header. Request: standalone scoreboard panel overlaid on star map instead.
+
+**Decision:**
+- ScoreboardPanel is a child of the StarMap node in main.tscn (not direct child of GameScene or top bar)
+- Built programmatically in GDScript (no complex scene tree)
+- Uses `mouse_filter = IGNORE` so star map interactions pass through
+- Positioned with absolute offsets (16px from top-left of star map area)
+
+**Rationale:** Placing it as a StarMap child means it naturally clips to the star map area and moves with it. Mouse filter ignore ensures planet clicks still work. Programmatic build avoids coupling to scene tree node names.
+
+---
+
+## D023: Duplicate Route Prevention & Efficiency Ratings
+
+**Author:** Builder  
+**Date:** 2026-05-25
+
+**Decision 1: Duplicate Route Prevention**
+- A carrier cannot create a new route on a lane where they already have an active route or pending route create
+- Create button disabled with message directing to edit existing route
+- Scope: Create mode only — edit mode exempt (you're modifying existing route)
+- Implementation: Checks `carrier.routes[].lane_id` and `_player_controller.pending_intent.route_creates` using `GalaxyData.derive_lane_id()` for canonical comparison
+
+**Rationale:** Multiple routes on same lane adds confusion without strategic depth. Players should adjust existing routes rather than stacking duplicates.
+
+**Decision 2: Ship Efficiency Ratings**
+- Ship efficiency (float 0.3–1.2) surfaced to players as letter grade (A–E) via `ShipType.get_efficiency_rating()`
+- Rating scale: A ≥ 1.0, B ≥ 0.7, C ≥ 0.5, D ≥ 0.35, E < 0.35
+- Shown in Order Ship modal and Create Route modal ship selector
+
+**Rationale:** Efficiency affects operating cost and speed but was invisible. Letter grades communicate relative quality without exposing raw floats.
+
+---
+
+## D024: Programmatic Radio Icons Over Asset Files
+
+**Context:** Default Godot radio button icons are dark circles, invisible against dark PopupMenu background (MODAL_SURFACE #121A1A).
+
+**Decision:** Generate radio icons programmatically in `ThemeBuilder._make_radio_icon()` using `Image` + `ImageTexture` rather than shipping SVG/PNG asset files.
+
+**Rationale:**
+- Zero external dependencies — no icon files to manage
+- Colors stay in sync with palette constants (MUTED for unchecked ring, ACCENT for filled checked dot)
+- Antialiased pixel rendering at 16px produces crisp results
+- If palette changes, icons update automatically
+
+**Alternatives rejected:**
+- SVG/PNG assets in `src/assets/icons/`: adds file management overhead, palette drift risk
+- Godot icon color modulation: PopupMenu doesn't expose per-icon color modulation for radio items
+
+---
+
+## D025: Ship Build Time Formula
+
+**Date:** 2026-05-25  
+**Author:** Builder
+
+**Context:** Formula was `current_turn + build_turns`, but ships delivered during turn resolution (step 1 of turn_pipeline) and aren't usable until NEXT planning phase. This made "Build: 2 turns" effectively cost 3 planning turns.
+
+**Decision:** Changed formula to `current_turn + build_turns - 1`. A ship ordered on turn T with build_turns=N is delivered during turn T+N-1 resolution, making it usable starting turn T+N planning — exactly N planning turns after ordering.
+
+**Impact:**
+- `ship_catalog.gd`: Formula change
+- `ships_modal.gd`: Label changed from "Ready turn" to "Delivered turn" for clarity
+- Unit test updated to expect new value
+- All 308 tests pass
+
+---
+
+## D026: Icon System & Hover Panel Redesign
+
+**Author:** Builder  
+**Date:** 2026-05-25
+
+**Context:** UI used text labels "Pax", "Cargo", "Fuel". Planet hover tooltip was unstructured text blob.
+
+**Decisions:**
+
+1. **Tabler Icons via SVG** — Downloaded 3 Tabler Icons (users, package, gas-station) as SVGs with `stroke="#E6F5F0"` to match ThemeBuilder.TEXT. Stored in `src/assets/icons/`.
+
+2. **BBCode `[img]` for inline icons** — Use RichTextLabel with BBCode `[img=14x14]` tags for most icon placements. Keeps layout simple and allows mixing icons with formatted text. ThemeBuilder provides `pax_bb()`, `cargo_bb()`, `fuel_bb()` helpers.
+
+3. **`use_bbcode` flag pattern** — For generic selection lists (rendering both plain-text and icon-rich items), added opt-in `use_bbcode` flag on item dictionaries rather than converting all items to BBCode.
+
+4. **Hover panel structured layout** — Used BBCode formatting (bold, color, separator lines) to create visually structured tooltip. Planet name as bold header, system name in MUTED, stats with accent-colored "yours" values, demand line with icons.
+
+**Impact:**
+- All 8 UI files updated to use icons instead of text labels
+- ThemeBuilder gains icon constants, BBCode helpers, `make_icon_label()` factory
+- UI-only changes — no behavioral changes
+
+---
+
+## D027: Centralized Carrier Colors
+
+**By:** Builder  
+**Date:** 2026-05-22
+
+**Context:** Carrier colors duplicated in `star_map.gd` and `planet_node.gd` with divergent values. `scoreboard_panel.gd` used ACCENT/TEXT/MUTED instead of carrier-specific colors.
+
+**Decision:**
+- Single source of truth: `ThemeBuilder.CARRIER_COLORS` dictionary constant
+- Colors chosen to fit dark sci-fi palette:
+  - player = ACCENT (teal-green)
+  - NPC1 = muted coral `(0.85, 0.45, 0.42)`
+  - NPC2 = soft lavender-blue `(0.55, 0.65, 0.90)`
+  - NPC3 = warm amber `(0.90, 0.72, 0.35)`
+- All consumers (`star_map.gd`, `planet_node.gd`, `scoreboard_panel.gd`) reference `ThemeBuilder.CARRIER_COLORS`
+- Scoreboard rows now show each carrier in its identity color (indicator dot + name label)
+
+**Rationale:**
+- Eliminates color drift between map elements and UI panels
+- Desaturated palette feels cohesive with existing theme constants
+- Adding a new carrier only requires updating one dictionary
+
+---
+
+## D028: Icon Strategy — SVG [img] BBCode + Programmatic Fallback
+
+**Date:** 2026-05-18  
+**Author:** Builder
+
+**Context:** The previous session replaced all SVG `[img]` BBCode with Unicode glyphs after observing rendering failures. Brian reported SVG icons were actually working everywhere except the hover panel.
+
+**Decision:**
+- **Default:** Use `[img=NxN]res://path.svg[/img]` BBCode for inline icons (via `icon_bb()`). Works in all standard RichTextLabels.
+- **Fallback:** For specific RichTextLabels where `[img]` fails (currently only star map hover panel), use programmatic API (`add_image()` with pre-loaded `ImageTexture`).
+- **Ship cards:** Use plain `Label` nodes with `GridContainer` for tabular stats. "Capacity" is generic (no icon) since it covers both pax and cargo pre-split.
+
+**Rationale:** One broken panel doesn't justify changing the icon strategy for the entire app. Fix the broken panel specifically, keep simpler BBCode approach everywhere else.

@@ -1,9 +1,6 @@
 # Validator History
 
 ## Session: Implementation Planning (2026-05-16T23:11:53Z)
-**Status:** Ready to validate Phase 1  
-**Plan Location:** `.squad/decisions/inbox/lead-implementation-plan.md`  
-**Decisions Location:** `.squad/decisions.md`
 
 ### Phase 1 Validation Scenarios
 The implementation plan includes 13 validation scenarios (JSON contracts) covering:
