@@ -35,3 +35,61 @@ Simulation harness (simulation_harness.tscn + simulation_harness_controller.gd):
 4. Flag flaky or non-deterministic scenarios
 
 **Next:** Await Phase 1 work items and run scenarios upon each merge.
+
+---
+
+## Session: Star Map Guide Mode Validation (2026-05-22)
+**Status:** Complete — 2 new scenarios, full suite passing  
+**Commit:** `002dd4f`
+
+### Task
+Created validation scenarios for the star map "planet selection guide line" feature implemented by Builder.
+
+**Feature behavior:**
+- Click planet → enters guide mode, dashed line follows cursor from planet center
+- Hover another planet → line snaps to center, hover shows distance
+- Click second planet → emits `route_requested(origin, dest)` signal, cancels guide
+- Click same planet or non-planet → cancels guide mode
+
+### Scenarios Created
+
+**1. `star_map_guide_mode.json`**
+- Tests core guide mode lifecycle
+- Verifies guide activation on first planet click (earth)
+- Verifies route_requested emission on second planet click (mars)
+- Verifies guide auto-cancels after route request
+- **Result:** PASS
+
+**2. `star_map_guide_cancel.json`**
+- Tests guide mode cancellation paths
+- Same planet click → cancels, no route request
+- Re-enter guide mode with different planet
+- Explicit `cancel_guide_mode()` call → cancels
+- **Result:** PASS
+
+### Harness Assets
+- `star_map_guide_mode_harness_controller.gd` — drives clicks at steps 40, 60
+- `star_map_guide_mode_harness.tscn` — harness scene
+- `star_map_guide_cancel_harness_controller.gd` — drives clicks at steps 40, 60, 80, 100
+- `star_map_guide_cancel_harness.tscn` — harness scene
+
+**Harness pattern:** Extends Control, uses `_physics_process()` with step counter to drive planet clicks programmatically via `star_map._on_planet_clicked(planet_id)`.
+
+**Exposed state:** Reuses existing `star_map_harness_controller.gd` exposed state:
+- `harness_state.guide_active` (bool)
+- `harness_state.guide_origin_id` (String)
+- `harness_state.guide_snap_planet_id` (String)
+- `harness_state.last_route_requested_origin` (String)
+- `harness_state.last_route_requested_dest` (String)
+- `harness_state.route_request_count` (int)
+
+### Issues Encountered
+1. **Scenario operation error:** Used `wait_physics_frames` instead of `wait_frames` — fixed by checking existing scenarios
+2. **Timing issue in cancel scenario:** Checkpoint taken AFTER explicit cancel call due to step/frame mismatch — fixed by adjusting wait frame counts (15 frames before cancel, 20 frames after)
+
+### Full Suite Status
+- **40 scenarios total, 40 passed, 0 failed**
+- All existing scenarios still pass
+- New scenarios integrated successfully
+
+**Next:** Ready for next feature validation request.
