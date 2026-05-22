@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://e5spacegr0tesk"
-path="res://.godot/imported/SpaceGrotesk-Bold.ttf-c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8.fontdata"
+uid="uid://dkhef4uq63wnt"
+path="res://.godot/imported/SpaceGrotesk-Bold.ttf-f08a61a241b260e9563fc58eb0326b8e.fontdata"
 
 [deps]
 
 source_file="res://assets/fonts/SpaceGrotesk-Bold.ttf"
-dest_files=["res://.godot/imported/SpaceGrotesk-Bold.ttf-c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8.fontdata"]
+dest_files=["res://.godot/imported/SpaceGrotesk-Bold.ttf-f08a61a241b260e9563fc58eb0326b8e.fontdata"]
 
 [params]
 
