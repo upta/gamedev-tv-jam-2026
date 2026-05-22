@@ -475,8 +475,10 @@ func _on_planet_hovered(planet_id: String, mouse_pos: Vector2) -> void:
 	var system_display := planet.system.replace("_", " ").capitalize()
 
 	# Build panel using structured UI nodes (avoids RichTextLabel SVG issues)
+	# Free children immediately so they don't affect sizing this frame
 	for child: Node in _hover_content.get_children():
-		child.queue_free()
+		_hover_content.remove_child(child)
+		child.free()
 
 	# Planet name (bold)
 	_hover_content.add_child(_hover_make_label(planet.name, ThemeBuilder.TEXT, true, 15))
@@ -489,16 +491,12 @@ func _on_planet_hovered(planet_id: String, mouse_pos: Vector2) -> void:
 
 	# Slots row
 	_hover_content.add_child(_hover_make_info_row("Slots", [
-		["%d total" % planet.total_slots, ThemeBuilder.MUTED],
-		["%d yours" % player_owned, ThemeBuilder.ACCENT],
-		["%d NPC" % other_owned, ThemeBuilder.TEXT],
-		["%d avail" % available, ThemeBuilder.TEXT],
+		["%d of %d available" % [available, planet.total_slots], ThemeBuilder.TEXT],
 	]))
 
 	# Routes row
 	_hover_content.add_child(_hover_make_info_row("Routes", [
-		["%d active" % total_routes, ThemeBuilder.MUTED],
-		["%d yours" % player_routes, ThemeBuilder.ACCENT],
+		["%d active" % total_routes, ThemeBuilder.TEXT],
 	]))
 
 	# Separator
