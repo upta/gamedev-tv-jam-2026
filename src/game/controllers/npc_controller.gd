@@ -233,26 +233,43 @@ func _consider_route_creation(
 			if carrier.cash <= new_reserve:
 				continue
 
-		# Price based on demand — use the direction matching origin->dest
-		var lane_parts: PackedStringArray = candidate["lane_id"].split("::")
-		var price_direction := "forward" if origin_id == lane_parts[0] else "reverse"
-		var demand_entry := game_state.demand_table.get_entry(candidate["lane_id"], price_direction)
+		# Price based on suggested price (anchored to distance), not demand quantity
+		var lane := game_state.galaxy.get_lane(origin_id, dest_id)
 		var passenger_price := 50.0
 		var cargo_price := 40.0
-		if demand_entry != null:
-			passenger_price = demand_entry.base_demand_passenger * 0.8
-			cargo_price = demand_entry.base_demand_cargo * 0.6
-		# ±20% variance
-		passenger_price *= 1.0 + game_state.rng.randf_range(-0.2, 0.2)
-		cargo_price *= 1.0 + game_state.rng.randf_range(-0.2, 0.2)
+		if lane != null:
+			passenger_price = DemandCalculator.calculate_suggested_price(lane, "passenger")
+			cargo_price = DemandCalculator.calculate_suggested_price(lane, "cargo")
+		# Personality discount: aggressive NPCs undercut more to grab share
+		var price_factor := 1.0 - slot_aggression * 0.15  # 0.85–1.0
+		passenger_price *= price_factor
+		cargo_price *= price_factor
+		# ±10% variance
+		passenger_price *= 1.0 + game_state.rng.randf_range(-0.1, 0.1)
+		cargo_price *= 1.0 + game_state.rng.randf_range(-0.1, 0.1)
 
+		# Estimate profitability before committing
+		# Revenue estimate: price × (capacity/2 passengers) at ~50% fill
+		var pax_cap := ship_type.max_capacity / 2
+		var cargo_cap := ship_type.max_capacity - pax_cap
+		var est_revenue := (passenger_price * pax_cap + cargo_price * cargo_cap) * 0.5
+		var est_op_cost: float = (
+			pow(distance, 1.2)
+			* ship_type.max_capacity
+			* FinancialCalculator.FUEL_COST_PER_UNIT
+			/ ship_type.efficiency
+		)
+		if est_revenue < est_op_cost * 1.1:
+			continue  # skip routes that won't break even
+
+		# New routes start at frequency 1 — let optimization increase it
 		intent.route_creates.append({
 			"origin_id": origin_id,
 			"dest_id": dest_id,
 			"ship_ids": [chosen_ship.id],
 			"passenger_price": passenger_price,
 			"cargo_price": cargo_price,
-			"frequency": _choose_frequency([chosen_ship.id], carrier, game_state, distance),
+			"frequency": 1,
 		})
 		# Track creation turn for optimization grace period
 		var future_route_id := "%s-route-%d" % [carrier.id, carrier.routes.size() + routes_created]
@@ -273,6 +290,19 @@ func _consider_ship_orders(
 	game_state: GameState,
 	reserve: float,
 ) -> void:
+	# Don't buy ships if existing routes are losing money
+	var financials: Dictionary = game_state.last_turn_financials.get(carrier.id, {})
+	var route_summaries: Array = financials.get("routes", [])
+	if not route_summaries.is_empty():
+		var losing_routes := 0
+		for summary: Dictionary in route_summaries:
+			var rev: float = summary.get("revenue", {}).get("total_revenue", 0.0)
+			var cost: float = summary.get("operating_cost", 0.0)
+			if rev < cost:
+				losing_routes += 1
+		if losing_routes > 0:
+			return  # fix unprofitable routes before buying more ships
+
 	var total_ships := carrier.ships.size()
 	var available_ships := carrier.get_available_ships()
 	var assigned_count := total_ships - available_ships.size()
@@ -452,8 +482,8 @@ func _consider_route_modifications(
 		else:
 			_route_loss_streak[route_id] = 0
 
-		# Cancel after 5 consecutive loss turns, but never cancel the last route
-		if _route_loss_streak.get(route_id, 0) >= 5 and active_routes.size() > 1:
+		# Cancel after 3 consecutive loss turns, but never cancel the last route
+		if _route_loss_streak.get(route_id, 0) >= 3 and active_routes.size() > 1:
 			intent.route_cancellations.append(route_id)
 			_route_loss_streak.erase(route_id)
 			continue
@@ -498,17 +528,22 @@ func _consider_route_modifications(
 				new_frequency = mini(new_frequency + 1, max_freq)
 				modified = true
 		elif avg_load < 0.4:
-			# Underloaded — reduce prices
-			new_pax_price *= 0.92
-			new_cargo_price *= 0.92
+			if total_rev < op_cost:
+				# Losing money AND underloaded — raise prices to reduce losses
+				new_pax_price *= 1.08
+				new_cargo_price *= 1.08
+			else:
+				# Profitable but underloaded — reduce prices to attract demand
+				new_pax_price *= 0.92
+				new_cargo_price *= 0.92
 			modified = true
 			# Also reduce frequency to cut operating costs
 			if new_frequency > 1:
 				new_frequency -= 1
 				modified = true
 
-		# Assign idle ships to routes even at moderate load — sitting idle is wasteful
-		if not modified:
+		# Only add idle ships to profitable, high-demand routes (not any route)
+		if not modified and avg_load > 0.6 and total_rev > op_cost * 1.2:
 			var idle_ships: Array = carrier.get_available_ships()
 			if not idle_ships.is_empty():
 				var distance := game_state.galaxy.calculate_distance(route.origin_id, route.dest_id)
