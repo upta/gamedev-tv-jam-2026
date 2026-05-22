@@ -2,6 +2,21 @@
 
 ## Recent Sessions
 
+### Session: Cargo Volume Completion (2026-05-22)
+
+**Deliverables:**
+1. **Cargo demand completion:** Raised baseline cargo demand to the new high-volume curve so productive lanes now generate substantially more cargo than passenger demand.
+2. **Regression coverage:** Added a focused unit test for Earth→Mars demand to lock in the intended cargo-heavy opening economy.
+3. **Validation confirmation:** Re-ran headless launch, unit tests, targeted scenarios, and the full validation suite after the cargo-demand change.
+
+**Decision:** Cargo should remain a high-volume, low-margin market. See `.squad/decisions/inbox/builder-cargo-balance.md`.
+
+**Files changed:** `demand_data.gd`, `test_demand_data.gd`
+
+**Testing:** Headless launch clean. GUT unit suite passes. Full validation suite passes.
+
+---
+
 ### Session: Shared Earth Starts + NPC Competition Rebalance (2026-05-22)
 
 **Deliverables:**

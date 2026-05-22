@@ -99,6 +99,6 @@ static func _demand_passenger(origin_slots: int, dest_slots: int) -> int:
 	return clampi(dest_slots * 8 + origin_slots * 2, 20, 100)
 
 
-# Cargo originates from productive hubs (high-slot planets).
+# Cargo originates from productive hubs (high-slot planets) and moves in higher volume.
 static func _demand_cargo(origin_slots: int, dest_slots: int) -> int:
-	return clampi(origin_slots * 6 + dest_slots * 2, 10, 80)
+	return clampi(origin_slots * 18 + dest_slots * 6, 40, 250)
