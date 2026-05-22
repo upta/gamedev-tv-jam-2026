@@ -2,6 +2,31 @@
 
 ## Recent Sessions
 
+### Session: Three UI Fixes — Icons, Hover Panel, Ship Cards (2026-05-18b)
+
+**Deliverables:**
+1. **Icon Revert:** Restored `pax_bb()`/`cargo_bb()`/`fuel_bb()` to use `[img]` BBCode via `icon_bb()`. The Unicode glyph approach was a mistake — SVG icons work everywhere except the hover panel.
+2. **Hover Panel Fix:** Rewrote `_on_planet_hovered()` in `star_map.gd` to use programmatic RichTextLabel API (`add_text()`, `push_color()`, `add_image()`) instead of string BBCode. Textures loaded once in `_build_hover_panel()`.
+3. **Ship Card Restyle:** Replaced ad-hoc rows with a `GridContainer` (4 columns) for tabular stats. Labels muted, values white. No pax icon on "Capacity" (it's generic). Select button stays bottom-right.
+
+**Testing:** 308 passing, 2 pre-existing separator test failures (unrelated).
+
+**Status:** Code pushed to origin.
+
+---
+
+### Session: Icon Fix & Order Ship Modal Redesign (2026-05-18)
+
+**Deliverables:**
+1. **Icon Fix:** Replaced broken SVG `[img]` BBCode tags with colored Unicode glyphs (● pax, ◼ cargo, ◆ fuel). Added `ThemeBuilder.load_icon_texture()` for TextureRect usage.
+2. **Order Ship Modal Redesign:** Two-step card-based flow — Step 1 browses all ship types as styled cards, Step 2 customizes capacity/quantity. Programmatic harness API preserved.
+
+**Testing:** 308 passing, 2 pre-existing separator test failures (unrelated).
+
+**Status:** Code pushed to origin.
+
+---
+
 ### Session Completion: Economy Balance & Debug Stability (2026-05-17T185810Z)
 
 **By:** Builder (background agents: builder-debug-fix, builder-economy-balance)
@@ -122,6 +147,43 @@ All processed in carrier_order (index-based tie-breaking, D004).
 ---
 
 ## Learnings
+
+### SVG BBCode Broken → Unicode Glyphs (2026-05-18)
+
+- Godot's `[img=WxH]res://path.svg[/img]` BBCode renders broken rectangles for SVGs. Root cause: SVG import rasterization size mismatch with display size, and CompressedTexture2D handling in BBCode.
+- **Correction (2026-05-18b):** The Unicode glyph approach was reverted. SVG `[img]` tags actually work fine in most RichTextLabels — the only failure was the hover panel in `star_map.gd`. Fix: use programmatic RichTextLabel API (`add_image()` with pre-loaded ImageTexture) for that one panel, keep `[img]` BBCode everywhere else.
+- `pax_bb()` / `cargo_bb()` / `fuel_bb()` restored to return `[img=NxN]path[/img]` via `icon_bb()`.
+- For TextureRect usage (spinbox icon rows), `ThemeBuilder.load_icon_texture()` loads SVG, gets Image, resizes, returns ImageTexture.
+
+### Hover Panel: Programmatic RichTextLabel API (2026-05-18b)
+
+- When `[img]` BBCode fails in a specific RichTextLabel, use the programmatic API: `clear()`, `push_bold()`, `add_text()`, `push_color()`, `pop()`, `add_image()`, `newline()`.
+- `add_image(texture, width, height)` works with in-memory ImageTextures (unlike `[img]` BBCode which needs file paths).
+- Pre-load icon textures once (member variables) to avoid per-hover allocation.
+
+### Ship Card GridContainer Layout (2026-05-18b)
+
+- `GridContainer` with `columns = 4` gives clean tabular stat layout: [label][value][label][value] per row.
+- Use `custom_minimum_size.x = 80` on both label and value cells for consistent column widths.
+- "Capacity" is generic (not pax-specific) — don't use pax icon for it.
+- Labels in MUTED color, values in default TEXT (white).
+
+- SVGs must be imported by Godot before `load()` works — run `--import --quit` or open the editor to generate `.import` files for new SVGs.
+- Inline icons in RichTextLabel use `[img=WxH]res://path[/img]` BBCode syntax. 14x14 works well for inline text-sized icons.
+- `ThemeBuilder.make_icon_label()` creates a pre-configured RichTextLabel (bbcode_enabled, fit_content, no scroll) for icon+text labels.
+- When adding a TextureRect before a Label in an HBoxContainer, child indices shift — use `get_child(count - 1)` instead of hardcoded index to find the SpinBox.
+- For selection list items that mix plain text and BBCode, added `use_bbcode` flag to item dictionaries and conditionally render RichTextLabel vs Label.
+
+### Selection Popup Theming & Ship Build Timing (2026-05-25)
+
+- Popups added via `get_tree().root.add_child()` don't inherit any theme from the scene tree. Must assign `ThemeBuilder.build_theme()` directly to the popup's PanelContainer so children (labels, buttons, separators) pick up themed styles.
+- Ship build off-by-one: formula was `current_turn + build_turns` but ships aren't usable until the turn AFTER delivery. Changed to `current_turn + build_turns - 1` so "Build: N turns" matches the number of planning turns the player actually waits.
+
+### Duplicate Route Blocking & Efficiency Ratings (2026-05-25)
+
+- `GalaxyData.derive_lane_id()` is the canonical way to compare lanes regardless of direction — use it to detect duplicate routes by comparing against `carrier.routes[].lane_id` and pending `route_creates`.
+- `ShipType.get_efficiency_rating()` added as instance method (not static) since it reads `self.efficiency`. Thresholds: A≥1.0, B≥0.7, C≥0.5, D≥0.35, E<0.35.
+- Duplicate route check intentionally skipped in edit mode (`_edit_mode == true`) — editing an existing route on the same lane is valid.
 
 ### ThemeBuilder on CanvasLayer Overlays (2026-05-24)
 

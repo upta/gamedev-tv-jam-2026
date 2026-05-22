@@ -21,7 +21,7 @@ var _selected_planet_id: String = ""
 var _planet_positions: Dictionary = {}  # { planet_id: Vector2 } in pixel space
 var _planet_radii: Dictionary = {}     # { planet_id: float } for hit detection
 var _hover_panel: PanelContainer = null
-var _hover_label: RichTextLabel = null
+var _hover_content: VBoxContainer = null
 var _hovered_planet_id: String = ""
 var _star_positions: Array[Vector2] = []
 var _star_alphas: Array[float] = []
@@ -313,18 +313,100 @@ func _build_hover_panel() -> void:
 	style.border_color = ThemeBuilder.BORDER
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(6)
-	style.set_content_margin_all(8)
+	style.set_content_margin_all(10)
 	_hover_panel.add_theme_stylebox_override("panel", style)
 
-	_hover_label = RichTextLabel.new()
-	_hover_label.bbcode_enabled = true
-	_hover_label.fit_content = true
-	_hover_label.scroll_active = false
-	_hover_label.custom_minimum_size = Vector2(220, 0)
-	_hover_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_hover_panel.add_child(_hover_label)
+	_hover_content = VBoxContainer.new()
+	_hover_content.add_theme_constant_override("separation", 4)
+	_hover_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hover_panel.add_child(_hover_content)
 
 	add_child(_hover_panel)
+
+
+func _hover_make_label(text: String, color: Color = ThemeBuilder.TEXT, bold: bool = false, font_size: int = 13) -> Label:
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.add_theme_color_override("font_color", color)
+	lbl.add_theme_font_size_override("font_size", font_size)
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if bold:
+		var font_bold = load("res://assets/fonts/SpaceGrotesk-Bold.ttf") as Font
+		if font_bold:
+			lbl.add_theme_font_override("font", font_bold)
+	return lbl
+
+
+func _hover_make_separator() -> HSeparator:
+	var sep := HSeparator.new()
+	var sep_style := StyleBoxFlat.new()
+	sep_style.bg_color = ThemeBuilder.BORDER
+	sep_style.set_content_margin_all(0)
+	sep_style.content_margin_top = 1
+	sep_style.content_margin_bottom = 1
+	sep.add_theme_constant_override("separation", 0)
+	sep.add_theme_stylebox_override("separator", sep_style)
+	sep.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return sep
+
+
+func _hover_make_info_row(label_text: String, parts: Array) -> HBoxContainer:
+	## Build a row like: "Slots   X total · Y yours · Z NPC · W avail"
+	## parts is Array of [text: String, color: Color] pairs.
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 0)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	var section_lbl := _hover_make_label(label_text, ThemeBuilder.MUTED)
+	section_lbl.custom_minimum_size.x = 60
+	row.add_child(section_lbl)
+
+	for i: int in range(parts.size()):
+		var part: Array = parts[i]
+		var part_text: String = part[0]
+		var part_color: Color = part[1]
+		if i > 0:
+			var dot := _hover_make_label(" · ", ThemeBuilder.MUTED)
+			row.add_child(dot)
+		var val_lbl := _hover_make_label(part_text, part_color)
+		row.add_child(val_lbl)
+
+	return row
+
+
+func _hover_make_demand_row(pax_tier: String, cargo_tier: String) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	var section_lbl := _hover_make_label("Demand", ThemeBuilder.MUTED)
+	section_lbl.custom_minimum_size.x = 60
+	row.add_child(section_lbl)
+
+	if _hover_pax_tex:
+		var pax_icon := TextureRect.new()
+		pax_icon.texture = _hover_pax_tex
+		pax_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		pax_icon.custom_minimum_size = Vector2(14, 14)
+		pax_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(pax_icon)
+	row.add_child(_hover_make_label(pax_tier))
+
+	var spacer := Control.new()
+	spacer.custom_minimum_size.x = 8
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(spacer)
+
+	if _hover_cargo_tex:
+		var cargo_icon := TextureRect.new()
+		cargo_icon.texture = _hover_cargo_tex
+		cargo_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		cargo_icon.custom_minimum_size = Vector2(14, 14)
+		cargo_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(cargo_icon)
+	row.add_child(_hover_make_label(cargo_tier))
+
+	return row
 
 
 func _on_planet_hovered(planet_id: String, mouse_pos: Vector2) -> void:
@@ -392,64 +474,38 @@ func _on_planet_hovered(planet_id: String, mouse_pos: Vector2) -> void:
 	# Format system name
 	var system_display := planet.system.replace("_", " ").capitalize()
 
-	# Build panel using programmatic RichTextLabel API (avoids [img] rendering issues)
-	_hover_label.clear()
+	# Build panel using structured UI nodes (avoids RichTextLabel SVG issues)
+	for child: Node in _hover_content.get_children():
+		child.queue_free()
 
 	# Planet name (bold)
-	_hover_label.push_bold()
-	_hover_label.add_text(planet.name)
-	_hover_label.pop()  # bold
-	_hover_label.newline()
+	_hover_content.add_child(_hover_make_label(planet.name, ThemeBuilder.TEXT, true, 15))
 
-	# System name (muted)
-	_hover_label.push_color(ThemeBuilder.MUTED)
-	_hover_label.add_text(system_display)
-	_hover_label.pop()  # color
-	_hover_label.newline()
+	# System name (muted, smaller)
+	_hover_content.add_child(_hover_make_label(system_display, ThemeBuilder.MUTED, false, 12))
 
 	# Separator
-	_hover_label.push_color(ThemeBuilder.MUTED)
-	_hover_label.add_text("━━━━━━━━━━━━━━━━━━━━")
-	_hover_label.pop()  # color
-	_hover_label.newline()
+	_hover_content.add_child(_hover_make_separator())
 
-	# Slots line
-	_hover_label.add_text("Slots   ")
-	_hover_label.push_color(ThemeBuilder.MUTED)
-	_hover_label.add_text("%d total" % planet.total_slots)
-	_hover_label.pop()
-	_hover_label.add_text(" · ")
-	_hover_label.push_color(ThemeBuilder.ACCENT)
-	_hover_label.add_text("%d yours" % player_owned)
-	_hover_label.pop()
-	_hover_label.add_text(" · %d NPC · %d avail" % [other_owned, available])
-	_hover_label.newline()
+	# Slots row
+	_hover_content.add_child(_hover_make_info_row("Slots", [
+		["%d total" % planet.total_slots, ThemeBuilder.MUTED],
+		["%d yours" % player_owned, ThemeBuilder.ACCENT],
+		["%d NPC" % other_owned, ThemeBuilder.TEXT],
+		["%d avail" % available, ThemeBuilder.TEXT],
+	]))
 
-	# Routes line
-	_hover_label.add_text("Routes  ")
-	_hover_label.push_color(ThemeBuilder.MUTED)
-	_hover_label.add_text("%d active" % total_routes)
-	_hover_label.pop()
-	_hover_label.add_text(" · ")
-	_hover_label.push_color(ThemeBuilder.ACCENT)
-	_hover_label.add_text("%d yours" % player_routes)
-	_hover_label.pop()
-	_hover_label.newline()
+	# Routes row
+	_hover_content.add_child(_hover_make_info_row("Routes", [
+		["%d active" % total_routes, ThemeBuilder.MUTED],
+		["%d yours" % player_routes, ThemeBuilder.ACCENT],
+	]))
 
 	# Separator
-	_hover_label.push_color(ThemeBuilder.MUTED)
-	_hover_label.add_text("━━━━━━━━━━━━━━━━━━━━")
-	_hover_label.pop()  # color
-	_hover_label.newline()
+	_hover_content.add_child(_hover_make_separator())
 
-	# Demand line with icons
-	_hover_label.add_text("Demand  ")
-	if _hover_pax_tex:
-		_hover_label.add_image(_hover_pax_tex, 14, 14)
-	_hover_label.add_text(" %s  " % pax_tier)
-	if _hover_cargo_tex:
-		_hover_label.add_image(_hover_cargo_tex, 14, 14)
-	_hover_label.add_text(" %s" % cargo_tier)
+	# Demand row with icons
+	_hover_content.add_child(_hover_make_demand_row(pax_tier, cargo_tier))
 	_hover_panel.visible = true
 	_hover_panel.size = Vector2.ZERO  # Force panel to resize to content
 	_position_hover_panel(mouse_pos)
