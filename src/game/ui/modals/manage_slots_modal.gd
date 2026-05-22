@@ -56,6 +56,15 @@ func open() -> void:
 	_rebuild_table()
 
 
+func open_with_buy(planet_id: String) -> void:
+	_selected_planet_id = planet_id
+	_popup_mode = ""
+	_popup_planet_id = ""
+	super.open()
+	_rebuild_table()
+	_show_buy_popup(planet_id)
+
+
 # ---------------------------------------------------------------------------
 # Table Building
 # ---------------------------------------------------------------------------

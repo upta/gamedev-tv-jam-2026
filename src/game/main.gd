@@ -9,6 +9,7 @@ var _modals: Dictionary = {}
 var _active_modal: String = ""
 var _skip_presentation: bool = false
 var _route_modal_from_map: bool = false
+var _slots_modal_from_map: bool = false
 
 @onready var _top_bar: TopBar = %TopBar
 @onready var _star_map = %StarMap
@@ -92,6 +93,7 @@ func _connect_signals() -> void:
 	_manage_slots_modal.closed.connect(_on_manage_slots_modal_closed)
 	_manage_slots_modal.slot_action_submitted.connect(_on_slot_action_submitted)
 	_star_map.route_requested.connect(_on_star_map_route_requested)
+	_star_map.slot_purchase_requested.connect(_on_star_map_slot_purchase_requested)
 
 
 func _on_next_turn() -> void:
@@ -297,9 +299,22 @@ func _on_manage_slots_requested() -> void:
 
 
 func _on_manage_slots_modal_closed() -> void:
+	if _slots_modal_from_map:
+		_slots_modal_from_map = false
+		return
 	_slots_modal.open()
 	_active_modal = "slots"
 	_top_bar.set_active_toolbar("slots")
+
+
+func _on_star_map_slot_purchase_requested(planet_id: String) -> void:
+	_star_map.cancel_guide_mode()
+	if not _active_modal.is_empty():
+		_modals[_active_modal].close()
+		_active_modal = ""
+		_top_bar.set_active_toolbar("")
+	_slots_modal_from_map = true
+	_manage_slots_modal.open_with_buy(planet_id)
 
 
 func _on_slot_action_submitted() -> void:

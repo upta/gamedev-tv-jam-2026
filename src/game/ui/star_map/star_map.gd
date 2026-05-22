@@ -5,6 +5,7 @@ extends Control
 
 signal planet_selected(planet_id: String)
 signal route_requested(origin_id: String, dest_id: String)
+signal slot_purchase_requested(planet_id: String)
 
 const CARRIER_COLORS := ThemeBuilder.CARRIER_COLORS
 const PLAYER_ROUTE_WIDTH := 4.0
@@ -27,6 +28,9 @@ var _planet_radii: Dictionary = {}     # { planet_id: float } for hit detection
 var _hover_panel: PanelContainer = null
 var _hover_content: VBoxContainer = null
 var _hovered_planet_id: String = ""
+var _context_menu: PanelContainer = null
+var _context_menu_planet_id: String = ""
+var _context_buy_btn: Button = null
 var _star_positions: Array[Vector2] = []
 var _star_alphas: Array[float] = []
 var _last_build_size: Vector2 = Vector2.ZERO
@@ -43,6 +47,7 @@ func bind(game_state: GameState) -> void:
 	if size.x > 0 and size.y > 0:
 		_build_map()
 	_build_hover_panel()
+	_build_context_menu()
 
 
 func refresh(game_state: GameState) -> void:
@@ -246,7 +251,20 @@ func _update_slot_indicators() -> void:
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
-		if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
+		if mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed:
+			if _is_guide_active():
+				cancel_guide_mode()
+			var planet_id := _get_planet_at(mb.position)
+			if planet_id != "":
+				_show_context_menu(planet_id)
+			else:
+				_dismiss_context_menu()
+			accept_event()
+		elif mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
+			if _context_menu_planet_id != "":
+				_dismiss_context_menu()
+				accept_event()
+				return
 			var planet_id := _get_planet_at(mb.position)
 			if planet_id != "":
 				_on_planet_clicked(planet_id)
@@ -257,7 +275,8 @@ func _gui_input(event: InputEvent) -> void:
 	elif event is InputEventMouseMotion:
 		var motion := event as InputEventMouseMotion
 		var planet_id := _get_planet_at(motion.position)
-		_update_hover(planet_id, motion.position)
+		if _context_menu_planet_id == "":
+			_update_hover(planet_id, motion.position)
 		if _is_guide_active():
 			_guide_mouse_pos = motion.position
 			queue_redraw()
@@ -576,6 +595,100 @@ func _position_hover_panel(anchor_pos: Vector2) -> void:
 func _on_planet_unhovered() -> void:
 	if _hover_panel:
 		_hover_panel.visible = false
+
+
+# ---------------------------------------------------------------------------
+# Context Menu
+# ---------------------------------------------------------------------------
+
+func _build_context_menu() -> void:
+	_context_menu = PanelContainer.new()
+	_context_menu.visible = false
+	_context_menu.mouse_filter = Control.MOUSE_FILTER_STOP
+
+	var style := StyleBoxFlat.new()
+	style.bg_color = ThemeBuilder.SURFACE
+	style.border_color = ThemeBuilder.BORDER
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(6)
+	style.set_content_margin_all(8)
+	_context_menu.add_theme_stylebox_override("panel", style)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 4)
+	_context_menu.add_child(vbox)
+
+	_context_buy_btn = Button.new()
+	_context_buy_btn.text = "Buy Slots"
+	_context_buy_btn.pressed.connect(_on_context_buy_slots)
+	vbox.add_child(_context_buy_btn)
+
+	add_child(_context_menu)
+
+
+func _show_context_menu(planet_id: String) -> void:
+	_context_menu_planet_id = planet_id
+	_on_planet_unhovered()
+
+	# Determine available slots
+	var planet := _game_state.galaxy.get_planet(planet_id)
+	if planet == null:
+		return
+	var used := 0
+	for carrier: CarrierData in _game_state.get_all_carriers():
+		used += carrier.get_slot_count(planet_id)
+	var available: int = planet.total_slots - used
+
+	if available > 0:
+		_context_buy_btn.text = "Buy Slots"
+		_context_buy_btn.disabled = false
+	else:
+		_context_buy_btn.text = "No Slots"
+		_context_buy_btn.disabled = true
+
+	# Position at planet's screen location
+	var planet_pos: Vector2 = _planet_positions.get(planet_id, Vector2.ZERO)
+	_context_menu.visible = true
+	_context_menu.size = Vector2.ZERO
+	# Wait one frame for size to resolve then position
+	_position_context_menu(planet_pos)
+
+
+func _position_context_menu(anchor_pos: Vector2) -> void:
+	if _context_menu == null or not _context_menu.visible:
+		return
+	var panel_size: Vector2 = _context_menu.size
+	var viewport_size: Vector2 = size if size.x > 0 and size.y > 0 else MAP_DEFAULT_SIZE
+
+	var pos := anchor_pos + Vector2(16, -panel_size.y - 8)
+
+	if pos.x + panel_size.x > viewport_size.x:
+		pos.x = anchor_pos.x - panel_size.x - 16
+	if pos.x < 0:
+		pos.x = 0
+	if pos.y < 0:
+		pos.y = anchor_pos.y + 16
+	if pos.y + panel_size.y > viewport_size.y:
+		pos.y = viewport_size.y - panel_size.y
+
+	_context_menu.position = pos
+
+
+func _dismiss_context_menu() -> void:
+	if _context_menu:
+		_context_menu.visible = false
+	_context_menu_planet_id = ""
+	# Restore hover if mouse is over a planet
+	if _hovered_planet_id != "":
+		# Re-trigger hover display for the planet under cursor
+		var planet_pos: Vector2 = _planet_positions.get(_hovered_planet_id, Vector2.ZERO)
+		_on_planet_hovered(_hovered_planet_id, planet_pos)
+
+
+func _on_context_buy_slots() -> void:
+	var planet_id := _context_menu_planet_id
+	_dismiss_context_menu()
+	slot_purchase_requested.emit(planet_id)
 
 
 # ---------------------------------------------------------------------------
