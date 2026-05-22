@@ -224,11 +224,8 @@ func _update_route_overlays() -> void:
 			line.width = PLAYER_ROUTE_WIDTH if carrier.id == "player" else NPC_ROUTE_WIDTH
 			line.antialiased = true
 
-			# Insert route lines behind planet nodes
+			line.z_index = -1
 			_map_content.add_child(line)
-			var planet_start_idx: int = _map_content.get_child_count() - 1 - _planet_nodes.size()
-			if planet_start_idx > 0:
-				_map_content.move_child(line, planet_start_idx)
 			_route_lines.append(line)
 
 

@@ -23,6 +23,7 @@ func setup(lane: GalaxyData.Lane, from_pos: Vector2, to_pos: Vector2) -> void:
 	default_color = DEFAULT_COLOR
 	width = DEFAULT_WIDTH
 	antialiased = true
+	z_index = -2
 
 
 func set_selected(selected: bool) -> void:
