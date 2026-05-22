@@ -21,6 +21,23 @@ func _ready() -> void:
 	_start_button.pressed.connect(_on_start_pressed)
 	_build_pages()
 
+	# Apply game theme (CanvasLayer doesn't inherit parent theme)
+	var margin_container: MarginContainer = _overlay.get_node("MarginContainer")
+	margin_container.theme = ThemeBuilder.build_theme()
+
+	# Style the overlay background
+	_overlay.color = Color(ThemeBuilder.SURFACE.r, ThemeBuilder.SURFACE.g, ThemeBuilder.SURFACE.b, 0.95)
+
+	# Title: heading font + accent color
+	var font_heading = load("res://assets/fonts/SpaceGrotesk-Bold.ttf") as Font
+	if font_heading:
+		_title_label.add_theme_font_override("font", font_heading)
+	_title_label.add_theme_color_override("font_color", ThemeBuilder.ACCENT)
+
+	# Page indicator and continue hint colors
+	_page_indicator.add_theme_color_override("font_color", ThemeBuilder.MUTED)
+	_continue_hint.add_theme_color_override("font_color", ThemeBuilder.TEXT)
+
 
 func show_tutorial() -> void:
 	_current_page = 0

@@ -28,13 +28,21 @@ var _planet_radii: Dictionary = {}     # { planet_id: float } for hit detection
 var _hover_panel: PanelContainer = null
 var _hover_label: RichTextLabel = null
 var _hovered_planet_id: String = ""
+var _star_positions: Array[Vector2] = []
+var _star_alphas: Array[float] = []
+var _last_build_size: Vector2 = Vector2.ZERO
 
 @onready var _map_content: Node2D = $MapContent
 
 
+func _ready() -> void:
+	resized.connect(_on_resized)
+
+
 func bind(game_state: GameState) -> void:
 	_game_state = game_state
-	_build_map()
+	if size.x > 0 and size.y > 0:
+		_build_map()
 	_build_hover_panel()
 
 
@@ -52,7 +60,17 @@ func deselect_all() -> void:
 		_selected_planet_id = ""
 
 
+func _on_resized() -> void:
+	if _game_state == null:
+		return
+	if size.x > 0 and size.y > 0 and size != _last_build_size:
+		_generate_star_field()
+		_build_map()
+
+
 func _build_map() -> void:
+	_last_build_size = size
+
 	# Clear existing content
 	for child: Node in _map_content.get_children():
 		child.queue_free()
@@ -413,3 +431,28 @@ func _position_hover_panel(anchor_pos: Vector2) -> void:
 func _on_planet_unhovered() -> void:
 	if _hover_panel:
 		_hover_panel.visible = false
+
+
+# ---------------------------------------------------------------------------
+# Background Star Field
+# ---------------------------------------------------------------------------
+
+func _generate_star_field() -> void:
+	_star_positions.clear()
+	_star_alphas.clear()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 42
+	var star_count := 200
+	var area := size
+	for _i: int in range(star_count):
+		_star_positions.append(Vector2(rng.randf() * area.x, rng.randf() * area.y))
+		_star_alphas.append(rng.randf_range(0.05, 0.25))
+	queue_redraw()
+
+
+func _draw() -> void:
+	var dim_color := ThemeBuilder.TEXT
+	for i: int in range(_star_positions.size()):
+		var star_color := Color(dim_color.r, dim_color.g, dim_color.b, _star_alphas[i])
+		var radius: float = 0.5 + _star_alphas[i] * 2.0  # 0.6 to 1.0 px
+		draw_circle(_star_positions[i], radius, star_color)
