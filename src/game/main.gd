@@ -8,6 +8,7 @@ var _carrier_id: String = "player"
 var _modals: Dictionary = {}
 var _active_modal: String = ""
 var _skip_presentation: bool = false
+var _route_modal_from_map: bool = false
 
 @onready var _top_bar: TopBar = %TopBar
 @onready var _star_map = %StarMap
@@ -240,6 +241,8 @@ func _on_star_map_route_requested(origin_id: String, dest_id: String) -> void:
 		_active_modal = ""
 		_top_bar.set_active_toolbar("")
 
+	_route_modal_from_map = true
+
 	# Check if player already has a route on this lane
 	var lane_id := GalaxyData.derive_lane_id(origin_id, dest_id)
 	var player_carrier := _session.game_state.get_player_carrier()
@@ -253,6 +256,9 @@ func _on_star_map_route_requested(origin_id: String, dest_id: String) -> void:
 
 
 func _on_create_route_modal_closed() -> void:
+	if _route_modal_from_map:
+		_route_modal_from_map = false
+		return
 	# Return to routes modal when create modal is closed/cancelled
 	_routes_modal.open()
 	_active_modal = "routes"
