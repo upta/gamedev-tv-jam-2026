@@ -40,6 +40,9 @@ func _ready() -> void:
 		_sfx_available.append(player)
 		player.finished.connect(_on_sfx_finished.bind(player))
 
+	# Auto-wire hover SFX to every button that enters the tree
+	get_tree().node_added.connect(_on_node_added)
+
 
 func play_sfx(stream: AudioStream) -> void:
 	if _sfx_available.is_empty():
@@ -92,3 +95,13 @@ func _apply_bus_volume(bus: String, value: float) -> void:
 func _on_sfx_finished(player: AudioStreamPlayer) -> void:
 	_sfx_active.erase(player)
 	_sfx_available.append(player)
+
+
+func _on_node_added(node: Node) -> void:
+	if node is BaseButton:
+		node.mouse_entered.connect(_on_button_hovered.bind(node))
+
+
+func _on_button_hovered(button: BaseButton) -> void:
+	if button.is_visible_in_tree() and not button.disabled:
+		play_sfx(SFX_ROLLOVER)

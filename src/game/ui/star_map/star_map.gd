@@ -462,6 +462,8 @@ func _on_planet_hovered(planet_id: String, mouse_pos: Vector2) -> void:
 	if planet == null:
 		return
 
+	_play_rollover()
+
 	# Gather ownership data
 	var player_owned := 0
 	var other_owned := 0
@@ -725,3 +727,9 @@ func _draw() -> void:
 		if from.distance_squared_to(to) > 1.0:
 			var guide_color := Color(1.0, 1.0, 1.0, 0.6)
 			draw_dashed_line(from, to, guide_color, 2.0, 6.0)
+
+
+func _play_rollover() -> void:
+	var am := get_node_or_null("/root/AudioManager")
+	if am:
+			am.play_sfx(am.SFX_ROLLOVER)
