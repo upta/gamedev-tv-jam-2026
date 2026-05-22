@@ -214,3 +214,11 @@ All processed in carrier_order (index-based tie-breaking, D004).
 - **Theme application**: `main.gd` calls `theme = ThemeBuilder.build_theme()` in `_ready()` before any other setup, propagating the theme to all child controls.
 - Headless launch test passed — no script errors. All pushed to origin.
 
+### OptionButton, PopupMenu, SpinBox Theme Styling (2026-05-20)
+
+- **OptionButton** reuses Button's `btn_normal/hover/pressed/disabled` styleboxes and font colors for visual consistency. Arrow icon set to null (Godot uses built-in fallback), `arrow_margin` set to 8.
+- **PopupMenu** uses `MODAL_SURFACE` background with `BORDER` outline. Hover items get an `ACCENT.darkened(0.75)` background with `ACCENT` font color. Separator styled to match HSeparator. Item padding 8px on both sides.
+- **SpinBox styling** achieved via **LineEdit** theme entries (SpinBox wraps a LineEdit internally). Normal state: light SURFACE bg + BORDER. Focus state: ACCENT border. Caret and selection colors use ACCENT.
+- The SpinBox up/down buttons inherit from Button theme automatically — no separate styling needed.
+- Key insight: Godot's SpinBox doesn't have its own theme type — it delegates to LineEdit for the text field and Button for the arrows. Styling those two covers SpinBox completely.
+

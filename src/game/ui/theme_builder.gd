@@ -74,6 +74,50 @@ static func build_theme() -> Theme:
 	theme.set_stylebox("separator", "VSeparator", vsep_style)
 	theme.set_constant("separation", "VSeparator", 1)
 
+	# --- OptionButton ---
+	theme.set_stylebox("normal", "OptionButton", btn_normal)
+	theme.set_stylebox("hover", "OptionButton", btn_hover)
+	theme.set_stylebox("pressed", "OptionButton", btn_pressed)
+	theme.set_stylebox("disabled", "OptionButton", btn_disabled)
+	theme.set_color("font_color", "OptionButton", TEXT)
+	theme.set_color("font_hover_color", "OptionButton", ACCENT)
+	theme.set_color("font_pressed_color", "OptionButton", Color.WHITE)
+	theme.set_color("font_disabled_color", "OptionButton", MUTED.darkened(0.4))
+	theme.set_icon("arrow", "OptionButton", null)
+	theme.set_constant("arrow_margin", "OptionButton", 8)
+
+	# --- PopupMenu (dropdown for OptionButton) ---
+	var popup_panel := _flat_style(MODAL_SURFACE, BORDER, 4, 4, 0)
+	var popup_hover := _flat_style(ACCENT.darkened(0.75), Color.TRANSPARENT, 0, 0, 0)
+	theme.set_stylebox("panel", "PopupMenu", popup_panel)
+	theme.set_stylebox("hover", "PopupMenu", popup_hover)
+	theme.set_color("font_color", "PopupMenu", TEXT)
+	theme.set_color("font_hover_color", "PopupMenu", ACCENT)
+	theme.set_color("font_disabled_color", "PopupMenu", MUTED.darkened(0.4))
+	theme.set_color("font_separator_color", "PopupMenu", MUTED)
+	theme.set_color("font_accelerator_color", "PopupMenu", MUTED)
+	theme.set_constant("v_separation", "PopupMenu", 4)
+	theme.set_constant("h_separation", "PopupMenu", 8)
+	theme.set_constant("item_start_padding", "PopupMenu", 8)
+	theme.set_constant("item_end_padding", "PopupMenu", 8)
+	var popup_sep := StyleBoxFlat.new()
+	popup_sep.bg_color = BORDER.darkened(0.2)
+	popup_sep.set_content_margin_all(0)
+	theme.set_stylebox("labeled_separator_left", "PopupMenu", popup_sep)
+	theme.set_stylebox("labeled_separator_right", "PopupMenu", popup_sep)
+	theme.set_stylebox("separator", "PopupMenu", popup_sep)
+
+	# --- SpinBox / LineEdit ---
+	var lineedit_normal := _flat_style(SURFACE.lightened(0.05), BORDER, 4, 4, 6)
+	var lineedit_focus := _flat_style(SURFACE.lightened(0.08), ACCENT, 4, 4, 6)
+	theme.set_stylebox("normal", "LineEdit", lineedit_normal)
+	theme.set_stylebox("focus", "LineEdit", lineedit_focus)
+	theme.set_stylebox("read_only", "LineEdit", _flat_style(SURFACE, BORDER.darkened(0.4), 4, 4, 6))
+	theme.set_color("font_color", "LineEdit", TEXT)
+	theme.set_color("font_placeholder_color", "LineEdit", MUTED)
+	theme.set_color("caret_color", "LineEdit", ACCENT)
+	theme.set_color("selection_color", "LineEdit", ACCENT.darkened(0.6))
+
 	# --- RichTextLabel ---
 	theme.set_color("default_color", "RichTextLabel", TEXT)
 
