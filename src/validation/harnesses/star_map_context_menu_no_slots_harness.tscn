@@ -1,0 +1,12 @@
+[gd_scene load_steps=2 format=3 uid="uid://b6m1t2v3w4x5y"]
+
+[ext_resource type="Script" path="res://validation/scripts/harness_controllers/star_map_context_menu_no_slots_harness_controller.gd" id="1"]
+
+[node name="HarnessRoot" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")

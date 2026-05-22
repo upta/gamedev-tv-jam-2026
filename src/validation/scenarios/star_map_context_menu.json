@@ -1,0 +1,110 @@
+{
+  "scenario_id": "star_map_context_menu",
+  "version": 3,
+  "description": "Verify star map context menu lifecycle: right-click shows menu, hover panel hides, left-click dismisses",
+  "harness_scene": "res://validation/harnesses/star_map_context_menu_harness.tscn",
+  "done_contract": {},
+  "artifact_contract": {
+    "required_files": ["summary.json", "event_log.json", "scene_tree.json", "console.log"],
+    "missing_file_is_failure": true
+  },
+  "exit_codes": {
+    "pass": 0,
+    "assertion_failure": 1,
+    "runtime_error": 2,
+    "timeout": 3,
+    "artifact_generation_error": 4
+  },
+  "cli_contract": {
+    "command_template": "godot --path <project> -- --test-mode --scenario <path> --artifacts <dir>"
+  },
+  "steps": [
+    { "op": "load_harness" },
+    { "op": "checkpoint", "name": "initial" },
+    {
+      "op": "assert_value",
+      "checkpoint": "initial",
+      "path": "harness_state.context_menu_visible",
+      "comparator": "eq",
+      "expected": false,
+      "description": "Context menu should not be visible initially"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "initial",
+      "path": "harness_state.slot_purchase_request_count",
+      "comparator": "eq",
+      "expected": 0,
+      "description": "No slot purchase requests should be made initially"
+    },
+    { "op": "wait_frames", "frames": 45 },
+    { "op": "checkpoint", "name": "after_right_click" },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_right_click",
+      "path": "harness_state.context_menu_visible",
+      "comparator": "eq",
+      "expected": true,
+      "description": "Context menu should be visible after right-click"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_right_click",
+      "path": "harness_state.context_menu_planet_id",
+      "comparator": "eq",
+      "expected": "earth",
+      "description": "Context menu planet_id should be earth"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_right_click",
+      "path": "harness_state.context_menu_button_text",
+      "comparator": "eq",
+      "expected": "Buy Slots",
+      "description": "Button text should be 'Buy Slots'"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_right_click",
+      "path": "harness_state.context_menu_button_disabled",
+      "comparator": "eq",
+      "expected": false,
+      "description": "Button should not be disabled when slots are available"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_right_click",
+      "path": "harness_state.hover_panel_visible",
+      "comparator": "eq",
+      "expected": false,
+      "description": "Hover panel should be hidden when context menu is visible"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_right_click",
+      "path": "harness_state.slot_purchase_request_count",
+      "comparator": "eq",
+      "expected": 0,
+      "description": "No slot purchase request yet after showing menu"
+    },
+    { "op": "wait_frames", "frames": 45 },
+    { "op": "checkpoint", "name": "after_dismiss" },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_dismiss",
+      "path": "harness_state.context_menu_visible",
+      "comparator": "eq",
+      "expected": false,
+      "description": "Context menu should be dismissed after left-click"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_dismiss",
+      "path": "harness_state.slot_purchase_request_count",
+      "comparator": "eq",
+      "expected": 0,
+      "description": "No slot purchase request from dismissing menu"
+    },
+    { "op": "quit" }
+  ]
+}

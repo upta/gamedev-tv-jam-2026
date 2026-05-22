@@ -1,0 +1,76 @@
+{
+  "scenario_id": "star_map_context_menu_no_slots",
+  "version": 3,
+  "description": "Verify star map context menu when no slots available: button shows 'No Slots' and is disabled",
+  "harness_scene": "res://validation/harnesses/star_map_context_menu_no_slots_harness.tscn",
+  "done_contract": {},
+  "artifact_contract": {
+    "required_files": ["summary.json", "event_log.json", "scene_tree.json", "console.log"],
+    "missing_file_is_failure": true
+  },
+  "exit_codes": {
+    "pass": 0,
+    "assertion_failure": 1,
+    "runtime_error": 2,
+    "timeout": 3,
+    "artifact_generation_error": 4
+  },
+  "cli_contract": {
+    "command_template": "godot --path <project> -- --test-mode --scenario <path> --artifacts <dir>"
+  },
+  "steps": [
+    { "op": "load_harness" },
+    { "op": "checkpoint", "name": "initial" },
+    {
+      "op": "assert_value",
+      "checkpoint": "initial",
+      "path": "harness_state.context_menu_visible",
+      "comparator": "eq",
+      "expected": false,
+      "description": "Context menu should not be visible initially"
+    },
+    { "op": "wait_frames", "frames": 45 },
+    { "op": "checkpoint", "name": "after_right_click" },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_right_click",
+      "path": "harness_state.context_menu_visible",
+      "comparator": "eq",
+      "expected": true,
+      "description": "Context menu should be visible after right-click"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_right_click",
+      "path": "harness_state.context_menu_planet_id",
+      "comparator": "eq",
+      "expected": "earth",
+      "description": "Context menu planet_id should be earth"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_right_click",
+      "path": "harness_state.context_menu_button_text",
+      "comparator": "eq",
+      "expected": "No Slots",
+      "description": "Button text should be 'No Slots' when no slots available"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_right_click",
+      "path": "harness_state.context_menu_button_disabled",
+      "comparator": "eq",
+      "expected": true,
+      "description": "Button should be disabled when no slots available"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_right_click",
+      "path": "harness_state.slot_purchase_request_count",
+      "comparator": "eq",
+      "expected": 0,
+      "description": "No slot purchase request should be emitted when button is disabled"
+    },
+    { "op": "quit" }
+  ]
+}
