@@ -421,12 +421,15 @@ func _open_ship_selector() -> void:
 		if ship_type.range >= lane.distance:
 			in_range.append({
 				"id": ship.id,
-				"label": "%s (Pax:%d Cargo:%d Fuel:%s)%s" % [
-					type_name, ship.passenger_capacity, ship.cargo_capacity,
-					ship_type.get_efficiency_rating(),
+				"label": "%s (%s%d %s%d %s%s)%s" % [
+					type_name,
+					ThemeBuilder.pax_bb(), ship.passenger_capacity,
+					ThemeBuilder.cargo_bb(), ship.cargo_capacity,
+					ThemeBuilder.fuel_bb(), ship_type.get_efficiency_rating(),
 					" *" if already_selected else "",
 				],
 				"selectable": true,
+				"use_bbcode": true,
 			})
 		else:
 			out_range.append({
@@ -512,12 +515,20 @@ func _show_selection_popup(
 	# Group A (selectable)
 	for item: Dictionary in group_a:
 		var row := HBoxContainer.new()
-		var lbl := Label.new()
-		lbl.text = item["label"]
-		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		if item.has("label_modulate"):
-			lbl.modulate = item["label_modulate"]
-		row.add_child(lbl)
+		if item.get("use_bbcode", false):
+			var rtl := ThemeBuilder.make_icon_label()
+			rtl.text = item["label"]
+			rtl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			if item.has("label_modulate"):
+				rtl.modulate = item["label_modulate"]
+			row.add_child(rtl)
+		else:
+			var lbl := Label.new()
+			lbl.text = item["label"]
+			lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			if item.has("label_modulate"):
+				lbl.modulate = item["label_modulate"]
+			row.add_child(lbl)
 		var btn := Button.new()
 		btn.text = "Select"
 		btn.disabled = not item.get("selectable", true)

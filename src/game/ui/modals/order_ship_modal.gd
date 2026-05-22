@@ -15,7 +15,7 @@ var _type_option: OptionButton
 var _pax_spin: SpinBox
 var _cargo_spin: SpinBox
 var _qty_spin: SpinBox
-var _stats_label: Label
+var _stats_label: RichTextLabel
 var _order_button: Button
 var _cancel_button: Button
 
@@ -66,7 +66,7 @@ func _rebuild_form() -> void:
 	_content.add_child(_type_option)
 
 	# Stats display
-	_stats_label = Label.new()
+	_stats_label = ThemeBuilder.make_icon_label()
 	_stats_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_content.add_child(_stats_label)
 
@@ -75,12 +75,12 @@ func _rebuild_form() -> void:
 	if _available_types.size() > 0:
 		max_cap = _available_types[0].max_capacity
 
-	var pax_row := _create_label_spinbox("Passengers:", 0, max_cap, 1, max_cap / 2)
-	_pax_spin = pax_row.get_child(1) as SpinBox
+	var pax_row := _create_label_spinbox("Passengers:", 0, max_cap, 1, max_cap / 2, ThemeBuilder.ICON_PAX)
+	_pax_spin = pax_row.get_child(pax_row.get_child_count() - 1) as SpinBox
 	_content.add_child(pax_row)
 
-	var cargo_row := _create_label_spinbox("Cargo:", 0, max_cap, 1, max_cap - max_cap / 2)
-	_cargo_spin = cargo_row.get_child(1) as SpinBox
+	var cargo_row := _create_label_spinbox("Cargo:", 0, max_cap, 1, max_cap - max_cap / 2, ThemeBuilder.ICON_CARGO)
+	_cargo_spin = cargo_row.get_child(cargo_row.get_child_count() - 1) as SpinBox
 	_content.add_child(cargo_row)
 
 	_pax_spin.value_changed.connect(_on_pax_changed)
@@ -90,7 +90,7 @@ func _rebuild_form() -> void:
 
 	# Quantity
 	var qty_row := _create_label_spinbox("Quantity:", 1, 10, 1, 1)
-	_qty_spin = qty_row.get_child(1) as SpinBox
+	_qty_spin = qty_row.get_child(qty_row.get_child_count() - 1) as SpinBox
 	_qty_spin.value_changed.connect(_on_qty_changed)
 	_content.add_child(qty_row)
 
@@ -115,8 +115,16 @@ func _rebuild_form() -> void:
 	_update_stats_and_button(carrier)
 
 
-func _create_label_spinbox(label_text: String, min_val: float, max_val: float, step: float, default_val: float) -> HBoxContainer:
+func _create_label_spinbox(label_text: String, min_val: float, max_val: float, step: float, default_val: float, icon_path: String = "") -> HBoxContainer:
 	var row := HBoxContainer.new()
+	if not icon_path.is_empty():
+		var icon_tex := load(icon_path) as Texture2D
+		if icon_tex:
+			var icon_rect := TextureRect.new()
+			icon_rect.texture = icon_tex
+			icon_rect.custom_minimum_size = Vector2(16, 16)
+			icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			row.add_child(icon_rect)
 	var label := Label.new()
 	label.text = label_text
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -148,7 +156,7 @@ func _update_stats_and_button(carrier: CarrierData) -> void:
 		return
 	var qty := int(_qty_spin.value) if _qty_spin else 1
 	var total_cost := st.cost * qty
-	_stats_label.text = "Cost: §%d x %d = §%d | Cap: %d | Range: %.1f ly | Fuel: %s | Build: %d turns" % [st.cost, qty, total_cost, st.max_capacity, st.range, st.get_efficiency_rating(), st.build_turns]
+	_stats_label.text = "Cost: §%d x %d = §%d | Cap: %d | Range: %.1f ly | %s %s | Build: %d turns" % [st.cost, qty, total_cost, st.max_capacity, st.range, ThemeBuilder.fuel_bb(), st.get_efficiency_rating(), st.build_turns]
 	_order_button.disabled = carrier.cash < total_cost
 
 

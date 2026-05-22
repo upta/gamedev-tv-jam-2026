@@ -85,13 +85,14 @@ func _build_active_routes(carrier: CarrierData) -> void:
 
 		# Line 1: Route config + cancel button
 		var row := HBoxContainer.new()
-		var label := Label.new()
-		label.text = "%s -> %s | Ships: %d | Pax: §%d Cargo: §%d | Freq: %d" % [
+		var rtl := ThemeBuilder.make_icon_label()
+		rtl.text = "%s -> %s | Ships: %d | %s §%d %s §%d | Freq: %d" % [
 			origin_name, dest_name, route.ship_ids.size(),
-			int(route.passenger_price), int(route.cargo_price), route.frequency,
+			ThemeBuilder.pax_bb(), int(route.passenger_price),
+			ThemeBuilder.cargo_bb(), int(route.cargo_price), route.frequency,
 		]
-		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_child(label)
+		rtl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(rtl)
 
 		var cancel_btn := Button.new()
 		cancel_btn.text = "Edit"
@@ -100,10 +101,10 @@ func _build_active_routes(carrier: CarrierData) -> void:
 		route_block.add_child(row)
 
 		# Line 2: Performance metrics from last turn
-		var metrics_label := Label.new()
+		var metrics_rtl := ThemeBuilder.make_icon_label()
 		var route_fin := _get_route_financials(carrier.id, route.id)
 		if route_fin.is_empty():
-			metrics_label.text = "    No data yet"
+			metrics_rtl.text = "    No data yet"
 		else:
 			var pax_served: int = route_fin.get("passengers_served", 0)
 			var pax_cap: int = route_fin.get("passenger_capacity", 0)
@@ -113,14 +114,13 @@ func _build_active_routes(carrier: CarrierData) -> void:
 			var op_cost: float = route_fin.get("operating_cost", 0.0)
 			var profit: float = revenue - op_cost
 			var profit_sign := "+" if profit >= 0.0 else ""
-			metrics_label.text = "    Pax: %d/%d | Cargo: %d/%d | Profit: §%s%d" % [
-				pax_served, pax_cap, cargo_served, cargo_cap, profit_sign, int(profit),
+			var profit_color := ThemeBuilder.POSITIVE.to_html(false) if profit >= 0.0 else ThemeBuilder.NEGATIVE.to_html(false)
+			metrics_rtl.text = "    %s %d/%d | %s %d/%d | Profit: [color=#%s]§%s%d[/color]" % [
+				ThemeBuilder.pax_bb(), pax_served, pax_cap,
+				ThemeBuilder.cargo_bb(), cargo_served, cargo_cap,
+				profit_color, profit_sign, int(profit),
 			]
-			if profit >= 0.0:
-				metrics_label.add_theme_color_override("font_color", ThemeBuilder.POSITIVE)
-			else:
-				metrics_label.add_theme_color_override("font_color", ThemeBuilder.NEGATIVE)
-		route_block.add_child(metrics_label)
+		route_block.add_child(metrics_rtl)
 
 		_content.add_child(route_block)
 
@@ -181,13 +181,14 @@ func _build_pending_actions() -> void:
 		var rm: Dictionary = intent.route_modifications[i]
 		var route_id: String = rm.get("route_id", "")
 		var row := HBoxContainer.new()
-		var label := Label.new()
-		label.text = "Modify: %s (Pax: §%d Cargo: §%d Freq: %d)" % [
-			route_id, int(rm.get("passenger_price", 0)),
-			int(rm.get("cargo_price", 0)), rm.get("frequency", 1),
+		var rtl := ThemeBuilder.make_icon_label()
+		rtl.text = "Modify: %s (%s §%d %s §%d Freq: %d)" % [
+			route_id,
+			ThemeBuilder.pax_bb(), int(rm.get("passenger_price", 0)),
+			ThemeBuilder.cargo_bb(), int(rm.get("cargo_price", 0)), rm.get("frequency", 1),
 		]
-		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_child(label)
+		rtl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(rtl)
 
 		var cancel_btn := Button.new()
 		cancel_btn.text = "Cancel"

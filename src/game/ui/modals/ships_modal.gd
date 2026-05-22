@@ -68,9 +68,9 @@ func _build_fleet_section(carrier: CarrierData) -> void:
 			var ship_type := _game_state.catalog.get_type(ship.type_id)
 			var type_name := ship_type.name if ship_type else ship.type_id
 			var assignment: String = ship_route_map.get(ship.id, "Idle")
-			var label := Label.new()
-			label.text = "%s - Pax:%d Cargo:%d - %s" % [type_name, ship.passenger_capacity, ship.cargo_capacity, assignment]
-			_content_vbox.add_child(label)
+			var rtl := ThemeBuilder.make_icon_label()
+			rtl.text = "%s - %s%d %s%d - %s" % [type_name, ThemeBuilder.pax_bb(), ship.passenger_capacity, ThemeBuilder.cargo_bb(), ship.cargo_capacity, assignment]
+			_content_vbox.add_child(rtl)
 
 		for ship: ShipCatalog.ShipInstance in carrier.pending_orders:
 			var label := Label.new()
@@ -97,10 +97,10 @@ func _build_pending_orders_section() -> void:
 		for i in range(orders.size()):
 			var order: Dictionary = orders[i]
 			var row := HBoxContainer.new()
-			var label := Label.new()
-			label.text = "%s - Pax:%d Cargo:%d" % [order["type_id"], order["passenger_capacity"], order["cargo_capacity"]]
-			label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			row.add_child(label)
+			var rtl := ThemeBuilder.make_icon_label()
+			rtl.text = "%s - %s%d %s%d" % [order["type_id"], ThemeBuilder.pax_bb(), order["passenger_capacity"], ThemeBuilder.cargo_bb(), order["cargo_capacity"]]
+			rtl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			row.add_child(rtl)
 
 			var cancel_btn := Button.new()
 			cancel_btn.text = "Cancel"

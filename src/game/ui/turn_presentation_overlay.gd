@@ -227,8 +227,8 @@ func _build_player_content(summary: TurnSummaryBuilder.CarrierTurnSummary) -> St
 		for rf: Dictionary in summary.route_financials:
 			var origin_name := _get_planet_name(rf.get("origin_id", ""))
 			var dest_name := _get_planet_name(rf.get("dest_id", ""))
-			var pax_str := "Pax: %d/%d" % [rf.get("pax_served", 0), rf.get("pax_capacity", 0)]
-			var cargo_str := "Cargo: %d/%d" % [rf.get("cargo_served", 0), rf.get("cargo_capacity", 0)]
+			var pax_str := "%s %d/%d" % [ThemeBuilder.pax_bb(), rf.get("pax_served", 0), rf.get("pax_capacity", 0)]
+			var cargo_str := "%s %d/%d" % [ThemeBuilder.cargo_bb(), rf.get("cargo_served", 0), rf.get("cargo_capacity", 0)]
 
 			# Deltas from previous turn
 			var pax_delta_str := ""

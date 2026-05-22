@@ -1,6 +1,13 @@
 class_name ThemeBuilder
 extends RefCounted
 
+# Inline resource icons (Tabler Icons, MIT license)
+const ICON_PAX := "res://assets/icons/users.svg"
+const ICON_CARGO := "res://assets/icons/package.svg"
+const ICON_FUEL := "res://assets/icons/gas-station.svg"
+
+const ICON_INLINE_SIZE := 14
+
 # Color palette - HUD / Sci-fi Control Console
 const SURFACE := Color(0.055, 0.075, 0.075)        # #0E1313
 const MODAL_SURFACE := Color(0.07, 0.10, 0.10)     # #121A1A
@@ -175,6 +182,29 @@ static func _make_radio_icon(size: int, color: Color, filled: bool) -> ImageText
 						alpha = minf(alpha, clampf(outer_r + 0.5 - dist, 0.0, 1.0))
 					img.set_pixel(x, y, Color(color.r, color.g, color.b, alpha))
 	return ImageTexture.create_from_image(img)
+
+
+## Returns a BBCode [img] tag for the given icon path at inline size.
+static func icon_bb(icon_path: String, size: int = ICON_INLINE_SIZE) -> String:
+	return "[img=%dx%d]%s[/img]" % [size, size, icon_path]
+
+static func pax_bb(size: int = ICON_INLINE_SIZE) -> String:
+	return icon_bb(ICON_PAX, size)
+
+static func cargo_bb(size: int = ICON_INLINE_SIZE) -> String:
+	return icon_bb(ICON_CARGO, size)
+
+static func fuel_bb(size: int = ICON_INLINE_SIZE) -> String:
+	return icon_bb(ICON_FUEL, size)
+
+## Creates a RichTextLabel pre-configured for inline icon+text use.
+static func make_icon_label() -> RichTextLabel:
+	var rtl := RichTextLabel.new()
+	rtl.bbcode_enabled = true
+	rtl.fit_content = true
+	rtl.scroll_active = false
+	rtl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return rtl
 
 
 ## Creates a styled section header label (uppercase, accent-colored, with top spacing).

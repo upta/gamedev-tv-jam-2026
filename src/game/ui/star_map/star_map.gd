@@ -387,10 +387,22 @@ func _on_planet_hovered(planet_id: String, mouse_pos: Vector2) -> void:
 	var system_display := planet.system.replace("_", " ").capitalize()
 
 	# Build panel text
-	var text := "[b]%s[/b] (%s)\n" % [planet.name, system_display]
-	text += "Slots: %d total (%d yours, %d NPC, %d available)\n" % [planet.total_slots, player_owned, other_owned, available]
-	text += "Routes: %d active (%d yours)\n" % [total_routes, player_routes]
-	text += "Demand: %s pax / %s cargo" % [pax_tier, cargo_tier]
+	var m := ThemeBuilder.MUTED.to_html(false)
+	var a := ThemeBuilder.ACCENT.to_html(false)
+	var pax := ThemeBuilder.pax_bb()
+	var cargo := ThemeBuilder.cargo_bb()
+
+	var text := "[b]%s[/b]\n" % planet.name
+	text += "[color=#%s]%s[/color]\n" % [m, system_display]
+	text += "[color=#%s]━━━━━━━━━━━━━━━━━━━━[/color]\n" % m
+	text += "Slots   [color=#%s]%d total[/color] · [color=#%s]%d yours[/color] · %d NPC · %d avail\n" % [
+		m, planet.total_slots, a, player_owned, other_owned, available,
+	]
+	text += "Routes  [color=#%s]%d active[/color] · [color=#%s]%d yours[/color]\n" % [
+		m, total_routes, a, player_routes,
+	]
+	text += "[color=#%s]━━━━━━━━━━━━━━━━━━━━[/color]\n" % m
+	text += "Demand  %s %s  %s %s" % [pax, pax_tier, cargo, cargo_tier]
 
 	_hover_label.text = text
 	_hover_panel.visible = true

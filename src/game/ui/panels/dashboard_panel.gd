@@ -59,13 +59,14 @@ func _refresh_fleet() -> void:
 		if ship_type != null:
 			type_name = ship_type.name
 		var assignment: String = ship_route_map.get(ship.id, "Idle")
-		var label := Label.new()
-		label.text = "%s (%s) - Pax:%d Cargo:%d - %s" % [
+		var rtl := ThemeBuilder.make_icon_label()
+		rtl.text = "%s (%s) - %s%d %s%d - %s" % [
 			type_name, ship.type_id,
-			ship.passenger_capacity, ship.cargo_capacity,
+			ThemeBuilder.pax_bb(), ship.passenger_capacity,
+			ThemeBuilder.cargo_bb(), ship.cargo_capacity,
 			assignment,
 		]
-		_fleet_list.add_child(label)
+		_fleet_list.add_child(rtl)
 
 	for order: ShipCatalog.ShipInstance in carrier.pending_orders:
 		var label := Label.new()
@@ -107,13 +108,14 @@ func _refresh_routes() -> void:
 			origin_name = origin.name
 		if dest != null:
 			dest_name = dest.name
-		var label := Label.new()
-		label.text = "%s -> %s | Pax: §%d Cargo: §%d | Ships: %d | Freq: %d" % [
+		var rtl := ThemeBuilder.make_icon_label()
+		rtl.text = "%s -> %s | %s §%d %s §%d | Ships: %d | Freq: %d" % [
 			origin_name, dest_name,
-			int(route.passenger_price), int(route.cargo_price),
+			ThemeBuilder.pax_bb(), int(route.passenger_price),
+			ThemeBuilder.cargo_bb(), int(route.cargo_price),
 			route.ship_ids.size(), route.frequency,
 		]
-		_routes_list.add_child(label)
+		_routes_list.add_child(rtl)
 
 
 func _clear_children(container: VBoxContainer) -> void:
