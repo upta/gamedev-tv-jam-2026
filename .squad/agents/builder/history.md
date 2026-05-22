@@ -2,6 +2,16 @@
 
 ## Recent Sessions
 
+### Session: UI Display Name Cleanup (2025-07-25)
+
+**Deliverables:**
+1. **Fixed turn log financials** — revenue/costs always showed $0 because keys were `revenue`/`costs` instead of `total_revenue`/`total_costs`
+2. **Resolved raw IDs to display names** across 10 files: ship type_ids show catalog names (e.g. "Scout FW-10"), lane_ids show "Origin → Dest", route_ids show planet names, planet_ids show display names
+3. **Files changed:** turn_log_panel, turn_log_modal, main, dashboard_panel, ships_modal, pending_actions_panel, turn_summary_builder, turn_presentation_overlay, create_route_modal, routes_modal
+4. **Approach:** Added helper methods (`_get_ship_name`, `_get_planet_name`, `_resolve_route_display`) to each file, passed GameState to turn_log_panel via turn_log_modal for catalog/galaxy access
+
+**Commit:** `8a7ed14` — all validation scenarios pass, GUT tests pass, clean headless launch
+
 ### Session: Star Map Context Menu (2026-05-22)
 
 **Deliverables:**

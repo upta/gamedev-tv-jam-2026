@@ -741,3 +741,27 @@ Repurposes dead `_selected_planet_id` click behavior (nothing consumed the old `
 - **Ship cards:** Use plain `Label` nodes with `GridContainer` for tabular stats. "Capacity" is generic (no icon) since it covers both pax and cargo pre-split.
 
 **Rationale:** One broken panel doesn't justify changing the icon strategy for the entire app. Fix the broken panel specifically, keep simpler BBCode approach everywhere else.
+
+---
+
+## D029: Display Name Resolution Pattern
+
+**Author:** Builder  
+**Date:** 2026-05-22
+
+**Context:** Raw IDs (type_id, lane_id, route_id, planet_id) were leaking into UI text across many panels and modals.
+
+**Decision:** Each UI component resolves IDs locally using small helper methods (`_get_ship_name`, `_get_planet_name`, `_resolve_route_display`) rather than a centralized formatter. This keeps each file self-contained and avoids adding a new utility class.
+
+For `turn_log_panel`, which previously had no access to GameState, we added a `set_game_state()` method called from `main.gd` via `turn_log_modal`.
+
+**Pattern:**
+- **Ship type_id → name:** `_game_state.catalog.get_type(type_id).name` with null fallback to raw type_id
+- **Planet ID → name:** `_game_state.galaxy.get_planet(planet_id).name` with null fallback
+- **Route ID → display:** Look up route from carrier, resolve origin/dest planet names
+- **Lane ID → display:** Replaced with "Origin → Dest" string built from route origin/dest
+
+**Impact:**
+- 10 UI files updated (inventory, ship_panel, route_summary, trade_lane_detail, turn_log_panel, planet_facts, economy_panel, metrics_panel, status_panel, hud_summary)
+- Financial key references corrected (revenue/cost → total_revenue/total_cost)
+- All 42 validation scenarios pass
