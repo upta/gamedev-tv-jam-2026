@@ -47,7 +47,11 @@ func show_tutorial() -> void:
 
 
 func _section(text: String) -> String:
-	return "[color=#3DEAAB][b]%s[/b][/color]" % text.to_upper()
+	return "[color=#3DEAAB]%s[/color]" % text.to_upper()
+
+
+func _hl(text: String) -> String:
+	return "[color=#3DEAAB]%s[/color]" % text
 
 
 func _muted(text: String) -> String:
@@ -59,19 +63,19 @@ func _build_pages() -> void:
 		{
 			"title": "Welcome to Astrobiz",
 			"content": (
-				"You are the CEO of [b]Player Corp[/b], a fledgling space transport company.\n\n"
+				"You are the CEO of %s, a fledgling space transport company.\n\n" % _hl("Player Corp")
 				+ "Your mission: build a profitable interstellar airline by flying passengers and "
 				+ "cargo between planets. Three rival carriers are competing for the same routes.\n\n"
-				+ "The game runs for [b]30 turns[/b]. Highest score wins."
+				+ "The game runs for %s. Highest score wins." % _hl("30 turns")
 			),
 		},
 		{
 			"title": "Your Starting Assets",
 			"content": (
 				"You begin with:\n\n"
-				+ "  •  [b]$30,000[/b] in cash\n"
-				+ "  •  [b]1 shuttle[/b] " + _muted("(SD-100 — 40 capacity, passengers + cargo)") + "\n"
-				+ "  •  [b]2 landing slots[/b] at Earth and Mars\n\n"
+				+ "  •  %s in cash\n" % _hl("$30,000")
+				+ "  •  %s %s\n" % [_hl("1 shuttle"), _muted("(SD-100 — 40 capacity, passengers + cargo)")]
+				+ "  •  %s at Earth and Mars\n\n" % _hl("2 landing slots")
 				+ _section("Slots") + "\n"
 				+ "Landing slots give you the right to operate at a planet. "
 				+ "You need a slot at both ends of any route you create."
@@ -81,13 +85,13 @@ func _build_pages() -> void:
 			"title": "Creating Routes",
 			"content": (
 				_section("From the Toolbar") + "\n"
-				+ "  1.  Click [b]Routes[/b] in the top bar\n"
-				+ "  2.  Click [b]Create Route[/b]\n"
+				+ "  1.  Click %s in the top bar\n" % _hl("Routes")
+				+ "  2.  Click %s\n" % _hl("Create Route")
 				+ "  3.  Pick an origin and destination\n"
 				+ "  4.  Assign ships and set flight frequency\n\n"
 				+ _section("From the Star Map") + "\n"
-				+ "[b]Click[/b] a planet to enter guide mode — a dashed line follows your cursor. "
-				+ "Hover another planet to see the route distance, then [b]click[/b] it to jump "
+				+ "%s a planet to enter guide mode — a dashed line follows your cursor. " % _hl("Click")
+				+ "Hover another planet to see the route distance, then %s it to jump " % _hl("click")
 				+ "straight into route creation with both planets pre-selected.\n\n"
 				+ _muted("Tip: Start with Earth ↔ Mars — you already have slots there!")
 			),
@@ -119,14 +123,14 @@ func _build_pages() -> void:
 		{
 			"title": "Each Turn",
 			"content": (
-				"Click [b]Next Turn[/b] when you're ready to advance.\n\n"
+				"Click %s when you're ready to advance.\n\n" % _hl("Next Turn")
 				+ _section("What Happens") + "\n"
 				+ "  •  Your routes operate and earn (or lose) money\n"
 				+ "  •  Ship orders and slot bids are processed\n"
 				+ "  •  NPC carriers take their actions\n"
 				+ "  •  A summary of everything that happened is shown\n\n"
 				+ _section("Tracking Progress") + "\n"
-				+ "Use the [b]Dashboard[/b] to monitor finances, the [b]Turn Log[/b] to review "
+				+ "Use the %s to monitor finances, the %s to review " % [_hl("Dashboard"), _hl("Turn Log")]
 				+ "past turns, and the standings panel to see how you rank."
 			),
 		},
