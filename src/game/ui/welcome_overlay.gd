@@ -150,7 +150,6 @@ func _register_pages() -> void:
 		_build_creating_routes,
 		_build_star_map,
 		_build_growing_network,
-		_build_each_turn,
 	]
 
 
@@ -175,7 +174,7 @@ func _build_starting_assets() -> void:
 	_title_label.text = "Your Starting Assets"
 	_content.add_child(_label("You begin with:"))
 	_content.add_child(_spacer(4))
-	_content.add_child(_bullet([["$30,000", ThemeBuilder.ACCENT], [" in cash", ThemeBuilder.TEXT]]))
+	_content.add_child(_bullet([["§30,000", ThemeBuilder.ACCENT], [" in cash", ThemeBuilder.TEXT]]))
 	_content.add_child(_bullet([["1 ship", ThemeBuilder.ACCENT]]))
 	_content.add_child(_bullet([["2 landing slots", ThemeBuilder.ACCENT], [" at Earth and Mars", ThemeBuilder.TEXT]]))
 	_content.add_child(_spacer())
@@ -248,25 +247,6 @@ func _build_growing_network() -> void:
 	_content.add_child(_icon_bullet(_pax_tex, [["Passengers", ThemeBuilder.ACCENT], [" — lower demand, higher margin", ThemeBuilder.TEXT]]))
 	_content.add_child(_icon_bullet(_cargo_tex, [["Cargo", ThemeBuilder.ACCENT], [" — higher demand, lower margin", ThemeBuilder.TEXT]]))
 	_content.add_child(_icon_bullet(_fuel_tex, [["Fuel", ThemeBuilder.ACCENT], [" — efficiency rating; affects operating costs", ThemeBuilder.TEXT]]))
-
-
-func _build_each_turn() -> void:
-	_title_label.text = "Each Turn"
-	_content.add_child(_label(
-		"Click Next Turn when you're ready to advance.",
-	))
-	_content.add_child(_spacer())
-	_content.add_child(_section_header("What Happens"))
-	_content.add_child(_bullet([["Your routes operate and earn (or lose) money", ThemeBuilder.TEXT]]))
-	_content.add_child(_bullet([["Ship orders and slot bids are processed", ThemeBuilder.TEXT]]))
-	_content.add_child(_bullet([["NPC carriers take their actions", ThemeBuilder.TEXT]]))
-	_content.add_child(_bullet([["A summary of everything that happened is shown", ThemeBuilder.TEXT]]))
-	_content.add_child(_spacer())
-	_content.add_child(_section_header("Tracking Progress"))
-	_content.add_child(_label(
-		"Use the Dashboard to monitor finances, the Turn Log to review "
-		+ "past turns, and the standings panel to see how you rank.",
-	))
 
 
 # ---------------------------------------------------------------------------

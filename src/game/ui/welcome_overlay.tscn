@@ -61,7 +61,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 14
 theme_override_colors/font_color = Color(0.45, 0.58, 0.55, 1)
-text = "1 / 6"
+text = "1 / 5"
 
 [node name="ContinueHint" type="Label" parent="Overlay/MarginContainer/VBoxContainer/BottomRow"]
 unique_name_in_owner = true
