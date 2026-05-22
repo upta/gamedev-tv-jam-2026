@@ -60,7 +60,9 @@ static func build_theme() -> Theme:
 
 	# --- HSeparator ---
 	var sep_style := StyleBoxFlat.new()
-	sep_style.bg_color = BORDER.darkened(0.2)
+	sep_style.bg_color = Color.TRANSPARENT
+	sep_style.border_color = BORDER.darkened(0.2)
+	sep_style.border_width_bottom = 1
 	sep_style.set_content_margin_all(0)
 	sep_style.content_margin_top = 8
 	sep_style.content_margin_bottom = 8
@@ -69,7 +71,9 @@ static func build_theme() -> Theme:
 
 	# --- VSeparator ---
 	var vsep_style := StyleBoxFlat.new()
-	vsep_style.bg_color = BORDER.darkened(0.2)
+	vsep_style.bg_color = Color.TRANSPARENT
+	vsep_style.border_color = BORDER.darkened(0.2)
+	vsep_style.border_width_right = 1
 	vsep_style.set_content_margin_all(0)
 	vsep_style.content_margin_left = 6
 	vsep_style.content_margin_right = 6
