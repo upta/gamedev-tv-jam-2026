@@ -296,6 +296,22 @@ func _build_player_content(summary: TurnSummaryBuilder.CarrierTurnSummary) -> St
 	lines.append("[indent]Cash: §%.0f -> §%.0f[/indent]" % [summary.cash_before, summary.cash_after])
 	lines.append("")
 
+	# New ships section — show ships that just became available this turn
+	if _game_state:
+		var current_turn := _game_state.current_turn - 1  # turn just completed
+		var newly_available: Array = []
+		for ship_type: ShipCatalog.ShipType in _game_state.catalog.get_available_types(current_turn):
+			if ship_type.unlock_turn == current_turn and ship_type.unlock_turn > 0:
+				newly_available.append(ship_type)
+		if newly_available.size() > 0:
+			lines.append("[b]New Ships Available:[/b]")
+			for ship_type: ShipCatalog.ShipType in newly_available:
+				lines.append("[indent]- [color=#3DEAAB]%s[/color] — %d capacity, range %.0f, §%s (%d turn build)[/indent]" % [
+					ship_type.name, ship_type.max_capacity, ship_type.range,
+					_format_cost(ship_type.cost), ship_type.build_turns,
+				])
+			lines.append("")
+
 	# Other section
 	var other_lines: Array[String] = []
 	for delivery: Dictionary in summary.ships_delivered:
@@ -327,6 +343,12 @@ func _get_planet_name(planet_id: String) -> String:
 		if planet:
 			return planet.name
 	return planet_id
+
+
+func _format_cost(value: int) -> String:
+	if value >= 1000:
+		return "%dk" % (value / 1000)
+	return str(value)
 
 
 func _get_ship_name(type_id: String) -> String:

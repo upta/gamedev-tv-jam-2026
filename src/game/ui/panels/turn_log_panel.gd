@@ -84,6 +84,15 @@ func _build_turn_bbcode(turn_number: int, result: TurnPipeline.TurnResult, carri
 	for desc: String in result.event_descriptions:
 		lines.append("[color=%s]%s[/color]" % [COLOR_EVENT, desc])
 
+	# Newly available ships
+	if _game_state and _game_state.catalog:
+		for ship_type: ShipCatalog.ShipType in _game_state.catalog.get_available_types(turn_number):
+			if ship_type.unlock_turn == turn_number and ship_type.unlock_turn > 0:
+				lines.append("[color=%s]New ship available: %s (%d cap, range %.0f, §%dk)[/color]" % [
+					COLOR_EVENT, ship_type.name, ship_type.max_capacity,
+					ship_type.range, ship_type.cost / 1000,
+				])
+
 	# Ranking
 	for entry: Dictionary in result.rankings:
 		if entry.get("carrier_id", "") == carrier_id:

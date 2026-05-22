@@ -241,12 +241,12 @@ func _build_growing_network() -> void:
 	_content.add_child(_spacer())
 	_content.add_child(_section_header("Ships"))
 	_content.add_child(_label(
-		"Order new ships to increase capacity. Bigger ships unlock at later "
-		+ "turns and take several turns to build. Each ship has three key stats:",
+		"Order new ships to increase capacity. New ship types become "
+		+ "available as the game progresses. Each ship has three key stats:",
 	))
 	_content.add_child(_spacer(4))
-	_content.add_child(_icon_bullet(_pax_tex, [["Passengers", ThemeBuilder.ACCENT], [" — seats for travelers", ThemeBuilder.TEXT]]))
-	_content.add_child(_icon_bullet(_cargo_tex, [["Cargo", ThemeBuilder.ACCENT], [" — freight hauled alongside passengers", ThemeBuilder.TEXT]]))
+	_content.add_child(_icon_bullet(_pax_tex, [["Passengers", ThemeBuilder.ACCENT], [" — lower demand, higher margin", ThemeBuilder.TEXT]]))
+	_content.add_child(_icon_bullet(_cargo_tex, [["Cargo", ThemeBuilder.ACCENT], [" — higher demand, lower margin", ThemeBuilder.TEXT]]))
 	_content.add_child(_icon_bullet(_fuel_tex, [["Fuel", ThemeBuilder.ACCENT], [" — efficiency rating; affects operating costs", ThemeBuilder.TEXT]]))
 
 
