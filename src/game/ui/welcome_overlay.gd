@@ -46,6 +46,14 @@ func show_tutorial() -> void:
 	_show_current_page()
 
 
+func _section(text: String) -> String:
+	return "[color=#3DEAAB][b]%s[/b][/color]" % text.to_upper()
+
+
+func _muted(text: String) -> String:
+	return "[color=#73948C]%s[/color]" % text
+
+
 func _build_pages() -> void:
 	_pages = [
 		{
@@ -61,9 +69,10 @@ func _build_pages() -> void:
 			"title": "Your Starting Assets",
 			"content": (
 				"You begin with:\n\n"
-				+ "  -  [b]$30,000[/b] in cash\n"
-				+ "  -  [b]1 shuttle[/b] (SD-100 -- 40 capacity, split between passengers and cargo)\n"
-				+ "  -  [b]2 landing slots[/b] at Earth and Mars\n\n"
+				+ "  •  [b]$30,000[/b] in cash\n"
+				+ "  •  [b]1 shuttle[/b] " + _muted("(SD-100 — 40 capacity, passengers + cargo)") + "\n"
+				+ "  •  [b]2 landing slots[/b] at Earth and Mars\n\n"
+				+ _section("Slots") + "\n"
 				+ "Landing slots give you the right to operate at a planet. "
 				+ "You need a slot at both ends of any route you create."
 			),
@@ -71,34 +80,54 @@ func _build_pages() -> void:
 		{
 			"title": "Creating Routes",
 			"content": (
-				"Routes are how you make money. To create one:\n\n"
+				_section("From the Toolbar") + "\n"
 				+ "  1.  Click [b]Routes[/b] in the top bar\n"
 				+ "  2.  Click [b]Create Route[/b]\n"
-				+ "  3.  Pick an origin and destination (you need slots at both)\n"
+				+ "  3.  Pick an origin and destination\n"
 				+ "  4.  Assign ships and set flight frequency\n\n"
-				+ "[b]Tip:[/b] Start with a route between Earth and Mars -- you already have slots there!"
+				+ _section("From the Star Map") + "\n"
+				+ "[b]Click[/b] a planet to enter guide mode — a dashed line follows your cursor. "
+				+ "Hover another planet to see the route distance, then [b]click[/b] it to jump "
+				+ "straight into route creation with both planets pre-selected.\n\n"
+				+ _muted("Tip: Start with Earth ↔ Mars — you already have slots there!")
+			),
+		},
+		{
+			"title": "The Star Map",
+			"content": (
+				_section("Hover") + "\n"
+				+ "Hover over any planet to see its demand levels, slot availability, and active routes.\n\n"
+				+ _section("Click — Guide Mode") + "\n"
+				+ "Click a planet to draw a guide line to your cursor. Hover a second planet to see "
+				+ "the distance between them. Click the second planet to create a route.\n\n"
+				+ _section("Right-Click — Planet Menu") + "\n"
+				+ "Right-click a planet to open a quick menu where you can purchase a landing slot directly."
 			),
 		},
 		{
 			"title": "Growing Your Network",
 			"content": (
-				"To expand beyond your starting planets:\n\n"
-				+ "  -  [b]Slots[/b] -- Bid on landing slots at new planets. Costs money and takes a turn to process. "
-				+ "Other carriers are bidding too!\n\n"
-				+ "  -  [b]Ships[/b] -- Order new ships to increase your capacity. Bigger ships unlock at later turns "
-				+ "and take several turns to build.\n\n"
-				+ "Hover over planets on the star map to see demand levels and slot availability."
+				_section("Slots") + "\n"
+				+ "Bid on landing slots at new planets. Costs money and takes a turn to process. "
+				+ "Other carriers are bidding too! You can also right-click a planet on the star "
+				+ "map to buy a slot directly.\n\n"
+				+ _section("Ships") + "\n"
+				+ "Order new ships to increase capacity. Bigger ships unlock at later turns "
+				+ "and take several turns to build."
 			),
 		},
 		{
 			"title": "Each Turn",
 			"content": (
-				"Click [b]Next Turn[/b] when you're ready to advance. Each turn:\n\n"
-				+ "  -  Your routes operate and earn (or lose) money\n"
-				+ "  -  Ship orders and slot bids are processed\n"
-				+ "  -  NPC carriers take their actions\n"
-				+ "  -  You'll see a summary of everything that happened\n\n"
-				+ "Use the [b]Dashboard[/b] to track your finances and the [b]Turn Log[/b] to review past turns."
+				"Click [b]Next Turn[/b] when you're ready to advance.\n\n"
+				+ _section("What Happens") + "\n"
+				+ "  •  Your routes operate and earn (or lose) money\n"
+				+ "  •  Ship orders and slot bids are processed\n"
+				+ "  •  NPC carriers take their actions\n"
+				+ "  •  A summary of everything that happened is shown\n\n"
+				+ _section("Tracking Progress") + "\n"
+				+ "Use the [b]Dashboard[/b] to monitor finances, the [b]Turn Log[/b] to review "
+				+ "past turns, and the standings panel to see how you rank."
 			),
 		},
 	]
