@@ -159,3 +159,22 @@ All 5 fixes implemented and deployed:
 37. **Recommended fix: lane labels + browse-first explorer.** (a) Add distance labels on star map lanes (small). (b) Show all planets in route creation selector regardless of slots, gate only the Create button, show clear "need slots" messaging (medium). Skip inline ship catalog for now — one click to Ships modal is acceptable.
 
 **Analysis document:** `.squad/decisions/inbox/lead-route-creation-ux.md`
+
+### Planet Selection Guide Line Design (2025-07-19, proposed)
+
+38. **Guide mode replaces unused click-select.** `_selected_planet_id` click behavior was dead weight — nothing consumed the `planet_selected` signal. New two-phase click flow: first click enters guide mode (dashed line to cursor), second click emits `route_requested(origin, dest)` and opens CreateRouteModal with planets pre-selected. Clicking empty space or same planet cancels.
+
+39. **Guide line via `_draw()`, not Line2D.** Ephemeral cursor-following line uses `draw_dashed_line()` in existing `_draw()` override. No scene tree nodes to manage. `queue_redraw()` on mouse move is cheap.
+
+40. **Hover panel distance row is conditional.** Only shown when guide mode active AND hovering a different planet. Uses existing `GalaxyData.calculate_distance()` and `_hover_make_info_row()` helper. No new UI primitives.
+
+41. **`open_with_planets()` on CreateRouteModal.** New method pre-sets origin/dest before `_rebuild_form()`. Follows existing `open()` / `open_for_edit()` pattern. GameScene wires via new `route_requested` signal.
+
+42. **Guide mode cancels on resize and modal open.** Resize rebuilds planet positions (guide origin would be stale). Modal dim overlay obscures the map. Both call `cancel_guide_mode()`.
+
+**Key file paths (Guide Line):**
+- `src/game/ui/star_map/star_map.gd` — guide mode state + rendering + hover distance
+- `src/game/ui/modals/create_route_modal.gd` — `open_with_planets()` method
+- `src/game/main.gd` — `route_requested` signal wiring
+
+**Design document:** `.squad/decisions/inbox/lead-planet-selection-design.md`

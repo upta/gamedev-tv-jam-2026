@@ -2,6 +2,23 @@
 
 ## Recent Sessions
 
+### Session: Planet Selection Guide Line (2025-07-19)
+
+**Deliverables:**
+1. **Guide Line on StarMap:** Click a planet to enter guide mode — draws a dashed line from origin to cursor. Snap to hovered planets. Second click emits `route_requested` signal. Empty space or same-planet click cancels.
+2. **Distance in Hover Panel:** When guide is active and hovering a non-origin planet, shows "Distance X.X ly" row below demand.
+3. **CreateRouteModal.open_with_planets():** Pre-selects origin and destination planets when opening from star map guide.
+4. **GameScene wiring:** Connects `route_requested` → opens CreateRouteModal with pre-selected planets (or edits existing route on same lane). Cancels guide mode on toolbar press.
+5. **Harness controller update:** Exposes `guide_origin_id`, `guide_snap_planet_id`, `guide_active`, `last_route_requested_origin`, `last_route_requested_dest`, `route_request_count` for validation.
+
+**Files changed:** `star_map.gd`, `create_route_modal.gd`, `main.gd`, `star_map_harness_controller.gd`
+
+**Testing:** Headless launch clean. 308 passing, 2 pre-existing separator test failures (unrelated).
+
+**Notes:** `planet_selected` signal kept declared but no longer emitted — guide mode fully replaces old single-click selection.
+
+---
+
 ### Session: Three UI Fixes — Icons, Hover Panel, Ship Cards (2026-05-18b)
 
 **Deliverables:**

@@ -1,0 +1,106 @@
+{
+  "scenario_id": "star_map_guide_cancel",
+  "version": 3,
+  "description": "Verify star map guide mode cancellation: same planet click and explicit cancel both work",
+  "harness_scene": "res://validation/harnesses/star_map_guide_cancel_harness.tscn",
+  "done_contract": {},
+  "artifact_contract": {
+    "required_files": ["summary.json", "event_log.json", "scene_tree.json", "console.log"],
+    "missing_file_is_failure": true
+  },
+  "exit_codes": {
+    "pass": 0,
+    "assertion_failure": 1,
+    "runtime_error": 2,
+    "timeout": 3,
+    "artifact_generation_error": 4
+  },
+  "cli_contract": {
+    "command_template": "godot --path <project> -- --test-mode --scenario <path> --artifacts <dir>"
+  },
+  "steps": [
+    { "op": "load_harness" },
+    { "op": "checkpoint", "name": "initial" },
+    {
+      "op": "assert_value",
+      "checkpoint": "initial",
+      "path": "harness_state.guide_active",
+      "comparator": "eq",
+      "expected": false,
+      "description": "Guide mode should not be active initially"
+    },
+    { "op": "wait_frames", "frames": 45 },
+    { "op": "checkpoint", "name": "after_first_click" },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_first_click",
+      "path": "harness_state.guide_active",
+      "comparator": "eq",
+      "expected": true,
+      "description": "Guide mode should be active after clicking earth"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_first_click",
+      "path": "harness_state.guide_origin_id",
+      "comparator": "eq",
+      "expected": "earth",
+      "description": "Guide origin should be earth"
+    },
+    { "op": "wait_frames", "frames": 25 },
+    { "op": "checkpoint", "name": "after_same_planet_click" },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_same_planet_click",
+      "path": "harness_state.guide_active",
+      "comparator": "eq",
+      "expected": false,
+      "description": "Guide mode should be cancelled after clicking same planet"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_same_planet_click",
+      "path": "harness_state.route_request_count",
+      "comparator": "eq",
+      "expected": 0,
+      "description": "No route request should be made when clicking same planet"
+    },
+    { "op": "wait_frames", "frames": 15 },
+    { "op": "checkpoint", "name": "after_mars_click" },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_mars_click",
+      "path": "harness_state.guide_active",
+      "comparator": "eq",
+      "expected": true,
+      "description": "Guide mode should be active after clicking mars"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_mars_click",
+      "path": "harness_state.guide_origin_id",
+      "comparator": "eq",
+      "expected": "mars",
+      "description": "Guide origin should now be mars"
+    },
+    { "op": "wait_frames", "frames": 20 },
+    { "op": "checkpoint", "name": "after_explicit_cancel" },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_explicit_cancel",
+      "path": "harness_state.guide_active",
+      "comparator": "eq",
+      "expected": false,
+      "description": "Guide mode should be cancelled after explicit cancel_guide_mode() call"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_explicit_cancel",
+      "path": "harness_state.route_request_count",
+      "comparator": "eq",
+      "expected": 0,
+      "description": "Route request count should still be 0"
+    },
+    { "op": "quit" }
+  ]
+}

@@ -90,6 +90,7 @@ func _connect_signals() -> void:
 	_slots_modal.manage_slots_requested.connect(_on_manage_slots_requested)
 	_manage_slots_modal.closed.connect(_on_manage_slots_modal_closed)
 	_manage_slots_modal.slot_action_submitted.connect(_on_slot_action_submitted)
+	_star_map.route_requested.connect(_on_star_map_route_requested)
 
 
 func _on_next_turn() -> void:
@@ -158,6 +159,8 @@ func _show_turn_notifications(result: TurnPipeline.TurnResult) -> void:
 
 
 func _on_toolbar_pressed(modal_name: String) -> void:
+	_star_map.cancel_guide_mode()
+
 	# Close create route modal if open
 	if _create_route_modal.visible:
 		_create_route_modal.closed.disconnect(_on_create_route_modal_closed)
@@ -228,6 +231,25 @@ func _on_create_route_requested() -> void:
 func _on_edit_route_requested(route: CarrierData.Route) -> void:
 	_routes_modal.close()
 	_create_route_modal.open_for_edit(route)
+
+
+func _on_star_map_route_requested(origin_id: String, dest_id: String) -> void:
+	# Close any active modal
+	if not _active_modal.is_empty():
+		_modals[_active_modal].close()
+		_active_modal = ""
+		_top_bar.set_active_toolbar("")
+
+	# Check if player already has a route on this lane
+	var lane_id := GalaxyData.derive_lane_id(origin_id, dest_id)
+	var player_carrier := _session.game_state.get_player_carrier()
+	if player_carrier:
+		for route: CarrierData.Route in player_carrier.get_active_routes():
+			if route.lane_id == lane_id:
+				_create_route_modal.open_for_edit(route)
+				return
+
+	_create_route_modal.open_with_planets(origin_id, dest_id)
 
 
 func _on_create_route_modal_closed() -> void:

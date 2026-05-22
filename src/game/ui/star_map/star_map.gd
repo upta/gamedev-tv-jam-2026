@@ -4,6 +4,7 @@ extends Control
 ## Visual galaxy map showing planets and active carrier routes.
 
 signal planet_selected(planet_id: String)
+signal route_requested(origin_id: String, dest_id: String)
 
 const CARRIER_COLORS := ThemeBuilder.CARRIER_COLORS
 const PLAYER_ROUTE_WIDTH := 4.0
@@ -18,6 +19,9 @@ var _game_state: GameState
 var _planet_nodes: Dictionary = {}   # { planet_id: Area2D (PlanetNode) }
 var _route_lines: Array = []         # drawn route overlay Line2Ds
 var _selected_planet_id: String = ""
+var _guide_origin_id: String = ""
+var _guide_mouse_pos: Vector2 = Vector2.ZERO
+var _guide_snap_planet_id: String = ""
 var _planet_positions: Dictionary = {}  # { planet_id: Vector2 } in pixel space
 var _planet_radii: Dictionary = {}     # { planet_id: float } for hit detection
 var _hover_panel: PanelContainer = null
@@ -55,9 +59,25 @@ func deselect_all() -> void:
 		_selected_planet_id = ""
 
 
+func _is_guide_active() -> bool:
+	return _guide_origin_id != ""
+
+
+func cancel_guide_mode() -> void:
+	if _guide_origin_id != "":
+		var node = _planet_nodes.get(_guide_origin_id, null)
+		if node:
+			node.set_selected(false)
+		_guide_origin_id = ""
+		_guide_snap_planet_id = ""
+		_guide_mouse_pos = Vector2.ZERO
+		queue_redraw()
+
+
 func _on_resized() -> void:
 	if _game_state == null:
 		return
+	cancel_guide_mode()
 	if size.x > 0 and size.y > 0 and size != _last_build_size:
 		_generate_star_field()
 		_build_map()
@@ -231,10 +251,16 @@ func _gui_input(event: InputEvent) -> void:
 			if planet_id != "":
 				_on_planet_clicked(planet_id)
 				accept_event()
+			elif _is_guide_active():
+				cancel_guide_mode()
+				accept_event()
 	elif event is InputEventMouseMotion:
 		var motion := event as InputEventMouseMotion
 		var planet_id := _get_planet_at(motion.position)
 		_update_hover(planet_id, motion.position)
+		if _is_guide_active():
+			_guide_mouse_pos = motion.position
+			queue_redraw()
 
 
 func _get_planet_at(pos: Vector2) -> String:
@@ -261,6 +287,12 @@ func _update_hover(planet_id: String, mouse_pos: Vector2) -> void:
 	if _hovered_planet_id != "":
 		_on_planet_unhovered()
 	_hovered_planet_id = planet_id
+	# Update guide snap
+	if _is_guide_active():
+		if planet_id != "" and planet_id != _guide_origin_id:
+			_guide_snap_planet_id = planet_id
+		else:
+			_guide_snap_planet_id = ""
 	if planet_id != "":
 		_on_planet_hovered(planet_id, mouse_pos)
 
@@ -273,24 +305,21 @@ func _notification(what: int) -> void:
 
 
 func _on_planet_clicked(planet_id: String) -> void:
-	# Deselect previous planet
-	if _selected_planet_id != "" and _selected_planet_id != planet_id:
-		var prev_node: Node = _planet_nodes.get(_selected_planet_id, null)
-		if prev_node:
-			prev_node.set_selected(false)
-
-	# Select new planet (or toggle off if same)
-	if _selected_planet_id == planet_id:
-		var node: Node = _planet_nodes.get(planet_id, null)
-		if node:
-			node.set_selected(false)
-		_selected_planet_id = ""
+	if _is_guide_active():
+		if planet_id != _guide_origin_id:
+			# Second click on a different planet — emit route request
+			var origin := _guide_origin_id
+			cancel_guide_mode()
+			route_requested.emit(origin, planet_id)
+		else:
+			# Clicked the same planet — cancel guide mode
+			cancel_guide_mode()
 	else:
-		_selected_planet_id = planet_id
+		# Enter guide mode
+		_guide_origin_id = planet_id
 		var node: Node = _planet_nodes.get(planet_id, null)
 		if node:
 			node.set_selected(true)
-		planet_selected.emit(planet_id)
 
 
 # ---------------------------------------------------------------------------
@@ -504,6 +533,16 @@ func _on_planet_hovered(planet_id: String, mouse_pos: Vector2) -> void:
 
 	# Demand row with icons
 	_hover_content.add_child(_hover_make_demand_row(pax_tier, cargo_tier))
+
+	# Distance row (only in guide mode, for non-origin planets)
+	if _guide_origin_id != "" and planet_id != _guide_origin_id:
+		_hover_content.add_child(_hover_make_separator())
+		var dist := _game_state.galaxy.calculate_distance(_guide_origin_id, planet_id)
+		var dist_text := "%.1f ly" % dist
+		_hover_content.add_child(_hover_make_info_row("Distance", [
+			[dist_text, ThemeBuilder.ACCENT],
+		]))
+
 	_hover_panel.visible = true
 	_hover_panel.size = Vector2.ZERO  # Force panel to resize to content
 	_position_hover_panel(mouse_pos)
@@ -562,3 +601,15 @@ func _draw() -> void:
 		var star_color := Color(dim_color.r, dim_color.g, dim_color.b, _star_alphas[i])
 		var radius: float = 0.5 + _star_alphas[i] * 1.5
 		draw_circle(_star_positions[i], radius, star_color)
+
+	# Guide line
+	if _guide_origin_id != "":
+		var from: Vector2 = _planet_positions.get(_guide_origin_id, Vector2.ZERO)
+		var to: Vector2
+		if _guide_snap_planet_id != "":
+			to = _planet_positions.get(_guide_snap_planet_id, _guide_mouse_pos)
+		else:
+			to = _guide_mouse_pos
+		if from.distance_squared_to(to) > 1.0:
+			var guide_color := Color(1.0, 1.0, 1.0, 0.6)
+			draw_dashed_line(from, to, guide_color, 2.0, 6.0)

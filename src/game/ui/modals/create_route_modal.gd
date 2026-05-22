@@ -66,6 +66,17 @@ func open() -> void:
 	_rebuild_form()
 
 
+func open_with_planets(origin_id: String, dest_id: String) -> void:
+	_edit_mode = false
+	_editing_route = null
+	_reset_form()
+	_origin_id = origin_id
+	_dest_id = dest_id
+	set_title("New Route")
+	super.open()
+	_rebuild_form()
+
+
 func open_for_edit(route: CarrierData.Route) -> void:
 	_edit_mode = true
 	_editing_route = route

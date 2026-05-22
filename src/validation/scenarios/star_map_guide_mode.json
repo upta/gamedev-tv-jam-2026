@@ -1,0 +1,102 @@
+{
+  "scenario_id": "star_map_guide_mode",
+  "version": 3,
+  "description": "Verify star map guide mode lifecycle: activate on first planet click, request route on second planet click",
+  "harness_scene": "res://validation/harnesses/star_map_guide_mode_harness.tscn",
+  "done_contract": {},
+  "artifact_contract": {
+    "required_files": ["summary.json", "event_log.json", "scene_tree.json", "console.log"],
+    "missing_file_is_failure": true
+  },
+  "exit_codes": {
+    "pass": 0,
+    "assertion_failure": 1,
+    "runtime_error": 2,
+    "timeout": 3,
+    "artifact_generation_error": 4
+  },
+  "cli_contract": {
+    "command_template": "godot --path <project> -- --test-mode --scenario <path> --artifacts <dir>"
+  },
+  "steps": [
+    { "op": "load_harness" },
+    { "op": "checkpoint", "name": "initial" },
+    {
+      "op": "assert_value",
+      "checkpoint": "initial",
+      "path": "harness_state.guide_active",
+      "comparator": "eq",
+      "expected": false,
+      "description": "Guide mode should not be active initially"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "initial",
+      "path": "harness_state.route_request_count",
+      "comparator": "eq",
+      "expected": 0,
+      "description": "No route requests should be made initially"
+    },
+    { "op": "wait_frames", "frames": 45 },
+    { "op": "checkpoint", "name": "after_first_click" },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_first_click",
+      "path": "harness_state.guide_active",
+      "comparator": "eq",
+      "expected": true,
+      "description": "Guide mode should be active after first planet click"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_first_click",
+      "path": "harness_state.guide_origin_id",
+      "comparator": "eq",
+      "expected": "earth",
+      "description": "Guide origin should be earth"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_first_click",
+      "path": "harness_state.route_request_count",
+      "comparator": "eq",
+      "expected": 0,
+      "description": "No route request yet after first click"
+    },
+    { "op": "wait_frames", "frames": 25 },
+    { "op": "checkpoint", "name": "after_second_click" },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_second_click",
+      "path": "harness_state.guide_active",
+      "comparator": "eq",
+      "expected": false,
+      "description": "Guide mode should be cancelled after second planet click"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_second_click",
+      "path": "harness_state.last_route_requested_origin",
+      "comparator": "eq",
+      "expected": "earth",
+      "description": "Route request origin should be earth"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_second_click",
+      "path": "harness_state.last_route_requested_dest",
+      "comparator": "eq",
+      "expected": "mars",
+      "description": "Route request destination should be mars"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "after_second_click",
+      "path": "harness_state.route_request_count",
+      "comparator": "eq",
+      "expected": 1,
+      "description": "Exactly 1 route request should be emitted"
+    },
+    { "op": "quit" }
+  ]
+}
