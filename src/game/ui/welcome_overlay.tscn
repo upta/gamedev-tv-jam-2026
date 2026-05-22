@@ -39,15 +39,18 @@ theme_override_font_sizes/font_size = 32
 horizontal_alignment = 1
 text = "Welcome to Astrobiz"
 
-[node name="Content" type="RichTextLabel" parent="Overlay/MarginContainer/VBoxContainer"]
+[node name="ContentScroll" type="ScrollContainer" parent="Overlay/MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
-bbcode_enabled = true
-theme_override_font_sizes/normal_font_size = 18
-text = ""
-scroll_active = false
-fit_content = false
+horizontal_scroll_mode = 0
+
+[node name="Content" type="VBoxContainer" parent="Overlay/MarginContainer/VBoxContainer/ContentScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 6
 
 [node name="BottomRow" type="HBoxContainer" parent="Overlay/MarginContainer/VBoxContainer"]
 layout_mode = 2
