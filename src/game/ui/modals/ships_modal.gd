@@ -74,7 +74,7 @@ func _build_fleet_section(carrier: CarrierData) -> void:
 
 		for ship: ShipCatalog.ShipInstance in carrier.pending_orders:
 			var label := Label.new()
-			label.text = "(Building) %s - Ready turn %d" % [ship.type_id, ship.available_turn]
+			label.text = "(Building) %s - Delivered turn %d" % [ship.type_id, ship.available_turn]
 			_content_vbox.add_child(label)
 
 	_content_vbox.add_child(HSeparator.new())

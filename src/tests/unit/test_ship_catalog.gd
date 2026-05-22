@@ -95,8 +95,8 @@ func test_create_ship_instance_available_turn() -> void:
 	var catalog := _make_mini_catalog()
 	var ship := catalog.create_ship_instance("test-ship", 25, 25, "owner1", 3)
 	assert_not_null(ship)
-	# build_turns = 2, current_turn = 3, so available_turn = 5
-	assert_eq(ship.available_turn, 5, "available_turn should be current_turn + build_turns")
+	# build_turns = 2, current_turn = 3, so available_turn = 4 (delivered during turn 4 resolution)
+	assert_eq(ship.available_turn, 4, "available_turn should be current_turn + build_turns - 1")
 
 
 func test_create_ship_instance_all_passengers() -> void:

@@ -116,7 +116,7 @@ func create_ship_instance(
 		passenger_capacity,
 		cargo_capacity,
 		owner_id,
-		current_turn + ship_type.build_turns,
+		current_turn + ship_type.build_turns - 1,
 	)
 	return instance
 

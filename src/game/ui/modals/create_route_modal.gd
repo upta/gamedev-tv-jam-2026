@@ -421,7 +421,7 @@ func _open_ship_selector() -> void:
 		if ship_type.range >= lane.distance:
 			in_range.append({
 				"id": ship.id,
-				"label": "%s (Pax:%d Cargo:%d Eff:%s)%s" % [
+				"label": "%s (Pax:%d Cargo:%d Fuel:%s)%s" % [
 					type_name, ship.passenger_capacity, ship.cargo_capacity,
 					ship_type.get_efficiency_rating(),
 					" *" if already_selected else "",
@@ -470,7 +470,17 @@ func _show_selection_popup(
 		_selection_popup_items.append(item.duplicate(true))
 
 	_selection_popup = PanelContainer.new()
+	_selection_popup.theme = ThemeBuilder.build_theme()
 	_selection_popup.custom_minimum_size = Vector2(400, 300)
+
+	# Style popup background with modal surface + border
+	var popup_bg := StyleBoxFlat.new()
+	popup_bg.bg_color = ThemeBuilder.MODAL_SURFACE
+	popup_bg.border_color = ThemeBuilder.BORDER
+	popup_bg.set_border_width_all(2)
+	popup_bg.set_corner_radius_all(6)
+	popup_bg.set_content_margin_all(12)
+	_selection_popup.add_theme_stylebox_override("panel", popup_bg)
 
 	var vbox := VBoxContainer.new()
 	_selection_popup.add_child(vbox)
@@ -480,6 +490,7 @@ func _show_selection_popup(
 	var title_label := Label.new()
 	title_label.text = title
 	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_label.add_theme_color_override("font_color", ThemeBuilder.ACCENT)
 	title_row.add_child(title_label)
 	var close_btn := Button.new()
 	close_btn.text = "X"
