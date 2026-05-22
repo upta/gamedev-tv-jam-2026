@@ -361,3 +361,60 @@ See lead-implementation-plan.md (Phase 1), lead-phase2-plan.md (Phase 2), and le
 - New test file: `test_npc_behavior_analysis.gd` (6 tests, full 30-turn simulation)
 - All 293 GUT tests pass, all validation scenarios pass
 - Personality weights in `game_setup.gd` unchanged — only decision logic improved
+
+---
+
+## D026: Route Creation UX — Distance Visibility
+
+**Date:** 2026-05-20T18:24:00Z  
+**Status:** Approved — user decision overrides design recommendation
+
+**Decision:** Show lane distance prominently in CreateRouteModal immediately after both origin and destination are selected, before ship selection. Skip map-level lane distance labels (Proposal A — too cluttered).
+
+**Rationale:** User feedback from Brian (playtester) — the primary need is seeing distance *in context* when planning a route, not cluttering the star map with 15 labels. Distance shown in the modal's config section addresses the core problem: players can see range requirements before choosing ships.
+
+**Supersedes:** Lead's Proposal A+B recommendation (lane labels + browse-first explorer). Only the "show distance earlier" aspect of B is adopted.
+
+**Impact:** Route creation flow remains unchanged structurally. UI text added to route details section to display computed distance. No game logic impact.
+
+---
+
+## D027: Centralized UI Theme System
+
+**Date:** 2026-05-20  
+**Author:** Builder  
+**Status:** Implemented
+
+**Decision:** Created `ThemeBuilder` static utility class to centralize the game's UI design system:
+
+1. **Color Palette as Constants:** All colors defined once (SURFACE, BORDER, TEXT, ACCENT, POSITIVE, NEGATIVE, WARNING, MODAL_SURFACE) exposed as public constants.
+2. **Programmatic Theme Generation:** `build_theme()` creates a Theme resource at runtime with styles for all core controls (Button, PanelContainer, ScrollBar, OptionButton, PopupMenu, etc.). Applied in `main.gd` before scene setup.
+3. **Font Management:** Inter (body/data) and Space Grotesk (headings) downloaded from official GitHub repos. Fonts loaded via `res://` paths in ThemeBuilder.
+4. **Icons via Tabler Icons:** Downloaded 5 MIT-licensed SVGs for toolbar buttons. Loaded as Texture2D and assigned to Button.icon property.
+5. **Background Clear Color:** Set in `project.godot` rendering settings (#14161C) for dark space aesthetic.
+
+**Rationale:** Programmatic theme is faster than hand-editing .tres files in the Godot editor. One source of truth for all colors enables instant global design updates.
+
+**Impact:**
+- `main.gd` applies theme: `theme = ThemeBuilder.build_theme()`
+- All controls inherit sci-fi HUD styling automatically
+- Harness compatibility preserved — theme applied before validation binding
+- All existing scenarios pass unchanged
+
+---
+
+## D028: OptionButton/PopupMenu/SpinBox Theme Styling
+
+**Date:** 2026-05-20  
+**Author:** Builder  
+**Status:** Implemented
+
+**Decision:** Extended ThemeBuilder with dropdown and spinner control styling:
+
+1. **OptionButton:** Inherits Button styles (blue sci-fi look) for visual consistency across all interactive controls.
+2. **PopupMenu:** Gets dedicated panel styling (MODAL_SURFACE + BORDER) and hover effects (ACCENT-tinted) since it's a floating overlay, not an inline control.
+3. **SpinBox:** Themed by styling its underlying LineEdit (text field) and Button (increment/decrement arrows). No separate SpinBox theme type exists in Godot — theming the components covers it completely.
+
+**Rationale:** OptionButtons and SpinBoxes appear throughout route/ship/slot creation modals. Consistent theming reduces visual fragmentation and reinforces the unified HUD aesthetic.
+
+**Impact:** All OptionButtons, PopupMenus, and SpinBoxes in the game inherit sci-fi theme automatically. No per-instance overrides needed. Headless validation confirmed no script errors; all existing scenarios pass.
