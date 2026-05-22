@@ -26,6 +26,7 @@ var _skip_presentation: bool = false
 
 
 func _ready() -> void:
+	theme = ThemeBuilder.build_theme()
 	_player_controller = PlayerController.new()
 	_session = GameSetup.create_player_session(_player_controller)
 	_player_controller.bind_carrier(

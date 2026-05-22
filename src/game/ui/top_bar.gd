@@ -6,11 +6,11 @@ signal toolbar_button_pressed(modal_name: String)
 signal debug_save_pressed()
 
 const TOOLBAR_BUTTONS: Array[Array] = [
-	["Dashboard", "dashboard"],
-	["Routes", "routes"],
-	["Ships", "ships"],
-	["Slots", "slots"],
-	["Turn Log", "turn_log"],
+	["Dashboard", "dashboard", "res://assets/icons/layout-dashboard.svg"],
+	["Routes", "routes", "res://assets/icons/route.svg"],
+	["Ships", "ships", "res://assets/icons/rocket.svg"],
+	["Slots", "slots", "res://assets/icons/grid-dots.svg"],
+	["Turn Log", "turn_log", "res://assets/icons/list.svg"],
 ]
 
 @onready var _turn_label: Label = %TurnLabel
@@ -37,9 +37,13 @@ func _create_toolbar_buttons() -> void:
 	for entry: Array in TOOLBAR_BUTTONS:
 		var label: String = entry[0]
 		var modal_name: String = entry[1]
+		var icon_path: String = entry[2]
 		var button := Button.new()
 		button.text = label
 		button.flat = true
+		var icon := load(icon_path) as Texture2D
+		if icon:
+			button.icon = icon
 		button.pressed.connect(_on_toolbar_button_pressed.bind(modal_name))
 		_toolbar_container.add_child(button)
 		_toolbar_buttons[modal_name] = button

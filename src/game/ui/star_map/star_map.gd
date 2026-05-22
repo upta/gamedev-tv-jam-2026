@@ -290,10 +290,10 @@ func _build_hover_panel() -> void:
 	_hover_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.1, 0.1, 0.15, 0.92)
-	style.border_color = Color(0.4, 0.4, 0.5, 0.6)
+	style.bg_color = ThemeBuilder.SURFACE
+	style.border_color = ThemeBuilder.BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(4)
+	style.set_corner_radius_all(6)
 	style.set_content_margin_all(8)
 	_hover_panel.add_theme_stylebox_override("panel", style)
 
