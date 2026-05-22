@@ -54,9 +54,9 @@
     {
       "op": "assert_value",
       "checkpoint": "topbar_initial",
-      "path": "harness_state.top_bar_margin_right",
+      "path": "harness_state.top_bar_hbox_separation",
       "comparator": "gte",
-      "expected": 20
+      "expected": 10
     },
     {
       "op": "assert_value",
@@ -65,8 +65,34 @@
       "comparator": "gte",
       "expected": 16
     },
+    {
+      "op": "assert_value",
+      "checkpoint": "topbar_initial",
+      "path": "harness_state.label_to_vsep_gap",
+      "comparator": "gte",
+      "expected": 8
+    },
 
     { "op": "wait_frames", "frames": 25 },
+    { "op": "checkpoint", "name": "ships_modal" },
+
+    {
+      "op": "assert_value",
+      "checkpoint": "ships_modal",
+      "path": "harness_state.active_modal",
+      "comparator": "eq",
+      "expected": "ships"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "ships_modal",
+      "path": "harness_state.ships_vbox_separation",
+      "comparator": "gte",
+      "expected": 12
+    },
+
+    { "op": "wait_frames", "frames": 25 },
+    { "op": "wait_frames", "frames": 10 },
     { "op": "checkpoint", "name": "routes_modal" },
 
     {

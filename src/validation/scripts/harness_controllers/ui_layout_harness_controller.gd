@@ -29,7 +29,10 @@ func _physics_process(_delta: float) -> void:
 
 	match _step:
 		40:
-			# Open routes modal
+			game_scene._on_toolbar_pressed("ships")
+		60:
+			game_scene._on_toolbar_pressed("ships")
+		65:
 			game_scene._on_toolbar_pressed("routes")
 
 
@@ -61,21 +64,36 @@ func _build_harness_state() -> Dictionary:
 			result["top_bar_margin_left"] = margin_node.get_theme_constant("margin_left")
 			result["top_bar_margin_right"] = margin_node.get_theme_constant("margin_right")
 
+		var hbox: Node = top_bar.get_node_or_null("Margin/HBoxContainer")
+		if hbox:
+			result["top_bar_hbox_separation"] = hbox.get_theme_constant("separation")
+
 		var first_label: Node = top_bar.get_node_or_null("Margin/HBoxContainer/TurnLabel")
 		if first_label:
 			var label_global_y: float = first_label.global_position.y
 			var bar_global_y: float = top_bar.global_position.y
 			result["first_label_offset_y"] = int(label_global_y - bar_global_y)
 
+		# Measure actual gap between first label and first separator
+		var vsep: Node = top_bar.get_node_or_null("Margin/HBoxContainer/VSeparator")
+		if first_label and vsep:
+			var label_right: float = first_label.global_position.x + first_label.size.x
+			var sep_left: float = vsep.global_position.x
+			result["label_to_vsep_gap"] = int(sep_left - label_right)
+
+	# Ships modal layout metrics (when open)
+	var ships_modal: Node = _find_node_safe("ShipsModal")
+	if ships_modal and ships_modal.visible:
+		var content_vbox: Node = ships_modal.get_node_or_null(
+			"Panel/VBoxContainer/ContentContainer/ScrollContainer/ContentVBox")
+		if content_vbox:
+			result["ships_vbox_separation"] = content_vbox.get_theme_constant("separation")
+
 	# Routes modal layout metrics (when open)
 	var routes_modal: Node = _find_node_safe("RoutesModal")
 	if routes_modal and routes_modal.visible:
-		var panel: Node = routes_modal.get_node_or_null("Panel")
-		if panel:
-			result["modal_panel_height"] = int(panel.size.y)
-			result["modal_panel_width"] = int(panel.size.x)
-
-		var content_container: Node = routes_modal.get_node_or_null("Panel/VBoxContainer/ContentContainer")
+		var content_container: Node = routes_modal.get_node_or_null(
+			"Panel/VBoxContainer/ContentContainer")
 		if content_container:
 			result["modal_content_margin_top"] = content_container.get_theme_constant("margin_top")
 			result["modal_content_margin_left"] = content_container.get_theme_constant("margin_left")

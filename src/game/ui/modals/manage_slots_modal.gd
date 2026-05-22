@@ -153,7 +153,7 @@ func _build_popup() -> void:
 	_popup_overlay.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 8)
+	vbox.add_theme_constant_override("separation", 14)
 
 	_popup_title = Label.new()
 	vbox.add_child(_popup_title)

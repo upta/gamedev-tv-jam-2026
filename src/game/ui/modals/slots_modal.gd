@@ -35,6 +35,7 @@ func refresh() -> void:
 
 	_content_vbox = VBoxContainer.new()
 	_content_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_content_vbox.add_theme_constant_override("separation", 14)
 	scroll.add_child(_content_vbox)
 
 	_build_holdings_section()
