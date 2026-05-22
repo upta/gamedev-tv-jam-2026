@@ -36,6 +36,39 @@ func _ready() -> void:
 	_overlay.visible = false
 	_continue_button.pressed.connect(_on_continue_pressed)
 
+	# Apply game theme (CanvasLayer doesn't inherit parent theme)
+	var margin_container: MarginContainer = _overlay.get_node("MarginContainer")
+	margin_container.theme = ThemeBuilder.build_theme()
+
+	# Title: heading font + accent color
+	var font_heading = load("res://assets/fonts/SpaceGrotesk-Bold.ttf") as Font
+	if font_heading:
+		_title_label.add_theme_font_override("font", font_heading)
+	_title_label.add_theme_color_override("font_color", ThemeBuilder.ACCENT)
+
+	# Skip hint: muted color
+	_skip_hint.add_theme_color_override("font_color", ThemeBuilder.MUTED)
+
+	# Continue button: accent styling (matches Next Turn button pattern)
+	var btn_style := StyleBoxFlat.new()
+	btn_style.bg_color = ThemeBuilder.ACCENT.darkened(0.6)
+	btn_style.border_color = ThemeBuilder.ACCENT
+	btn_style.set_border_width_all(2)
+	btn_style.set_corner_radius_all(4)
+	btn_style.set_content_margin_all(6)
+	btn_style.content_margin_left = 16
+	btn_style.content_margin_right = 16
+	_continue_button.add_theme_stylebox_override("normal", btn_style)
+	_continue_button.add_theme_color_override("font_color", ThemeBuilder.ACCENT)
+
+	var btn_hover := btn_style.duplicate()
+	btn_hover.bg_color = ThemeBuilder.ACCENT.darkened(0.4)
+	_continue_button.add_theme_stylebox_override("hover", btn_hover)
+
+	var btn_pressed := btn_style.duplicate()
+	btn_pressed.bg_color = ThemeBuilder.ACCENT.darkened(0.3)
+	_continue_button.add_theme_stylebox_override("pressed", btn_pressed)
+
 
 func _process(delta: float) -> void:
 	if not _active or _showing_player_summary:
