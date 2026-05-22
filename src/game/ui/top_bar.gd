@@ -141,14 +141,11 @@ func _format_cash(amount: float) -> String:
 
 
 func _apply_top_bar_style() -> void:
-	# Dark top bar panel
+	# Dark top bar panel (margins handled by MarginContainer in .tscn)
 	var bar_style := StyleBoxFlat.new()
 	bar_style.bg_color = ThemeBuilder.TOP_BAR_BG
 	bar_style.border_color = ThemeBuilder.BORDER
 	bar_style.border_width_bottom = 2
-	bar_style.set_content_margin_all(14)
-	bar_style.content_margin_left = 16
-	bar_style.content_margin_right = 16
 	add_theme_stylebox_override("panel", bar_style)
 
 	# Stat label colors: turn is muted, cash/score/rank are bright
