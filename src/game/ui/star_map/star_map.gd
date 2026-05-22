@@ -297,7 +297,13 @@ func _on_planet_clicked(planet_id: String) -> void:
 # Hover Info Panel
 # ---------------------------------------------------------------------------
 
+var _hover_pax_tex: ImageTexture = null
+var _hover_cargo_tex: ImageTexture = null
+
 func _build_hover_panel() -> void:
+	_hover_pax_tex = ThemeBuilder.load_icon_texture(ThemeBuilder.ICON_PAX, 14)
+	_hover_cargo_tex = ThemeBuilder.load_icon_texture(ThemeBuilder.ICON_CARGO, 14)
+
 	_hover_panel = PanelContainer.new()
 	_hover_panel.visible = false
 	_hover_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -386,25 +392,64 @@ func _on_planet_hovered(planet_id: String, mouse_pos: Vector2) -> void:
 	# Format system name
 	var system_display := planet.system.replace("_", " ").capitalize()
 
-	# Build panel text
-	var m := ThemeBuilder.MUTED.to_html(false)
-	var a := ThemeBuilder.ACCENT.to_html(false)
-	var pax := ThemeBuilder.pax_bb()
-	var cargo := ThemeBuilder.cargo_bb()
+	# Build panel using programmatic RichTextLabel API (avoids [img] rendering issues)
+	_hover_label.clear()
 
-	var text := "[b]%s[/b]\n" % planet.name
-	text += "[color=#%s]%s[/color]\n" % [m, system_display]
-	text += "[color=#%s]━━━━━━━━━━━━━━━━━━━━[/color]\n" % m
-	text += "Slots   [color=#%s]%d total[/color] · [color=#%s]%d yours[/color] · %d NPC · %d avail\n" % [
-		m, planet.total_slots, a, player_owned, other_owned, available,
-	]
-	text += "Routes  [color=#%s]%d active[/color] · [color=#%s]%d yours[/color]\n" % [
-		m, total_routes, a, player_routes,
-	]
-	text += "[color=#%s]━━━━━━━━━━━━━━━━━━━━[/color]\n" % m
-	text += "Demand  %s %s  %s %s" % [pax, pax_tier, cargo, cargo_tier]
+	# Planet name (bold)
+	_hover_label.push_bold()
+	_hover_label.add_text(planet.name)
+	_hover_label.pop()  # bold
+	_hover_label.newline()
 
-	_hover_label.text = text
+	# System name (muted)
+	_hover_label.push_color(ThemeBuilder.MUTED)
+	_hover_label.add_text(system_display)
+	_hover_label.pop()  # color
+	_hover_label.newline()
+
+	# Separator
+	_hover_label.push_color(ThemeBuilder.MUTED)
+	_hover_label.add_text("━━━━━━━━━━━━━━━━━━━━")
+	_hover_label.pop()  # color
+	_hover_label.newline()
+
+	# Slots line
+	_hover_label.add_text("Slots   ")
+	_hover_label.push_color(ThemeBuilder.MUTED)
+	_hover_label.add_text("%d total" % planet.total_slots)
+	_hover_label.pop()
+	_hover_label.add_text(" · ")
+	_hover_label.push_color(ThemeBuilder.ACCENT)
+	_hover_label.add_text("%d yours" % player_owned)
+	_hover_label.pop()
+	_hover_label.add_text(" · %d NPC · %d avail" % [other_owned, available])
+	_hover_label.newline()
+
+	# Routes line
+	_hover_label.add_text("Routes  ")
+	_hover_label.push_color(ThemeBuilder.MUTED)
+	_hover_label.add_text("%d active" % total_routes)
+	_hover_label.pop()
+	_hover_label.add_text(" · ")
+	_hover_label.push_color(ThemeBuilder.ACCENT)
+	_hover_label.add_text("%d yours" % player_routes)
+	_hover_label.pop()
+	_hover_label.newline()
+
+	# Separator
+	_hover_label.push_color(ThemeBuilder.MUTED)
+	_hover_label.add_text("━━━━━━━━━━━━━━━━━━━━")
+	_hover_label.pop()  # color
+	_hover_label.newline()
+
+	# Demand line with icons
+	_hover_label.add_text("Demand  ")
+	if _hover_pax_tex:
+		_hover_label.add_image(_hover_pax_tex, 14, 14)
+	_hover_label.add_text(" %s  " % pax_tier)
+	if _hover_cargo_tex:
+		_hover_label.add_image(_hover_cargo_tex, 14, 14)
+	_hover_label.add_text(" %s" % cargo_tier)
 	_hover_panel.visible = true
 	_hover_panel.size = Vector2.ZERO  # Force panel to resize to content
 	_position_hover_panel(mouse_pos)

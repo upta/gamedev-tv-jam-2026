@@ -77,7 +77,7 @@ func _make_ship_card(st: ShipCatalog.ShipType) -> PanelContainer:
 	card.add_theme_stylebox_override("panel", card_style)
 
 	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 4)
+	vbox.add_theme_constant_override("separation", 6)
 	card.add_child(vbox)
 
 	# Row 1: Name + Price
@@ -99,33 +99,23 @@ func _make_ship_card(st: ShipCatalog.ShipType) -> PanelContainer:
 	row1.add_child(price_label)
 	vbox.add_child(row1)
 
-	# Row 2: Capacity + Fuel rating
-	var row2 := HBoxContainer.new()
-	var cap_rtl := ThemeBuilder.make_icon_label()
-	cap_rtl.text = "%s Capacity: %d" % [ThemeBuilder.pax_bb(), st.max_capacity]
-	cap_rtl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row2.add_child(cap_rtl)
+	# Stats grid: 2 rows × 4 columns (label, value, label, value)
+	var grid := GridContainer.new()
+	grid.columns = 4
+	grid.add_theme_constant_override("h_separation", 4)
+	grid.add_theme_constant_override("v_separation", 4)
 
-	var fuel_rtl := ThemeBuilder.make_icon_label()
-	fuel_rtl.text = "%s %s" % [ThemeBuilder.fuel_bb(), st.get_efficiency_rating()]
-	row2.add_child(fuel_rtl)
-	vbox.add_child(row2)
+	# Row 1: Capacity | Fuel
+	_add_stat(grid, "Capacity", str(st.max_capacity))
+	_add_stat(grid, "Fuel", st.get_efficiency_rating())
 
-	# Row 3: Range + Build time + Select button
-	var row3 := HBoxContainer.new()
-	var range_label := Label.new()
-	range_label.text = "Range: %.1f ly" % st.range
-	range_label.add_theme_color_override("font_color", ThemeBuilder.MUTED)
-	range_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row3.add_child(range_label)
+	# Row 2: Range | Build
+	_add_stat(grid, "Range", "%.1f ly" % st.range)
+	_add_stat(grid, "Build", "%d turn%s" % [st.build_turns, "s" if st.build_turns != 1 else ""])
 
-	var build_label := Label.new()
-	build_label.text = "Build: %d turn%s" % [st.build_turns, "s" if st.build_turns != 1 else ""]
-	build_label.add_theme_color_override("font_color", ThemeBuilder.MUTED)
-	row3.add_child(build_label)
-	vbox.add_child(row3)
+	vbox.add_child(grid)
 
-	# Row 4: Select button (right-aligned)
+	# Select button (right-aligned)
 	var btn_row := HBoxContainer.new()
 	btn_row.alignment = BoxContainer.ALIGNMENT_END
 	var select_btn := Button.new()
@@ -148,6 +138,19 @@ func _make_ship_card(st: ShipCatalog.ShipType) -> PanelContainer:
 	vbox.add_child(btn_row)
 
 	return card
+
+
+func _add_stat(container: Container, label_text: String, value_text: String) -> void:
+	var lbl := Label.new()
+	lbl.text = label_text
+	lbl.add_theme_color_override("font_color", ThemeBuilder.MUTED)
+	lbl.custom_minimum_size.x = 80
+	container.add_child(lbl)
+
+	var val := Label.new()
+	val.text = value_text
+	val.custom_minimum_size.x = 80
+	container.add_child(val)
 
 
 func _on_card_selected(st: ShipCatalog.ShipType) -> void:

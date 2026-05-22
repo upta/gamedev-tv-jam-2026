@@ -184,16 +184,18 @@ static func _make_radio_icon(size: int, color: Color, filled: bool) -> ImageText
 	return ImageTexture.create_from_image(img)
 
 
-## Returns a colored Unicode glyph for use in BBCode text.
-## SVG [img] tags are unreliable in RichTextLabel; colored symbols are robust.
-static func pax_bb(_size: int = ICON_INLINE_SIZE) -> String:
-	return "[color=#6bedc4]●[/color]"
+## Returns a BBCode [img] tag for an inline icon.
+static func icon_bb(icon_path: String, size: int = ICON_INLINE_SIZE) -> String:
+	return "[img=%dx%d]%s[/img]" % [size, size, icon_path]
 
-static func cargo_bb(_size: int = ICON_INLINE_SIZE) -> String:
-	return "[color=#e8c56d]◼[/color]"
+static func pax_bb(size: int = ICON_INLINE_SIZE) -> String:
+	return icon_bb(ICON_PAX, size)
 
-static func fuel_bb(_size: int = ICON_INLINE_SIZE) -> String:
-	return "[color=#73948c]◆[/color]"
+static func cargo_bb(size: int = ICON_INLINE_SIZE) -> String:
+	return icon_bb(ICON_CARGO, size)
+
+static func fuel_bb(size: int = ICON_INLINE_SIZE) -> String:
+	return icon_bb(ICON_FUEL, size)
 
 
 ## Loads an icon SVG as a properly-sized Texture2D for use in TextureRect nodes.
