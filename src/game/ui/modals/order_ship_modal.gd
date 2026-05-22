@@ -61,7 +61,7 @@ func _rebuild_form() -> void:
 	_available_types = _game_state.catalog.get_available_types(_game_state.current_turn)
 	for idx in range(_available_types.size()):
 		var st: ShipCatalog.ShipType = _available_types[idx]
-		_type_option.add_item("%s (Eff: %s)" % [st.name, st.get_efficiency_rating()], idx)
+		_type_option.add_item(st.name, idx)
 	_type_option.item_selected.connect(_on_type_selected)
 	_content.add_child(_type_option)
 
@@ -148,7 +148,7 @@ func _update_stats_and_button(carrier: CarrierData) -> void:
 		return
 	var qty := int(_qty_spin.value) if _qty_spin else 1
 	var total_cost := st.cost * qty
-	_stats_label.text = "Cost: §%d x %d = §%d | Cap: %d | Range: %.1f ly | Eff: %s | Build: %d turns" % [st.cost, qty, total_cost, st.max_capacity, st.range, st.get_efficiency_rating(), st.build_turns]
+	_stats_label.text = "Cost: §%d x %d = §%d | Cap: %d | Range: %.1f ly | Fuel: %s | Build: %d turns" % [st.cost, qty, total_cost, st.max_capacity, st.range, st.get_efficiency_rating(), st.build_turns]
 	_order_button.disabled = carrier.cash < total_cost
 
 
