@@ -123,6 +123,20 @@ All processed in carrier_order (index-based tie-breaking, D004).
 
 ## Learnings
 
+### ThemeBuilder on CanvasLayer Overlays (2026-05-24)
+
+- CanvasLayer nodes don't inherit parent themes. Must explicitly set `ThemeBuilder.build_theme()` on a child container (MarginContainer) so descendants pick up fonts/colors.
+- Pattern: set theme in `_ready()`, apply per-node overrides for title (SpaceGrotesk-Bold + ACCENT), hints (MUTED), and accent buttons (StyleBoxFlat with ACCENT border + darkened bg).
+- Overlay background color uses SURFACE RGB with custom alpha in the `.tscn` literal since `Color()` in scene files can't reference constants.
+- Same pattern used by WelcomeOverlay and now TurnPresentationOverlay.
+
+### Centralized Carrier Colors (2026-05-22)
+
+- **Single source of truth**: `ThemeBuilder.CARRIER_COLORS` dictionary in `src/game/ui/theme_builder.gd`. Player=ACCENT teal-green, NPC1=muted coral, NPC2=soft lavender-blue, NPC3=warm amber.
+- `star_map.gd` and `planet_node.gd` now alias `ThemeBuilder.CARRIER_COLORS` instead of defining their own (previously divergent) copies.
+- `scoreboard_panel.gd` `_create_row()` takes `carrier_id` parameter to look up per-carrier color for both the ● indicator and name label.
+- Color design principle: desaturated hues that belong in the dark sci-fi palette. Player is brightest (ACCENT), NPCs are muted but distinguishable.
+
 ### Per-Turn Game Telemetry (2026-05-19)
 
 - `GameTelemetry` (`src/game/utils/game_telemetry.gd`): RefCounted instance on `GameSession`, not static. Accumulates per-turn snapshots of intents, results, and post-turn carrier state. Saves to `user://game_telemetry.json`.
