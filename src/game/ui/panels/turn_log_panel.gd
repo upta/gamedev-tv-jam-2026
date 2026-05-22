@@ -3,9 +3,9 @@ extends PanelContainer
 
 ## Scrollable read-only panel displaying turn-by-turn results history.
 
-const COLOR_POSITIVE := "#00cc00"
-const COLOR_NEGATIVE := "#cc0000"
-const COLOR_EVENT := "#cccc00"
+const COLOR_POSITIVE := "#3DEAAB"
+const COLOR_NEGATIVE := "#FF5959"
+const COLOR_EVENT := "#FFC73D"
 
 @onready var _log_entries: VBoxContainer = $MarginContainer/VBoxContainer/ScrollContainer/LogEntries
 @onready var _scroll_container: ScrollContainer = $MarginContainer/VBoxContainer/ScrollContainer

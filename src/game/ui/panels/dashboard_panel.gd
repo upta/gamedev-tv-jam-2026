@@ -4,8 +4,11 @@ extends PanelContainer
 ## Carrier dashboard showing fleet, slots, routes, and score at a glance.
 
 @onready var _header: Label = $MarginContainer/ScrollContainer/Content/DashboardHeader
+@onready var _fleet_header: Label = $MarginContainer/ScrollContainer/Content/FleetHeader
 @onready var _fleet_list: VBoxContainer = $MarginContainer/ScrollContainer/Content/FleetList
+@onready var _slots_header: Label = $MarginContainer/ScrollContainer/Content/SlotsHeader
 @onready var _slots_list: VBoxContainer = $MarginContainer/ScrollContainer/Content/SlotsList
+@onready var _routes_header: Label = $MarginContainer/ScrollContainer/Content/RoutesHeader
 @onready var _routes_list: VBoxContainer = $MarginContainer/ScrollContainer/Content/RoutesList
 
 var _game_state: GameState
@@ -15,6 +18,7 @@ var _carrier_id: String
 func bind(game_state: GameState, carrier_id: String) -> void:
 	_game_state = game_state
 	_carrier_id = carrier_id
+	_style_section_headers()
 	refresh()
 
 
@@ -115,3 +119,16 @@ func _refresh_routes() -> void:
 func _clear_children(container: VBoxContainer) -> void:
 	for child: Node in container.get_children():
 		child.queue_free()
+
+
+func _style_section_headers() -> void:
+	var font_heading = load("res://assets/fonts/SpaceGrotesk-Bold.ttf") as Font
+	for lbl: Label in [_fleet_header, _slots_header, _routes_header]:
+		lbl.add_theme_color_override("font_color", ThemeBuilder.ACCENT)
+		lbl.add_theme_font_size_override("font_size", 13)
+		lbl.uppercase = true
+		if font_heading:
+			lbl.add_theme_font_override("font", font_heading)
+	_header.add_theme_color_override("font_color", ThemeBuilder.TEXT)
+	if font_heading:
+		_header.add_theme_font_override("font", font_heading)

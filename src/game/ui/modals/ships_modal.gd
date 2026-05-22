@@ -49,12 +49,8 @@ func refresh() -> void:
 # ---------------------------------------------------------------------------
 
 func _build_fleet_section(carrier: CarrierData) -> void:
-	var header := Label.new()
-	header.text = "Your Fleet"
+	var header := ThemeBuilder.make_section_header("Your Fleet")
 	_content_vbox.add_child(header)
-
-	var sep := HSeparator.new()
-	_content_vbox.add_child(sep)
 
 	# Build ship-to-route map
 	var ship_route_map: Dictionary = {}
@@ -89,8 +85,7 @@ func _build_fleet_section(carrier: CarrierData) -> void:
 # ---------------------------------------------------------------------------
 
 func _build_pending_orders_section() -> void:
-	var header := Label.new()
-	header.text = "Pending Ship Orders"
+	var header := ThemeBuilder.make_section_header("Pending Ship Orders")
 	_content_vbox.add_child(header)
 
 	var orders: Array = _player_controller.pending_intent.ship_orders

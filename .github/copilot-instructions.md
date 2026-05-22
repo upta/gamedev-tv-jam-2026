@@ -22,7 +22,9 @@ This is a Godot game prototype using the [agentic-godot-validation](https://gith
 - The app root routes between the game and the validation test bootstrap via `--test-mode` CLI flag
 - Validation scenarios are JSON contracts in `src/validation/scenarios/`
 - Harness scenes live in `src/validation/harnesses/` with controllers in `src/validation/scripts/harness_controllers/`
-- Run scenarios with `./tools/run_scenario.ps1 -Scenario src/validation/scenarios/<name>.json -GodotExe <path>`
+- Run scenarios with `./tools/run_scenario.ps1 -Scenario src/validation/scenarios/<name>.json -ProjectPath src -GodotExe <path>`
+- Run the full suite with `./tools/run_all_scenarios.ps1 -ScenarioDir src/validation/scenarios -ProjectPath src -GodotExe <path>`
+- **CRITICAL**: Always pass `-ProjectPath src` to the validation runner scripts. The `tools/` directory is a junction to the submodule, so the script's default project path resolves to the repo root (which has no `project.godot`). Without `-ProjectPath src`, Godot opens the project selector and produces no artifacts.
 - Run GUT unit tests with `godot --headless --path src -s addons/gut/gut_cmdln.gd -gexit`
 - Do not modify files under `src/addons/agentic_godot_validation/` — changes belong in the submodule repo
 - Do not modify files under `src/addons/gut/` — managed by GUT upstream

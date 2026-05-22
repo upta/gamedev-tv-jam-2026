@@ -20,6 +20,7 @@ func _ready() -> void:
 	_content = VBoxContainer.new()
 	_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_content.add_theme_constant_override("separation", 6)
 	scroll.add_child(_content)
 
 
@@ -64,8 +65,7 @@ func refresh() -> void:
 # ---------------------------------------------------------------------------
 
 func _build_active_routes(carrier: CarrierData) -> void:
-	var header := Label.new()
-	header.text = "-- Active Routes --"
+	var header := ThemeBuilder.make_section_header("Active Routes")
 	_content.add_child(header)
 
 	var active_routes := carrier.get_active_routes()
@@ -117,9 +117,9 @@ func _build_active_routes(carrier: CarrierData) -> void:
 				pax_served, pax_cap, cargo_served, cargo_cap, profit_sign, int(profit),
 			]
 			if profit >= 0.0:
-				metrics_label.add_theme_color_override("font_color", Color.GREEN)
+				metrics_label.add_theme_color_override("font_color", ThemeBuilder.POSITIVE)
 			else:
-				metrics_label.add_theme_color_override("font_color", Color.RED)
+				metrics_label.add_theme_color_override("font_color", ThemeBuilder.NEGATIVE)
 		route_block.add_child(metrics_label)
 
 		_content.add_child(route_block)
@@ -145,8 +145,7 @@ func _get_route_financials(carrier_id: String, route_id: String) -> Dictionary:
 # ---------------------------------------------------------------------------
 
 func _build_pending_actions() -> void:
-	var header := Label.new()
-	header.text = "-- Pending Route Actions --"
+	var header := ThemeBuilder.make_section_header("Pending Actions")
 	_content.add_child(header)
 
 	var intent := _player_controller.pending_intent

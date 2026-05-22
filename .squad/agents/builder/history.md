@@ -203,3 +203,14 @@ All processed in carrier_order (index-based tie-breaking, D004).
 - **NPC controller slot tracking**: `_consider_route_creation()` now maintains a `pending_slot_usage` dictionary, incrementing per-planet counts as routes are added to the intent. Prevents NPCs from over-committing slots when creating multiple routes in one turn.
 - **Test update**: `test_npc_creates_multiple_routes` was asserting the buggy behavior (2+ routes with only 1 slot per planet). Updated to give 2 slots per planet so 2 routes are legitimately possible.
 - Added 4 unit tests for `pending_creates`: origin slot blocking, dest slot blocking, allowing with sufficient slots, and ship reuse prevention.
+
+### UI Theme: Space Control Room Polish (2026-05-20)
+
+- **ThemeBuilder** (`src/game/ui/theme_builder.gd`): Static class with color palette constants and `build_theme()` factory. Colors: SURFACE (#1A1A26), BORDER (#343B52), TEXT (#E8EEF7), ACCENT (#6EC8FF), POSITIVE/NEGATIVE/WARNING for states. Styles for Button, PanelContainer, ScrollBar, HSeparator, RichTextLabel.
+- **Fonts**: Downloaded Inter (regular/bold) for body/data, SpaceGrotesk (bold) for headings from official GitHub repos. Placed in `src/assets/fonts/`. Updated `project.godot` gui/theme/custom_font to Inter-Regular.
+- **Background**: Set rendering/environment/defaults/default_clear_color to #14161C in project.godot.
+- **Toolbar icons**: Downloaded 5 Tabler Icons (MIT) SVGs (layout-dashboard, route, rocket, grid-dots, list) to `src/assets/icons/`. Updated `TOOLBAR_BUTTONS` constant in `top_bar.gd` to include icon paths. `_create_toolbar_buttons()` loads icons and assigns to buttons.
+- **StarMap hover panel**: Updated `_build_hover_panel()` to use `ThemeBuilder.SURFACE` and `ThemeBuilder.BORDER` instead of hardcoded colors.
+- **Theme application**: `main.gd` calls `theme = ThemeBuilder.build_theme()` in `_ready()` before any other setup, propagating the theme to all child controls.
+- Headless launch test passed — no script errors. All pushed to origin.
+

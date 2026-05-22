@@ -136,8 +136,7 @@ func _build_manage_button() -> void:
 func _add_section_header(text: String) -> void:
 	var sep := HSeparator.new()
 	_content_vbox.add_child(sep)
-	var lbl := Label.new()
-	lbl.text = text
+	var lbl := ThemeBuilder.make_section_header(text)
 	_content_vbox.add_child(lbl)
 
 

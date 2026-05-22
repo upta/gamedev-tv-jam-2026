@@ -320,7 +320,7 @@ func _rebuild_route_details(carrier: CarrierData) -> void:
 		cancel_route_row.alignment = BoxContainer.ALIGNMENT_CENTER
 		var cancel_route_btn := Button.new()
 		cancel_route_btn.text = "Cancel Route"
-		cancel_route_btn.add_theme_color_override("font_color", Color.RED)
+		cancel_route_btn.add_theme_color_override("font_color", ThemeBuilder.NEGATIVE)
 		cancel_route_btn.pressed.connect(_on_cancel_route_from_edit)
 		cancel_route_row.add_child(cancel_route_btn)
 		_details_section.add_child(cancel_route_row)

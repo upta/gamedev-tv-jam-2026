@@ -6,9 +6,9 @@ extends Control
 signal planet_selected(planet_id: String)
 
 const CARRIER_COLORS := {
-	"player": Color(0.2, 0.6, 1.0),
+	"player": Color(0.24, 0.92, 0.67),
 	"npc_1": Color(0.9, 0.3, 0.3),
-	"npc_2": Color(0.3, 0.9, 0.3),
+	"npc_2": Color(0.3, 0.7, 0.9),
 	"npc_3": Color(0.9, 0.7, 0.2),
 }
 const PLAYER_ROUTE_WIDTH := 4.0

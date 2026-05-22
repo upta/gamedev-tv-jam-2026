@@ -4,7 +4,7 @@ extends ColorRect
 signal play_again_requested()
 
 const GOLD_COLOR := Color(1, 0.85, 0)
-const PLAYER_HIGHLIGHT_COLOR := Color(0.5, 0.8, 1.0)
+const PLAYER_HIGHLIGHT_COLOR := Color(0.24, 0.92, 0.67) # matches ThemeBuilder.ACCENT
 const HEADER_LABELS: Array[String] = ["Rank", "Name", "Score", "Cash", "Ship Value", "Slot Value", "Route Value"]
 
 @onready var _turn_label: Label = $CenterContainer/VBoxContainer/TurnLabel
@@ -16,6 +16,25 @@ const HEADER_LABELS: Array[String] = ["Rank", "Name", "Score", "Cash", "Ship Val
 func _ready() -> void:
 	visible = false
 	_play_again_button.pressed.connect(func() -> void: play_again_requested.emit())
+	_apply_style()
+
+
+func _apply_style() -> void:
+	color = Color(0.04, 0.055, 0.055, 0.85)
+	var font_heading = load("res://assets/fonts/SpaceGrotesk-Bold.ttf") as Font
+
+	# Style "GAME OVER" label
+	var game_over_label: Label = $CenterContainer/VBoxContainer/GameOverLabel
+	if font_heading:
+		game_over_label.add_theme_font_override("font", font_heading)
+	game_over_label.add_theme_color_override("font_color", ThemeBuilder.ACCENT)
+
+	# Style turn label
+	_turn_label.add_theme_color_override("font_color", ThemeBuilder.MUTED)
+
+	# Style winner label
+	if font_heading:
+		_winner_label.add_theme_font_override("font", font_heading)
 
 
 func show_results(rankings: Array, turns_played: int, player_carrier_id: String) -> void:
@@ -65,7 +84,7 @@ func _add_header_row() -> void:
 		var label := Label.new()
 		label.text = header_text
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+		label.add_theme_color_override("font_color", ThemeBuilder.MUTED)
 		_rankings_grid.add_child(label)
 
 
