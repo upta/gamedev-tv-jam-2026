@@ -10,6 +10,7 @@ const MUSIC_SPACE := preload("res://assets/music/space_ambient.ogg")
 const SFX_CLICK := preload("res://assets/sfx/click.ogg")
 const SFX_SWITCH := preload("res://assets/sfx/switch.ogg")
 const SFX_ROLLOVER := preload("res://assets/sfx/rollover.ogg")
+const SFX_TICK := preload("res://assets/sfx/tick.ogg")
 
 var _config := ConfigFile.new()
 var _bus_values: Dictionary = {}

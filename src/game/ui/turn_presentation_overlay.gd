@@ -86,6 +86,7 @@ func _process(delta: float) -> void:
 		if next_line.strip_edges() == "":
 			_line_timer = 0.0
 		else:
+			_play_tick()
 			_line_timer = LINE_REVEAL_DELAY
 	elif not _all_lines_revealed:
 		# All lines shown — start post-reveal pause
@@ -120,6 +121,7 @@ func _input(event: InputEvent) -> void:
 			# Reveal next line immediately on click
 			_revealed_lines.append(_pending_lines.pop_front())
 			_content.text = "\n".join(_revealed_lines)
+			_play_tick()
 			_line_timer = LINE_REVEAL_DELAY
 		elif not _all_lines_revealed:
 			# Skip post-reveal wait
@@ -360,6 +362,7 @@ func _get_ship_name(type_id: String) -> String:
 
 
 func _on_continue_pressed() -> void:
+	_play_click()
 	_finish()
 
 
@@ -367,3 +370,19 @@ func _finish() -> void:
 	_active = false
 	_overlay.visible = false
 	presentation_complete.emit()
+
+
+func _get_audio_manager() -> Node:
+	return get_node_or_null("/root/AudioManager")
+
+
+func _play_tick() -> void:
+	var am := _get_audio_manager()
+	if am:
+		am.play_sfx(am.SFX_TICK)
+
+
+func _play_click() -> void:
+	var am := _get_audio_manager()
+	if am:
+		am.play_sfx(am.SFX_CLICK)

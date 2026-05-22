@@ -21,11 +21,13 @@ func _ready() -> void:
 func open() -> void:
 	visible = true
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	_play_sfx("SFX_SWITCH")
 
 
 func close() -> void:
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_play_sfx("SFX_CLICK")
 	closed.emit()
 
 
@@ -59,3 +61,11 @@ func _apply_modal_style() -> void:
 	_title_label.add_theme_font_size_override("font_size", 18)
 	_title_label.add_theme_color_override("font_color", ThemeBuilder.ACCENT)
 	_title_label.uppercase = true
+
+
+func _play_sfx(sfx_name: String) -> void:
+	var am := get_node_or_null("/root/AudioManager")
+	if am:
+		var stream = am.get(sfx_name)
+		if stream:
+			am.play_sfx(stream)

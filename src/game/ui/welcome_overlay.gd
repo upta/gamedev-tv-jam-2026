@@ -267,6 +267,7 @@ func _show_current_page() -> void:
 
 
 func _advance_page() -> void:
+	_play_click()
 	if _current_page < _page_builders.size() - 1:
 		_current_page += 1
 		_show_current_page()
@@ -304,6 +305,13 @@ func _input(event: InputEvent) -> void:
 
 
 func _on_start_pressed() -> void:
+	_play_click()
 	_active = false
 	_overlay.visible = false
 	tutorial_complete.emit()
+
+
+func _play_click() -> void:
+	var am := get_node_or_null("/root/AudioManager")
+	if am:
+		am.play_sfx(am.SFX_CLICK)

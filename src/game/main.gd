@@ -192,7 +192,6 @@ func _show_turn_notifications(result: TurnPipeline.TurnResult) -> void:
 
 func _on_toolbar_pressed(modal_name: String) -> void:
 	_star_map.cancel_guide_mode()
-	_play_sfx_switch()
 
 	# Close create route modal if open
 	if _create_route_modal.visible:
@@ -230,6 +229,7 @@ func _on_modal_closed() -> void:
 
 
 func _on_play_again() -> void:
+	_play_sfx_click()
 	if not _active_modal.is_empty():
 		_modals[_active_modal].close()
 		_active_modal = ""
@@ -257,7 +257,6 @@ func _save_debug_state() -> void:
 
 
 func _on_create_route_requested() -> void:
-	_play_sfx_click()
 	_routes_modal.close()
 	_create_route_modal.open()
 
@@ -310,7 +309,6 @@ func _on_route_modified() -> void:
 
 
 func _on_order_ship_requested() -> void:
-	_play_sfx_click()
 	_ships_modal.close()
 	_order_ship_modal.open()
 
@@ -327,7 +325,6 @@ func _on_ship_ordered() -> void:
 
 
 func _on_manage_slots_requested() -> void:
-	_play_sfx_click()
 	_slots_modal.close()
 	_manage_slots_modal.open()
 
