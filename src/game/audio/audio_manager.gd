@@ -25,6 +25,7 @@ func _ready() -> void:
 
 	_music_player = AudioStreamPlayer.new()
 	_music_player.bus = "Music"
+	_music_player.volume_db = -6.0
 	add_child(_music_player)
 
 	for bus_name: String in BUS_NAMES:
