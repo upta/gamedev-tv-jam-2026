@@ -11,7 +11,7 @@ var _scoreboard: Control  # sibling to position below
 func _ready() -> void:
 	_apply_style()
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	visible = false
+	size = Vector2.ZERO  # let content determine size
 
 	var margin := MarginContainer.new()
 	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -54,6 +54,7 @@ func _reposition() -> void:
 	if _scoreboard:
 		position.x = _scoreboard.position.x
 		position.y = _scoreboard.position.y + _scoreboard.size.y + 8
+		custom_minimum_size.x = _scoreboard.size.x
 
 
 func refresh() -> void:
@@ -94,6 +95,8 @@ func refresh() -> void:
 	if not route_items.is_empty():
 		has_anything = true
 		_add_section("ROUTES", route_items)
+	else:
+		_add_section_empty("ROUTES")
 
 	# --- SHIPS ---
 	var ship_items: Array[String] = []
@@ -110,6 +113,8 @@ func refresh() -> void:
 	if not ship_items.is_empty():
 		has_anything = true
 		_add_section("SHIPS", ship_items)
+	else:
+		_add_section_empty("SHIPS")
 
 	# --- SLOTS ---
 	var slot_items: Array[String] = []
@@ -130,8 +135,9 @@ func refresh() -> void:
 	if not slot_items.is_empty():
 		has_anything = true
 		_add_section("SLOTS", slot_items)
+	else:
+		_add_section_empty("SLOTS")
 
-	visible = has_anything
 	_reposition()
 
 
@@ -151,6 +157,25 @@ func _add_section(header_text: String, items: Array[String]) -> void:
 		var action_text: String = parts[0]
 		var detail_text: String = parts[1] if parts.size() > 1 else ""
 		_content.add_child(_create_action_row(action_text, detail_text))
+
+
+func _add_section_empty(header_text: String) -> void:
+	var header := Label.new()
+	header.text = header_text
+	header.add_theme_color_override("font_color", ThemeBuilder.MUTED)
+	header.add_theme_font_size_override("font_size", 10)
+	var font_bold = load("res://assets/fonts/SpaceGrotesk-Bold.ttf") as Font
+	if font_bold:
+		header.add_theme_font_override("font", font_bold)
+	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_content.add_child(header)
+
+	var none_label := Label.new()
+	none_label.text = "None"
+	none_label.add_theme_font_size_override("font_size", 11)
+	none_label.add_theme_color_override("font_color", ThemeBuilder.TEXT)
+	none_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_content.add_child(none_label)
 
 
 func _create_action_row(action_text: String, detail_text: String) -> HBoxContainer:
