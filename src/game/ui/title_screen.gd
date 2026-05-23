@@ -25,7 +25,7 @@ func _start_music() -> void:
 	if OS.has_feature("headless") or OS.get_cmdline_user_args().has("--test-mode"):
 		return
 	var am := _get_audio_manager()
-	if am:
+	if am and not am.is_music_playing():
 		am.play_music(am.MUSIC_SPACE)
 
 
