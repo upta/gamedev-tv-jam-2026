@@ -80,7 +80,7 @@ func _build_fleet_section(carrier: CarrierData) -> void:
 			var pending_type := _game_state.catalog.get_type(ship.type_id)
 			var pending_name: String = pending_type.name if pending_type else ship.type_id
 			var label := Label.new()
-			label.text = "(Building) %s - Delivered turn %d" % [pending_name, ship.available_turn]
+			label.text = "(Building) %s - Available turn %d" % [pending_name, ship.available_turn + 1]
 			_content_vbox.add_child(label)
 
 	_content_vbox.add_child(HSeparator.new())

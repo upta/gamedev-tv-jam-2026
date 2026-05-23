@@ -74,7 +74,7 @@ func _refresh_fleet() -> void:
 		var order_type := _game_state.catalog.get_type(order.type_id)
 		var order_name: String = order_type.name if order_type else order.type_id
 		var label := Label.new()
-		label.text = "(Building) %s - Ready turn %d" % [order_name, order.available_turn]
+		label.text = "(Building) %s - Available turn %d" % [order_name, order.available_turn + 1]
 		_fleet_list.add_child(label)
 
 
