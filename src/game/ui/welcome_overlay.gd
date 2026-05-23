@@ -46,6 +46,9 @@ func _ready() -> void:
 		_title_label.add_theme_font_override("font", _font_bold)
 	_title_label.add_theme_color_override("font_color", ThemeBuilder.ACCENT)
 
+	# Style start button as primary green
+	ThemeBuilder.style_primary_button(_start_button)
+
 	# Page indicator and continue hint colors
 	_page_indicator.add_theme_color_override("font_color", ThemeBuilder.MUTED)
 	_continue_hint.add_theme_color_override("font_color", ThemeBuilder.TEXT)
