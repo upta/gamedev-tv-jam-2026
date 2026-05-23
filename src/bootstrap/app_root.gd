@@ -1,6 +1,7 @@
 extends Node
 
-const PRODUCTION_SCENE := preload("res://game/main.tscn")
+const TITLE_SCENE := preload("res://game/ui/title_screen.tscn")
+const GAME_SCENE := preload("res://game/main.tscn")
 const TEST_SCENE_PATH := "res://addons/agentic_godot_validation/runtime/scenes/test_bootstrap.tscn"
 const ACTION_KEYS := {
 	"move_up": KEY_W,
@@ -11,14 +12,29 @@ const ACTION_KEYS := {
 	"ui_accept": KEY_ENTER,
 }
 
+var _current_scene: Node
+
+
 func _ready() -> void:
 	_ensure_input_actions()
-	var next_scene: PackedScene
 	if _is_test_mode():
-		next_scene = load(TEST_SCENE_PATH)
+		_current_scene = load(TEST_SCENE_PATH).instantiate()
+		add_child(_current_scene)
 	else:
-		next_scene = PRODUCTION_SCENE
-	add_child(next_scene.instantiate())
+		_show_title()
+
+
+func _show_title() -> void:
+	var title: TitleScreen = TITLE_SCENE.instantiate()
+	title.new_game_requested.connect(_on_new_game)
+	_current_scene = title
+	add_child(_current_scene)
+
+
+func _on_new_game() -> void:
+	_current_scene.queue_free()
+	_current_scene = GAME_SCENE.instantiate()
+	add_child(_current_scene)
 
 func _is_test_mode() -> bool:
 	return OS.get_cmdline_user_args().has("--test-mode")
