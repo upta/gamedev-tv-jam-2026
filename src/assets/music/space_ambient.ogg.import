@@ -2,7 +2,7 @@
 
 importer="oggvorbisstr"
 type="AudioStreamOggVorbis"
-uid="uid://kibpy6gurgya"
+uid="uid://bmbesrln20qmd"
 path="res://.godot/imported/space_ambient.ogg-63c7e1591b07be9a0cef20e35d632f73.oggvorbisstr"
 
 [deps]
@@ -12,7 +12,7 @@ dest_files=["res://.godot/imported/space_ambient.ogg-63c7e1591b07be9a0cef20e35d6
 
 [params]
 
-loop=true
+loop=false
 loop_offset=0
 bpm=0
 beat_count=0
