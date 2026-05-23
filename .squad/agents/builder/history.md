@@ -1,6 +1,25 @@
 # Builder History
 
+## Learnings
+
+- **Ship `available_turn` is pipeline-internal, not player-facing.** The formula `current_turn + build_turns - 1` computes when the Deliver step fires. The player can actually USE the ship one turn later (after that turn resolves). UI must show `available_turn + 1`.
+- **Two UI locations show pending ship timing:** `ships_modal.gd` (line 83) and `dashboard_panel.gd` (line 77). Both must stay in sync.
+- **`sim_initial_state` scenario is stale** — asserts `npc_1.slots.centauri_prime` but carrier_data.gd defines NPC 1 with `europa`. Pre-existing issue, not related to this fix.
+- **Key files for ship ordering/delivery flow:** `ship_catalog.gd` (available_turn formula), `financial_calculator.gd` (deliver_pending_ships), `turn_pipeline.gd` (step 1 Deliver, step 4 Ship Orders), `game_state.gd` (advance_turn increments current_turn AFTER pipeline).
+
 ## Recent Sessions
+
+### Session: Ship Arrival Timing Fix (2026-05-23)
+
+**Deliverables:**
+1. **Fixed off-by-one in ship arrival UI:** Both `ships_modal.gd` and `dashboard_panel.gd` now show `available_turn + 1` — the turn when the player can actually assign the ship to routes.
+2. **Root cause analysis:** `available_turn` is the pipeline turn when Step 1 (Deliver) fires, but the player's planning phase happens BEFORE the pipeline runs. So a ship with `available_turn = N` becomes usable during turn N+1's planning.
+
+**Files changed:** `ships_modal.gd`, `dashboard_panel.gd`
+
+**Testing:** Headless launch clean. GUT unit suite passes. Full validation suite: 42/43 pass, 1 pre-existing failure (`sim_initial_state` — stale slot assertion).
+
+---
 
 ### Session: Cargo Volume Completion (2026-05-22)
 

@@ -748,7 +748,6 @@ Repurposes dead `_selected_planet_id` click behavior (nothing consumed the old `
 
 **Author:** Builder  
 **Date:** 2026-05-22
-
 **Context:** Raw IDs (type_id, lane_id, route_id, planet_id) were leaking into UI text across many panels and modals.
 
 **Decision:** Each UI component resolves IDs locally using small helper methods (`_get_ship_name`, `_get_planet_name`, `_resolve_route_display`) rather than a centralized formatter. This keeps each file self-contained and avoids adding a new utility class.
@@ -765,3 +764,131 @@ For `turn_log_panel`, which previously had no access to GameState, we added a `s
 - 10 UI files updated (inventory, ship_panel, route_summary, trade_lane_detail, turn_log_panel, planet_facts, economy_panel, metrics_panel, status_panel, hud_summary)
 - Financial key references corrected (revenue/cost → total_revenue/total_cost)
 - All 42 validation scenarios pass
+
+---
+
+## Builder Batch: 2026-05-23 (6 Decisions)
+
+### D030: Ship Availability Turn Display
+
+**Author:** Builder  
+**Date:** 2026-05-23  
+**Status:** Implemented
+
+**Context:** Bug report: ships showed up a turn after they said they would. The `available_turn` field on `ShipInstance` represents the pipeline turn when Step 1 (Deliver) moves the ship from `pending_orders` to `ships`. However, the player's planning phase happens BEFORE the pipeline runs. So a ship with `available_turn = N` is delivered during turn N's resolution but only usable during turn N+1's planning.
+
+**Decision:** Display `available_turn + 1` in the UI. This matches:
+1. When the player can actually assign the ship to routes
+2. The player's mental model of "Build: N turns" (order turn + N = availability turn)
+
+The formula `current_turn + build_turns - 1` in `ship_catalog.gd` is correct for pipeline semantics and was NOT changed.
+
+**Alternatives Considered:**
+- **Change the formula to `current_turn + build_turns`**: Would require changing delivery checks, route validator, and tests. Also shifts the actual delivery timing, making ships take one extra turn to build.
+- **Move delivery before intent collection**: Architecturally invasive, breaks the clean pipeline model.
+
+---
+
+### D031: Route Activity Validation
+
+**Author:** Builder  
+**Date:** 2026-05-22  
+**Status:** Implemented
+
+**Context:** All carriers now start with an Earth slot, but the cautious NPC's unique home lane is longer-range and ramps more slowly than the aggressive and balanced carriers.
+
+**Decision:** Validate mid-game route health using aggregate activity metrics instead of requiring every NPC to have an active route by turn 10.
+
+**Rationale:**
+- The design goal is shared-lane competition and strategic diversity, not identical timing across personalities.
+- The cautious carrier now prioritizes efficient, range-capable expansion and can be intentionally later to market.
+- Aggregate route-activity checks are more stable and still catch regressions where the session stalls.
+
+**Validation Impact:**
+- `session_all_carriers_active.json` now waits slightly longer and asserts broad route activity.
+- Harness metrics expose `carriers_with_active_routes` and `npcs_with_active_routes` to support that check.
+
+---
+
+### D032: Star Map z-Index Rendering
+
+**Author:** Builder  
+**Date:** 2026-05-25  
+**Status:** Implemented
+
+**Context:** Route lines in the star map were using `move_child()` to render behind planet nodes. This was fragile and didn't always work correctly.
+
+**Decision:** Use Godot's `z_index` property for rendering order instead of child index manipulation:
+- Route Line2D: `z_index = -1`
+- LaneLine: `z_index = -2`
+- PlanetNode (Area2D): default `z_index = 0`
+
+This is the idiomatic Godot approach and is immune to child insertion order issues.
+
+**Also Decided:**
+- System colors should be desaturated to avoid competing with carrier colors. The carrier color palette is the primary visual signal; system colors are secondary grouping only.
+
+---
+
+### D033: Economy Rebalance — Monetary Scale & Fuel Costs
+
+**Author:** Builder  
+**Date:** 2026-05-22  
+**Status:** Implemented
+
+**Summary:**
+- Monetary values are now expressed at 10x the previous scale so pricing can use finer increments without large percentage jumps.
+- Operating cost now scales by `pow(distance, 1.2) * max_capacity * FUEL_COST_PER_UNIT / efficiency`, then by route frequency.
+
+**Rationale:**
+- The old coarse money scale made small integer changes too swingy for balancing.
+- The old fuel model ignored ship size and made long routes too efficient relative to revenue.
+- Capacity-aware, super-linear fuel costs create meaningful route-length and ship-selection tradeoffs.
+
+**Impact:**
+- Default ship prices, starting cash, slot upkeep, NPC reserves, and slot valuation all increased by 10x.
+- Suggested route pricing and NPC route/bid heuristics moved to the same scale.
+- Existing validation scenarios continue to pass after updating starting-cash assertions.
+
+---
+
+### D034: Cargo as High-Volume, Low-Margin Business
+
+**Author:** Builder  
+**Date:** 2026-05-22  
+**Status:** Applied
+
+**Context:** Cargo was strictly worse than passengers: lower demand and only a small price discount. That made cargo routes a trap instead of a distinct strategy, and monopolist openings stayed too safe because shared markets did not reward extra service enough.
+
+**Decision:** Treat cargo as a **volume market** instead of a premium-adjacent market:
+- Cargo demand is substantially higher than passenger demand on productive lanes
+- Cargo suggested pricing stays at **50% of passenger price**
+- Opening geography is shared on Earth so carriers compete immediately instead of farming isolated monopolies
+
+**Rationale:**
+- Creates a real passenger-vs-cargo tradeoff instead of an obvious best choice
+- Makes frequency and market presence matter more in contested lanes
+- Pushes NPCs and players toward differentiated openings and pricing behavior
+
+**Expected Outcome:** Cargo should win on throughput, passengers should win on ticket yield, and the early game should feature meaningful competition instead of isolated, conservative snowballing.
+
+---
+
+### D035: Soft Bankruptcy (Elimination Without Game Over)
+
+**Author:** Builder  
+**Date:** 2026-05-22  
+**Status:** Applied
+
+**Context:** DESIGN.md states "any carrier goes bankrupt → game over." In practice, an NPC going bankrupt on turn 4-5 would end the game abruptly and feel unfair to the player.
+
+**Decision:** Bankrupt carriers are **eliminated** (routes disabled, pending orders cleared, NPC controller already returns empty intent when cash ≤ 0) but the **game continues until turn 30**. The bankrupted carrier stays on the scoreboard with whatever score they had at elimination.
+
+**Rationale:**
+- Better gameplay: player doesn't lose because an NPC overspent early
+- The carrier is effectively dead — no routes, no ships incoming, no actions
+- Scoreboard still shows them so the player can see what happened
+- Player bankruptcy is still meaningful — they can't recover either, but the game continues so they see final standings
+
+**Deviation from DESIGN.md:**
+This softens the "any bankruptcy = game over" rule. DESIGN.md should be updated to reflect elimination semantics.
