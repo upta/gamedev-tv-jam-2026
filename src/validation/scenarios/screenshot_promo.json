@@ -1,0 +1,66 @@
+{
+  "scenario_id": "screenshot_promo",
+  "version": 3,
+  "description": "Capture promotional screenshots: star map gameplay, ships modal, and turn summary overlay",
+  "harness_scene": "res://validation/harnesses/screenshot_harness.tscn",
+  "done_contract": {},
+  "artifact_contract": {
+    "required_files": ["summary.json", "event_log.json", "scene_tree.json", "console.log"],
+    "missing_file_is_failure": true
+  },
+  "exit_codes": {
+    "pass": 0,
+    "assertion_failure": 1,
+    "runtime_error": 2,
+    "timeout": 3,
+    "artifact_generation_error": 4
+  },
+  "cli_contract": {
+    "command_template": "godot --path <project> -- --test-mode --scenario <path> --artifacts <dir>"
+  },
+  "steps": [
+    { "op": "load_harness" },
+    { "op": "wait_frames", "frames": 275 },
+    { "op": "checkpoint", "name": "gameplay" },
+    { "op": "wait_frames", "frames": 18 },
+    { "op": "checkpoint", "name": "ships" },
+    { "op": "wait_frames", "frames": 25 },
+    { "op": "checkpoint", "name": "turn_summary" },
+    {
+      "op": "assert_value",
+      "checkpoint": "gameplay",
+      "path": "harness_state.phase",
+      "comparator": "eq",
+      "expected": "gameplay"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "gameplay",
+      "path": "harness_state.active_modal",
+      "comparator": "eq",
+      "expected": ""
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "ships",
+      "path": "harness_state.phase",
+      "comparator": "eq",
+      "expected": "ships"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "turn_summary",
+      "path": "harness_state.phase",
+      "comparator": "eq",
+      "expected": "turn_summary"
+    },
+    {
+      "op": "assert_value",
+      "checkpoint": "turn_summary",
+      "path": "harness_state.turn_summary_visible",
+      "comparator": "eq",
+      "expected": true
+    },
+    { "op": "quit" }
+  ]
+}
